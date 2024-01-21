@@ -6,7 +6,7 @@
 
 - Download the lci-scripts folder from git
 ```bash
-git clone git@github.com:ncsa/lci-scripts.git
+git clone https://github.com/ncsa/lci-scripts.git 
 ```
 
 - Copy folder SSH_hostbased into your home directory:
@@ -51,3 +51,5 @@ sudo ansible-playbook host_based_ssh.yml
 - Check if you can ssh as user rocky to nodes lci-compute-01-1 and lci-compute-01-2 without password.
 
 You should be able to ssh between the nodes and elevate privileges to root via `sudo`.
+
+- To remove the SSH host based authentication settings, there is playbook ```remove_host_based_ssh.yml```
