@@ -4,21 +4,7 @@
 
 - Setting up ssh host-based authentication and Ansible cluster management. Learn how to use Ansible to  deploy software packages on the head node.
 
-### Steps:
-
-Install Ansible and configure Ansible environment on the head node.
-
-Setting ssh host-based authentication.
-
-Use Ansible playbooks to:
-
- - Install packages.
-
- - Set time synchronization.
-
- - Configure NFS exports.
-
-<hr>
+### Lab Steps:
 
 - ```ssh``` to the head node.
 
@@ -26,6 +12,18 @@ Use Ansible playbooks to:
 ```bash
 git clone https://github.com/ncsa/lci-scripts.git 
 ```
+
+- Install Ansible and configure Ansible environment on the head node.
+
+- Setting ssh host-based authentication.
+
+- Use Ansible playbooks to:
+
+    - Install packages.
+
+    - Set time synchronization.
+
+    - Configure NFS exports.
 
 <hr>
 
@@ -115,7 +113,7 @@ You should be able to ssh between the nodes and elevate privileges to root via `
 
 <hr>
 
-### Installation roles an tasks on the head node.
+## Installation roles an tasks on the head node.
 
 By performing the roles below on the head node, we
 
@@ -165,4 +163,4 @@ Check if the NFS server exports directory /head/NFS to the compute nodes:
 showmount -e
 ```
 
-
+It should show the exportd directory and the clients.
