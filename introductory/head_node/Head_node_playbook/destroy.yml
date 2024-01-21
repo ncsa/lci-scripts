@@ -1,5 +1,5 @@
 ---
-####### All play ############
+####### The head node play ############
 - name: Remove the lab related packages and directories 
   become: yes
   hosts: head
