@@ -164,3 +164,5 @@ showmount -e
 ```
 
 It should show the exportd directory and the clients.
+
+The installed packages, files, and directories in this lab can be removed via playbook destroy.yml
