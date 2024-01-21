@@ -1,6 +1,6 @@
-# Lab steps, scripts, and playbooks related to the Head node lab .
+# Steps, scripts, and playbooks related to the Head node lab .
 
-- SSH to the head node.
+- ```ssh``` to the head node.
 
 ## Host based SSH authentication setup on the cluster
 
