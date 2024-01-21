@@ -2,13 +2,24 @@
 
 - ```ssh``` to the head node.
 
-## Host based SSH authentication setup on the cluster
-
 - Download the lci-scripts folder from git
 ```bash
 git clone https://github.com/ncsa/lci-scripts.git 
 ```
 
+## Host based SSH authentication setup on the cluster
+
+### Motivation
+There are three commonly used SSH authentication techniques:
+
+   - user name and password
+   - public/private keys
+   - host based
+
+We need to setup a host based authrntication for all the users on the cluster to be able 
+ to run MPI on the compute nodes.
+
+### Steps
 - Copy folder SSH_hostbased into your home directory:
 ```bash
 cp -a lci-scripts/introductory/SSH_hostbased .
