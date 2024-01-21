@@ -17,7 +17,7 @@ By performing the tasks below on the compute nodes, we
 - Copy folder Compute_node_playbook into your home directory:
 ```bash
 cd
-cp lci-scripts/introductory/compute_nodes/Compute_node_playbook .
+cp -a lci-scripts/introductory/compute_nodes/Compute_node_playbook .
 cd Compute_node_playbook
 ```
 
