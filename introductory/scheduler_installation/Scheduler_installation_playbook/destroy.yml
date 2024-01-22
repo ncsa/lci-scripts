@@ -1,0 +1,82 @@
+---
+####### Compute node play ############
+- name: Remove the SLURM related packages and directories 
+  vars_files: group_vars/cluster_params.yml
+  become: yes
+  hosts:  all_nodes
+  tasks:
+
+    - name: stop services
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      with_items:
+        - slurmd 
+        - munge 
+
+    - name: uninstall slurm
+      ansible.builtin.dnf:
+        name:  "{{ item }}"
+        state: absent
+      with_items:
+        - slurm-slurmd
+        - slurm-libpmi
+        - slurm
+        - slurm-perlapi
+        - slurm-libs
+        - munge
+
+    - name: remove files
+      ansible.builtin.file:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - /etc/slurm
+        - /etc/munge
+        - /var/log/slurm 
+
+####### Head node play ############
+- name: Remove the SLURM related packages and directories 
+  vars_files: group_vars/cluster_params.yml
+  become: yes
+  hosts: head
+  tasks:
+
+    - name: stop services
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      with_items:
+        - slurmctld
+        - slurmdbd
+        - munge 
+
+    - name: uninstall slurm
+      ansible.builtin.dnf:
+        name:  "{{ item }}"
+        state: absent
+      with_items:
+        - slurm-slurmdbd
+        - slurm-slurmctld
+        - slurm-devel
+        - slurm-example-configs
+        - slurm-libpmi
+        - slurm
+        - slurm-perlapi
+        - slurm-libs
+        - munge
+
+    - name: remove files
+      ansible.builtin.file:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - /etc/slurm
+        - /etc/munge
+        - /var/log/slurm 
+        - "roles/slurmd/files/slurm-*.rpm"
+        - roles/slurm-rpm-build/files/slurm-{{ slurm_vers }}.tar.bz2
+        - /tmp/rpmbuild
+
