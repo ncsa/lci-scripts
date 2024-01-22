@@ -1,0 +1,29 @@
+  - name: Create & change ownership of /var/spool/slurm directory
+    file:
+      path: /var/spool/slurm
+      state: directory
+      owner: slurm
+      group: slurm
+      mode: 0755
+
+  - name: Create & change ownership of /var/spool/slurmctld directory
+    file:
+      path: /var/spool/slurmctld
+      state: directory
+      owner: slurm
+      group: slurm
+      mode: 0755
+
+  - name: Create /var/spool/slurm/cluster_state directory
+    file:
+      path: /var/spool/slurm/cluster_state
+      state: directory
+      owner: slurm
+      group: slurm  
+
+  - name: Create /var/log/slurm directory
+    file:
+      path: /var/log/slurm
+      state: directory
+      owner: slurm
+      group: slurm  
