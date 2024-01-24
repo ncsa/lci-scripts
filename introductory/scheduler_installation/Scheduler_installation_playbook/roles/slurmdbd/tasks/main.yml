@@ -1,0 +1,32 @@
+  - name: Restart mariadb service
+    ansible.builtin.service:
+      name: mariadb
+      state: restarted
+
+  - name: Create a new database named slurm_acct_db
+    community.mysql.mysql_db:
+      name: slurm_acct_db
+      state: present
+
+  - name: Create database user slurm with slurm_acct_db privileges
+    community.mysql.mysql_user:
+      name: slurm
+      password: "{{ db_pwd }}"
+      priv: 'slurm_acct_db.*:all,GRANT'
+      state: present
+
+  - name: Restart slurmdbd service
+    ansible.builtin.service:
+      name: slurmdbd
+      enabled: yes
+      state: restarted
+
+  - name: Restart slurmctld service
+    ansible.builtin.service:
+      name: slurmctld
+      enabled: yes
+      state: restarted
+
+  - name: Create slurm cluster name {{ cluster_name }} 
+    ansible.builtin.command: /usr/bin/sacctmgr -i add cluster {{ cluster_name }} 
+    ignore_errors: True
