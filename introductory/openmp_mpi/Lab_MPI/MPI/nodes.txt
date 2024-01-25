@@ -1,0 +1,2 @@
+lci-compute-01-1 slots=2
+lci-compute-01-2 slots=2
