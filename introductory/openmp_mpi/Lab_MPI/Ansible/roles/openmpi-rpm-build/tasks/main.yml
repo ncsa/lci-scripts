@@ -6,7 +6,7 @@
 - name: If it does not exist, download from the internet 
   ansible.builtin.get_url:
     url: https://github.com/openpmix/prrte/releases/download/v{{ prtte_version }}/prrte-{{ prtte_version }}-1.src.rpm
-    dest: roles/openmpi-rpm-build/files
+    dest: roles/openmpi-rpm-build/files/prrte-{{ prtte_version }}-1.src.rpm
   when: not file_prrte_srcrpm.stat.exists 
 
 - name: Checking to see if prrte rpm has already been created
@@ -33,7 +33,7 @@
 - name: If it does not exist, download from the internet 
   ansible.builtin.get_url:
     url: https://download.open-mpi.org/release/open-mpi/v{{ openmpi_base_version }}/openmpi-{{ openmpi_version }}-1.src.rpm
-    dest: roles/openmpi-rpm-build/files
+    dest: roles/openmpi-rpm-build/files/openmpi-{{ openmpi_version }}-1.src.rpm
   when: not file_openmpi_srcrpm.stat.exists 
 
 - name: Checking to see if openmpi rpm has already been created
