@@ -1,0 +1,50 @@
+############## Compute node play ###############################
+- name: Compute node host-based SSH configuration
+  hosts: all_nodes
+  tasks:
+
+     - name: copy sshd scripts for host based authentication
+       ansible.builtin.file:
+         path: "{{ item }}"
+         state: absent 
+       with_items:
+         - /etc/ssh/ssh_config.d/ssh_lci.conf'
+         - /etc/ssh/sshd_config.d/sshd_lci.conf
+         - /etc/ssh/ssh_known_hosts
+         - /etc/hosts.equiv
+         - /tmp/.ansible_rocky
+         - /tmp/.ansible_root
+       ignore_errors: True
+       tags: remove_ssd_files
+
+     - name: Add host_based auth content into sshd_config if Include is absent 
+       ansible.builtin.blockinfile: 
+         path: /etc/ssh/sshd_config 
+         marker: "# {mark} ANSIBLE MANAGED BLOCK" 
+         block: ""
+
+     - name: Restart SSH service on the nodes
+       ansible.builtin.service:
+         name: sshd
+         state: reloaded
+
+############## Head node play ##################################
+- name: Head node SSH host-based client removal 
+  hosts: head
+  become: true
+  gather_facts: false 
+  tasks: 
+
+    - name: delete scripts for host based authentication
+      ansible.builtin.file:
+        path: "{{ item }}" 
+        state: absent
+      with_items:
+        - /etc/ssh/ssh_config.d/ssh_lci.conf
+        - /etc/ssh/ssh_known_hosts
+        - /tmp/.ansible_rocky
+        - /tmp/.ansible_root
+      ignore_errors: True
+      tags: remove_ssh_files
+        
+
