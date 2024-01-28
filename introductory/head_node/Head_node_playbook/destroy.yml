@@ -12,6 +12,7 @@
       with_items:
         - mariadb 
         - nfs-server
+      ignore_errors: True
 
     - name: uninstall pkgs 
       ansible.builtin.dnf:
@@ -42,3 +43,6 @@
         - /etc/exports
         - /var/lib/mysql
 
+    - name: Disable the powertools repo
+      ansible.builtin.command:
+        cmd: dnf config-manager --set-disabled powertools

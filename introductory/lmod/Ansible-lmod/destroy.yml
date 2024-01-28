@@ -18,4 +18,5 @@
         state: absent
       with_items:
         - /usr/share/lmod 
+        - /opt/apps
 
