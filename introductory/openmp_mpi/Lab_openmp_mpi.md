@@ -328,7 +328,7 @@ mpicc -o nonb_send_receive.x nonb_send_receive.c
 mpirun -n 2 -hostfile nodes.txt nonb_send_receive.x
 ```
 
-Compile `mpi_reduce.c` and run on 8 processors:
+Compile `mpi_reduce.c` and run on 4 processors:
 
 ```bash
 mpicc -o mpi_reduce.x mpi_reduce.c 
