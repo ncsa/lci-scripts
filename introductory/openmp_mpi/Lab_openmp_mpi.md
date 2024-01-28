@@ -16,7 +16,6 @@
 
 - Compile and run MPI applications.
 
-- Performance scalability of MPI applications.
 
 
 
