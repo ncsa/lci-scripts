@@ -12,6 +12,7 @@
       with_items:
         - mariadb 
         - nfs-server
+        - nfs-utils
       ignore_errors: True
 
     - name: uninstall pkgs 
@@ -34,6 +35,7 @@
         - munge-libs
         - "mariadb-*"
         - epel-release 
+        - nfs-utils
 
     - name: remove files
       ansible.builtin.file:
