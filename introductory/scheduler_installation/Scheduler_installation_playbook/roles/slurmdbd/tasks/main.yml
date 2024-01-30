@@ -27,6 +27,12 @@
       enabled: yes
       state: restarted
 
+  - name: Check if the cluster account has already been created in mysql
+    ansible.builtin.shell: |
+      sacctmgr list associations format=cluster
+    register: saccmgr_output
+
   - name: Create slurm cluster name {{ cluster_name }} 
     ansible.builtin.command: /usr/bin/sacctmgr -i add cluster {{ cluster_name }} 
+    when: saccmgr_output.stdout.find(  cluster_name ) == -1
     ignore_errors: True
