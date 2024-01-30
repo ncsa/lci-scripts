@@ -42,11 +42,11 @@ We create account (group) lci2024:
 sudo sacctmgr -i add account lci2024 Description="LCI 2024 workshop"
 ```
 
-We create users `mpiuser` and `instructor` and assign them to cluster "cluster" and account (group) lci2024:
+We create users `mpiuser` and `rocky` and assign them to cluster "cluster" and account (group) lci2024:
 
 ```bash
 sudo sacctmgr -i create user name=mpiuser cluster=cluster account=lci2024
-sudo sacctmgr -i create user name=instructor cluster=cluster account=lci2024
+sudo sacctmgr -i create user name=rocky cluster=cluster account=lci2024
 ```
 
 Check the accounts and users:
