@@ -66,6 +66,19 @@ sudo whoami
 cat /etc/hosts
 ```
 
+- Fix the head node hostname to match that for the 192.168.45. interface:
+```bash
+correct_hostname=$(grep lci-head-[0-9][0-9]-1$ /etc/hosts | cut -f 2)
+```
+It should be lci-head, followed by two numbers.
+```bash
+echo $correct_hostname
+```
+Change the hostname:
+```bash
+sudo hostnamectl set-hostname $correct_hostname
+```
+
 - SSH connection to the compute nodes:
   - passwordless for root
   - needs password for users
