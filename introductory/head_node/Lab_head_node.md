@@ -12,6 +12,7 @@ Enable Redhat powertools. Configure NFS server for user home directoris.
 
 **Steps:** 
 
+- Fixing the host name on the head node.
 - Setting ssh host-based authentication.
 - Install Ansible and configure Ansible environment for the cluster.
 - Use Ansible playbooks to:
@@ -190,12 +191,14 @@ Generate file hosts.equiv and ssh_known_hosts by running two shell scripts:
 ./ssh_key_scan.sh
 ```
 
+Fix the compute node hostnames in the inventory files, hosts.ini.
+
 Run the playbook:
 
 ```bash
 sudo ansible-playbook host_based_ssh.yml
 ```
-Check if you can ssh as user rocky to nodes `lci-compute-01-1` and `lci-compute-01-2` without password.
+Check if you can ssh as user rocky to nodes `lci-compute-xx-1` and `lci-compute-xx-2` without password.
 
 You should be able to ssh between the nodes and elevate privileges to root via sudo.
 
@@ -293,6 +296,7 @@ The above is accomplished with the tasks in role `head-node_nfs_server`.
 
 ***
 ### Run Ansible playbook
+Fix the hostnames of the compute nodes in file hosts.ini
 
 ```bash
 ansible-playbook playbook.yml
