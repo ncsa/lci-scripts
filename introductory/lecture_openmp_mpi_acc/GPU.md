@@ -1,85 +1,14 @@
+## Introduction to parallel programming techniques
 
-<style type="text/css">
-    /* 1. Style header/footer <div> so they are positioned as desired. */
-    #header-left {
-        position: absolute;
-        top: 2.5%;
-        left: 2.5%;
-    }
-    #header-right {
-        position: absolute;
-        top: 2.5%;
-        right: 2.5%;
-    }
-    
-    #footer-left {
-        position: absolute;
-        bottom: 2.5%;
-        left: 2.5%;
-    }
-    
-    #footer-right {
-        position: absolute;
-        bottom: 2.5%;
-        right: 2.5%;
-    }
-    
-</style>
-
-<!-- 2. Create hidden header/footer <div> -->
-<div id="hidden" style="display:none;">
-    <div id="header">
-        <div id="header-left"><font size=1 color='D33513'> <i>Feb 7 2024:   <b>OpenACC</b></i></font> </div>
-        <div id="header-right"><img src="LCI_logo.png" width="180"></div>
-    </div>
-</div>
-
-<script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
-<script type="text/javascript">
-    // 3. On Reveal.js ready event, copy header/footer <div> into each `.slide-background` <div>
-    var header = $('#header').html();
-    if ( window.location.search.match( /print-pdf/gi ) ) {
-        Reveal.addEventListener( 'ready', function( event ) {
-            $('.slide-background').append(header);
-        });
-    }
-    else {
-        $('div.reveal').append(header);
-   }
-</script>
+## Part III:  OpenACC
 
 
+Alan Chapman
 
-<br><br><br>
-<center>
-<font size=7 color='D33513'> Linux Cluster Institute: </font>
-</center>
-<br>
-<center>
-<font size=6 color='D33513'>
-Introduction to parallel programming techniques
-<br>
-Part III:  OpenACC
-
-</font>
-
-</center>
-
-
-<br><br>
-
-
-<center>
-    Alan Chapman
-    </center>
-    <center>
 HPC Systems Analyst
-    </center>
-    <center>
+
 Arizona State University
-    </center>
     
-<br><br>
 
 ***
 
