@@ -173,8 +173,8 @@ Change directory to MPI, and run `mpi_heat2D.x` through `srun` with 4, 6, and 8 
 ```bash
 cd 
 cd MPI
-srun --mpi==pmix -n 4  mpi_heat2D.x
-srun --mpi==pmix_v4 -n 4  mpi_heat2D.x
+srun --mpi=pmix -n 4  mpi_heat2D.x
+srun --mpi=pmix_v4 -n 4  mpi_heat2D.x
 ```
 
 Run command `sacct` to check out the job accounting:
