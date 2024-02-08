@@ -3,31 +3,22 @@
 
 
 
-<center>
-Linux Cluster Institute: 
-</center>
+# Linux Cluster Institute: 
 <br>
-<center>
-Lmod, A Modern
+# Lmod, A Modern
 
-Environment Module System
+# Environment Module System
 
 
-</center>
 
 
 <br><br>
 
-<center>
-Alexei Kotelnikov, PhD 
-    </center>
-    <center>
+Alexei Kotelnikov 
+
 School of Engineering,  
 Rutgers University
-    </center>
-    <center>   
     https://ecs.rutgers.edu
-    </center>
 
 
 
