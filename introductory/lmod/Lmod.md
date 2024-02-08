@@ -253,7 +253,7 @@ ml lammps
 
 
 
-- Unloading the base module, gcc/8.5.0, will deactivate the others, openmpi/4.1.4 and lammps:
+- Unloading the base module, gcc/8.5.0, will deactivate the others, openmpi/5.0.1 and lammps:
 ```bash 
 module unload gcc/8.5.0
 ```
@@ -335,7 +335,7 @@ modulefiles/
 ```c
 -- -*- lua -*-
 
-help([[ This is a gcc 8.5.0 compiler, came with Red Hat 8.6 packages]])
+help([[ This is a gcc 8.5.0 compiler, came with Red Hat 8.9 packages]])
 
 -- Local variables
 local version = "8.5.0"
