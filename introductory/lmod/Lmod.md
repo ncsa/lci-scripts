@@ -338,14 +338,14 @@ modulefiles/
 help([[ This is a gcc 8.5.0 compiler, came with Red Hat 8.9 packages]])
 
 -- Local variables
-local version = "8.5.0"
+version = "8.5.0"
 
 -- Whatis description
 whatis("Description: GCC compiler") 
 
 -- Setup Modulepath for packages built by this compiler
-local mroot = os.getenv("MODULEPATH_ROOT")
-local mdir = pathJoin(mroot,"Compiler/gcc", version)
+mroot = os.getenv("MODULEPATH_ROOT")
+mdir = pathJoin(mroot,"Compiler/gcc", version)
 prepend_path("MODULEPATH", mdir)
  
  
