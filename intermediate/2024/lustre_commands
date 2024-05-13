@@ -43,13 +43,13 @@ lfs mkdir –o 02775 /lustre/lci/home && lfs mkdir –o 02775 /lustre/lci/scratc
 ## Assign project ids to these areas
 lfs project –p 1 –s –r /lustre/lci/home && lfs project –p 2 –s –r /lustre/lci/scratch
 
-## Enable Quotas (from compute node)
+## Enable Quotas (from lci-storage-XX-1)
 lctl conf_param lci.quota.ost=ugp
 lctl conf_param lci.quota.mdt=ugp 
 
 ## From one of your compute nodes set some quotas (user and project)
 lfs setquota –u 1000 –b 2G –B 4G –i 1000 –I 1500 /lustre/lci
-lfs setquota –p 1 –b 9GB –B 10G –i 10000 -I 11000 /lustre/lci
+lfs setquota –p 1 –b 9G -B 10G -i 10000 -I 110000 /lustre/cli
 
 ## Sync in data from head node
 rsync -avP lci@levi2.ncsa.Illinois.edu:/gideon/lci/* /lustre/lci/scratch
