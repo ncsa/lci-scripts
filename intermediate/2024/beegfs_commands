@@ -64,6 +64,13 @@ dd if=/dev/random of=/etc/beegfs/connauthfile bs=128 count=1
 chown root:root /etc/beegfs/connauthfile
 chmod 400 /etc/beegfs/connauthfile
 
+## Tell the BeeGFS services about your connauthfile
+# On lci-head-XX-1 and lci-compute-XX-[1-2] edit /etc/beegfs/beegfs-client.conf and /etc/beegfs/beegfs-helperd set connAuthFile = /etc/beegfs/connauthfile
+
+# On lci-storage-XX-1 edit /etc/beegfs/beegfs-meta.conf and /etc/beegfs/beegfs-mgmtd.conf set connAuthFile = /etc/beegfs/connauthfile
+
+# On lci-storage-XX-[2-4] edit /etc/beegfs/beegfs-storage.conf set connAuthFile = /etc/beegfs/connauthfile
+
 ## Copy key to all nodes
 rsync -avP /etc/beegfs/connauthfile lci-storage-XX-[1-4]:/etc/beegfs/
 rsync -avP /etc/beegfs/connauthfile lci-compute-XX-[1-2]:/etc/beegfs/
