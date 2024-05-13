@@ -1,0 +1,90 @@
+## Install RPMs on proper machines:
+# lci-storage-XX-1
+dnf install beegfs-mgmtd
+dnf install beegfs-meta 
+
+# lci-storage-XX-[2-4]
+dnf install beegfs-storage
+
+## Format and mount management target and metadata target on lci-storage-XX-1
+mkfs.ext4 /dev/vdb
+mkfs.ext4 /dev/vdc
+mkdir -p /mnt/mgt
+mkdir -p /mnt/mdt
+mount /dev/vdb /mnt/mgt
+mount /dev/vdc /mnt/mdt
+
+## Format and mount the OSTs on lci-storage-XX-[2-4]
+# lci-storage-XX-2
+mkfs.xfs /dev/vdb
+mkfs.xfs /dev/vdc
+mkdir -p /mnt/ost0
+mkdir -p /mnt/ost1
+mount /dev/vdb /mnt/ost0
+mount /dev/vdc /mnt/ost1
+
+# lci-storage-XX-3
+mkfs.xfs /dev/vdb
+mkfs.xfs /dev/vdc
+mkdir -p /mnt/ost2
+mkdir -p /mnt/ost3
+mount /dev/vdb /mnt/ost2
+mount /dev/vdc /mnt/ost3
+
+# lci-storage-XX-4
+mkfs.xfs /dev/vdb
+mkfs.xfs /dev/vdc
+mkdir -p /mnt/ost4
+mkdir -p /mnt/ost5
+mount /dev/vdb /mnt/ost4
+mount /dev/vdc /mnt/ost5
+
+## Setup mgmt and metadata services (lci-storage-XX-1)
+/opt/beegfs/sbin/beegfs-setup-mgmtd -p /mnt/mgt/beegfs/beegfs_mgmtd
+/opt/beegfs/sbin/beegfs-setup-meta -p /mnt/mdt/beegfs/beegfs_meta -s 2 -m lci-storage-XX-1
+
+## Setup ost services (lci-storage-XX-[2-4])
+# lci-storage-XX-2
+/opt/beegfs/sbin/beegfs-setup-storage -p /mnt/ost0/beegfs_storage -s 3 -i 301 -m lci-storage-XX-1
+/opt/beegfs/sbin/beegfs-setup-storage -p /mnt/ost1/beegfs_storage -s 3 -i 302 -m lci-storage-XX-1
+
+# lci-storage-XX-3
+/opt/beegfs/sbin/beegfs-setup-storage -p /mnt/ost2/beegfs_storage -s 4 -i 401 -m lci-storage-XX-1
+/opt/beegfs/sbin/beegfs-setup-storage -p /mnt/ost3/beegfs_storage -s 4 -i 402 -m lci-storage-XX-1
+
+# lci-storage-XX-4
+/opt/beegfs/sbin/beegfs-setup-storage -p /mnt/ost4/beegfs_storage -s 5 -i 501 -m lci-storage-XX-1
+/opt/beegfs/sbin/beegfs-setup-storage -p /mnt/ost5/beegfs_storage -s 5 -i 502 -m lci-storage-XX-1
+
+## Setup the compute nodes; do the following on *each* compute node and head node
+/opt/beegfs/sbin/beegfs-setup-client -m lci-storage-XX-1
+
+## Setup Conn Auth - on head node (lci-head-XX-1) generate the key and set perm
+dd if=/dev/random of=/etc/beegfs/connauthfile bs=128 count=1
+chown root:root /etc/beegfs/connauthfile
+chmod 400 /etc/beegfs/connauthfile
+
+## Copy key to all nodes
+rsync -avP /etc/beegfs/connauthfile lci-storage-XX-[1-4]:/etc/beegfs/
+rsync -avP /etc/beegfs/connauthfile lci-compute-XX-[1-2]:/etc/beegfs/
+
+## 
+
+## Start services
+# lci-storage-XX-1
+systemctl start beegfs-mgmtd
+systemctl start beegfs-meta
+
+# lci-storage-XX-[2-4]
+systemctl start beegfs-storage
+
+#lci-compute-XX-[1-2] and lci-head-XX-1
+systemctl start beegfs-helperd
+systemctl start beegfs-client
+
+## Make home and scratch areas (from compute)
+mkdir -p /mnt/beegfs/home && mkdir -p /mnt/beegfs/scratch
+
+## Sync in test data from *the head node*
+rsync -avP lci@levi2.ncsa.Illinois.edu:/gideon/lci/* /mnt/beegfs/scratch
+

@@ -1,0 +1,101 @@
+## Push out root RSA key to storage nodes; from head node run (replace XX with cluster number):
+rsync -avP ~/.ssh/id_rsa lci-storage-XX-1:/root/.ssh/
+rsync -avP ~/.ssh/id_rsa lci-storage-XX-2:/root/.ssh/
+rsync -avP ~/.ssh/id_rsa lci-storage-XX-3:/root/.ssh/
+rsync -avP ~/.ssh/id_rsa lci-storage-XX-4:/root/.ssh/
+
+## Jump over to your lci-storage-XX-1 host via SSH as root
+
+## create the file ~/lci_storage_nodes on lci-storage-XX-1 (replace XX with your cluster number)
+lci-storage-XX-1:quorum
+lci-storage-XX-2:quorum
+lci-storage-XX-3:quorum
+lci-storage-XX-4
+
+## Create the cluster
+mmcrcluster -N ~/lci_storage_nodes -r `which ssh` -R `which scp` -C lci
+
+## Remove the ":quorum" strings from the ~/lci_storage_nodes file
+
+## License servers
+mmchlicense server --accept -N ~/lci_storage_nodes
+
+## Create compute node text file, add the following to ~/lci_compute_nodes (replace XX with your cluster number):
+lci-compute-XX-1
+lci-compute-XX-2
+
+## Add nodes
+mmaddnode -N ~/lci_compute_nodes
+
+## Show cluster members
+mmlscluster
+
+## Create some node groups
+mmcrnodeclass nsdnodes -N lci-storage-XX-1,lci-storage-XX-2,lci-storage-XX-3,lci-storage-XX-4
+mmcrnodeclass clients -N lci-compute-XX-1,lci-compute-XX-2
+
+## Create a stanza file called: ~/lci_nsds on your lci-storage-XX-1 host, there should be a stanza entry for *each* disk (8 total) a sample looks like
+
+%nsd:
+  device=/dev/vdb
+  nsd=storage1_disk_1
+  servers=lci-storage-XX-1
+  usage=dataAndMetadata
+  failureGroup=1
+  
+## Create the NSDs in Storage Scale
+mmcrnsd –F ~/lci_nsds 
+
+## Confirm disks created
+mmlsnsd
+
+## Set kernel modules to autobuild
+mmchconfig autobuildgpl=yes
+
+## Startup Servers
+mmstartup -N nsdnodes
+
+## Wait until all nodes come active as shown by:
+mmgetstate -N nsdnodes
+
+## Create a file system
+mmcrfs lci –F ~/lci_nsds –B 1M –m 1 -r 1 –Q yes –T /gpfs/lci  
+
+## Mount file system on all NSD nodes
+mmmount lci –N nsdnodes
+
+## Startup GPFS on compute nodes and mount the FS
+mmstartup –N clients && mmmount lci –N clients
+
+## Create a home and scratch fileset
+mmcrfileset lci home --inode-space=new
+mmcrfileset lci scratch --inode-space=new
+
+## Link them into the FS tree
+mmlinkfileset lci home -J /gpfs/lci/home
+mmlinkfileset lci scratch -J /gpfs/lci/scratch
+
+## Set a default home directory quota of 5GB per user
+mmsetquota lci:home --default user –block 5G:5G
+
+## Limit the scratch area to 15GB total
+mmsetquota lci:scratch --block 15G:15G
+
+## Sync in test data from *the head node*
+rsync -avP lci@levi2.ncsa.Illinois.edu:/gideon/lci/* /gpfs/lci/scratch 
+
+## Confirm utilization as seen by quota utility
+mmrepquota -j lci --block-size=auto
+
+## Check out NSD capacities
+mmdf lci
+
+## Suspend a LUN just as a test
+mmchdisk lci suspend –d “storage2_disk0”
+
+## Remove that disk to shrink the FS
+mmdeldisk lci “storage2_disk0” –r –N nsdnodes
+
+## Check NSD capacities again and you can see data got redistributed
+mmdf lci
+
