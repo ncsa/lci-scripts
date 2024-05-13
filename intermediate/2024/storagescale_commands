@@ -31,7 +31,7 @@ mmaddnode -N ~/lci_compute_nodes
 mmlscluster
 
 ## Create some node groups
-mmcrnodeclass nsdnodes -N lci-storage-XX-1,lci-storage-XX-2,lci-storage-XX-3,lci-storage-XX-4
+mmcrnodeclass coreio -N lci-storage-XX-1,lci-storage-XX-2,lci-storage-XX-3,lci-storage-XX-4
 mmcrnodeclass clients -N lci-compute-XX-1,lci-compute-XX-2
 
 ## Create a stanza file called: ~/lci_nsds on your lci-storage-XX-1 host, there should be a stanza entry for *each* disk (8 total) a sample looks like
@@ -53,16 +53,16 @@ mmlsnsd
 mmchconfig autobuildgpl=yes
 
 ## Startup Servers
-mmstartup -N nsdnodes
+mmstartup -N coreio
 
 ## Wait until all nodes come active as shown by:
-mmgetstate -N nsdnodes
+mmgetstate -N coreio
 
 ## Create a file system
 mmcrfs lci –F ~/lci_nsds –B 1M –m 1 -r 1 –Q yes –T /gpfs/lci  
 
 ## Mount file system on all NSD nodes
-mmmount lci –N nsdnodes
+mmmount lci –N coreio
 
 ## Startup GPFS on compute nodes and mount the FS
 mmstartup –N clients && mmmount lci –N clients
@@ -94,7 +94,7 @@ mmdf lci
 mmchdisk lci suspend –d “storage2_disk0”
 
 ## Remove that disk to shrink the FS
-mmdeldisk lci “storage2_disk0” –r –N nsdnodes
+mmdeldisk lci “storage2_disk0” –r –N coreio
 
 ## Check NSD capacities again and you can see data got redistributed
 mmdf lci
