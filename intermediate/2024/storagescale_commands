@@ -44,7 +44,7 @@ mmcrnodeclass clients -N lci-compute-XX-1,lci-compute-XX-2
   failureGroup=1
   
 ## Create the NSDs in Storage Scale
-mmcrnsd –F ~/lci_nsds 
+mmcrnsd -F ~/lci_nsds 
 
 ## Confirm disks created
 mmlsnsd
@@ -59,13 +59,13 @@ mmstartup -N coreio
 mmgetstate -N coreio
 
 ## Create a file system
-mmcrfs lci –F ~/lci_nsds –B 1M –m 1 -r 1 –Q yes –T /gpfs/lci  
+mmcrfs lci -F ~/lci_nsds -B 1M -m 1 -r 1 -Q yes -T /gpfs/lci  
 
 ## Mount file system on all NSD nodes
-mmmount lci –N coreio
+mmmount lci -N coreio
 
 ## Startup GPFS on compute nodes and mount the FS
-mmstartup –N clients && mmmount lci –N clients
+mmstartup -N clients && mmmount lci -N clients
 
 ## Create a home and scratch fileset
 mmcrfileset lci home --inode-space=new
@@ -76,7 +76,7 @@ mmlinkfileset lci home -J /gpfs/lci/home
 mmlinkfileset lci scratch -J /gpfs/lci/scratch
 
 ## Set a default home directory quota of 5GB per user
-mmsetquota lci:home --default user –block 5G:5G
+mmsetquota lci:home --default user -block 5G:5G
 
 ## Limit the scratch area to 15GB total
 mmsetquota lci:scratch --block 15G:15G
@@ -91,10 +91,10 @@ mmrepquota -j lci --block-size=auto
 mmdf lci
 
 ## Suspend a LUN just as a test
-mmchdisk lci suspend –d “storage2_disk0”
+mmchdisk lci suspend -d “storage2_disk0”
 
 ## Remove that disk to shrink the FS
-mmdeldisk lci “storage2_disk0” –r –N coreio
+mmdeldisk lci “storage2_disk0” -r -N coreio
 
 ## Check NSD capacities again and you can see data got redistributed
 mmdf lci
