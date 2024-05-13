@@ -48,8 +48,8 @@ lctl conf_param lci.quota.ost=ugp
 lctl conf_param lci.quota.mdt=ugp 
 
 ## From one of your compute nodes set some quotas (user and project)
-lfs setquota –u 1000 –b 2G –B 4G –i 1000 –I 1500 /lustre/lci
-lfs setquota –p 1 –b 9G -B 10G -i 10000 -I 110000 /lustre/cli
+lfs setquota –u 1000 –b 2G –B 4G –i 1200 –I 1500 /lustre/lci
+lfs setquota –p 1 –b 9G -B 10G -i 10000 -I 110000 /lustre/lci
 
 ## Sync in data from head node
 rsync -avP lci@levi2.ncsa.Illinois.edu:/gideon/lci/* /lustre/lci/scratch
