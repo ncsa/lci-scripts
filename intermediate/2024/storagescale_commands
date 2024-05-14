@@ -63,6 +63,7 @@ mmgetstate -N coreio
 
 ## Create a file system
 mmcrfs lci -F ~/lci_nsds -B 1M -m 1 -r 1 -Q yes -T /gpfs/lci  
+mmchfs lci --perfileset-quota --filesetdf
 
 ## Mount file system on all NSD nodes
 mmmount lci -N coreio
