@@ -80,7 +80,7 @@ mmlinkfileset lci home -J /gpfs/lci/home
 mmlinkfileset lci scratch -J /gpfs/lci/scratch
 
 ## Set a default home directory quota of 5GB per user
-mmsetquota lci:home --default user -block 5G:5G
+mmsetquota lci:home --default user --block 5G:5G
 
 ## Limit the scratch area to 15GB total
 mmsetquota lci:scratch --block 15G:15G
