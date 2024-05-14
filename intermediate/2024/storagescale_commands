@@ -27,6 +27,9 @@ lci-compute-XX-2
 ## Add nodes
 mmaddnode -N ~/lci_compute_nodes
 
+## License clients
+mmchlicense client --accept -N ~/lci_compute_nodes
+
 ## Show cluster members
 mmlscluster
 
