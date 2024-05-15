@@ -1,0 +1,119 @@
+# On lci-head-XX-1:
+
+# We're going to use Slurm 23.11.6 even though 24.05.0 has been 
+# released because it was just released and I haven't tried it yet. 
+# It's also never a good idea to use a ".0" release. ;) 
+
+# Install the build prerequisites:
+
+yum install -y \
+  hdf5-devel \
+  hwloc-devel \
+  lua-devel \
+  mariadb-devel \
+  munge-devel \
+  munge-libs \
+  numactl-devel \
+  pam-devel \
+  pkgconf \
+  pmix-devel \
+  readline-devel \
+  ucx-devel
+
+wget https://download.schedmd.com/slurm/slurm-23.11.6.tar.bz2
+
+rpmbuild -ta slurm-23.11.6.tar.bz2 \
+  --with hdf5 \
+  --with hwloc \
+  --with lua \
+  --with numa \
+  --with pmix \
+  --with ucx 
+
+# The RPMs will be in located in ~/rpmbuild/RPMS/x86_64. Copy that RPMS
+# directory to your scratch directory where all the nodes can access
+# them
+
+cp -a ~/rpmbuild/RPMS /mnt/beegfs/scratch/
+
+# Before installing and configuring Slurm, configure and start MUNGE.
+# On the head node, create the munge key and then copy to the compute 
+# nodes 
+
+# Install the munge RPM on the head and compute nodes:
+
+dnf install -y munge
+create-munge-key
+
+# Copy the munge key to the compute nodes 
+
+scp -p /etc/munge/munge.key lci-compute-XX-1:/etc/munge/
+scp -p /etc/munge/munge.key lci-compute-XX-2:/etc/munge/
+
+# On compute nodes, change ownership of /etc/munge/munge.key to 
+# munge:munge
+
+chown munge:munge /etc/munge/munge.key
+
+# Enable and start munge on the head and compute nodes:
+
+systemctl enable munge
+systemctl start munge
+
+# Install the RPMS needed for slurmdbd and slurmctld on the head node
+
+cd /mnt/beegfs/scratch/RPMS/x86_64
+
+dnf install -y \
+  ./slurm-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-contribs-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-devel-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-example-configs-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-perlapi-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-slurmctld-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-slurmdbd-23.11.6-1.el8.x86_64.rpm
+
+
+# Install the RPMs needed on the compute nodes:
+
+cd /mnt/beegfs/scratch/RPMS/x86_64
+
+dnf install -y \
+  ./slurm-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-contribs-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-devel-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-libpmi-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-pam_slurm-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-perlapi-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-slurmd-23.11.6-1.el8.x86_64.rpm
+
+# On the head and compute nodes, create a Slurm system account
+
+
+# Create slurmdbd.conf file. Copy slurmdbd.conf.example 
+# to slurmdbd.conf no changes should be necessary. 
+
+cd /etc/slurm
+cp slurmdbd.conf{.example,}
+
+
+
+# Now edit slurmdbd.conf and make these changes. Change "XX" to your
+# cluster number
+
+ClusterName=lci-XX
+SlurmctldHost=lci-head-XX-1
+RebootProgram=/usr/sbin/reboot
+PriorityWeightAge=1000
+PriorityWeightFairshare=1000
+PriorityWeightJobSize=1000
+PriorityWeightPartition=1000
+PriorityWeightQOS=1000
+
+
+
+# Create cgroup.conf from cgroup.conf.example
+
+cp cgroup.conf{.example,}
+
+# Edit cgroup.cong to make these 
