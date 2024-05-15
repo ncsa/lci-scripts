@@ -12,6 +12,7 @@ gpgkey=https://rpm.grafana.com/gpg.key
 ## Install Grafana and Apache on head node
 dnf install httpd mod_ssl grafana -y
 setenforce 0
+systemctl start grafana-server
 
 ## Create SSL Cert/Key and Fire Up Apache
 openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 3650 -nodes -subj "/C=US/ST=Oklahoma/L=Norman/O=LCI/OU=LCI/CN=lci-head-XX-1.ncsa.cloud"
