@@ -17,6 +17,8 @@ setenforce 0
 openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 3650 -nodes -subj "/C=US/ST=Oklahoma/L=Norman/O=LCI/OU=LCI/CN=lci-head-XX-1.ncsa.cloud"
 mv cert.pem /etc/pki/tls/certs/
 mv key.pem /etc/pki/tls/private/
+
+# Put the following in /etc/httpd/conf.d/lci.conf
 <VirtualHost *:80>
    ServerName lci-head-XX-1.ncsa.cloud
    Redirect / https://lci-head-XX-1.ncsa.cloud
