@@ -9,7 +9,6 @@
 
 dnf  config-manager --enable  powertools
 
-
 # Install the build prerequisites:
 
 yum install -y \
@@ -164,7 +163,7 @@ systemctl start slurmdbd
 
 ClusterName=lci-XX
 SlurmctldHost=lci-head-XX-1
-SlirmctldParameters=enable_configless
+SlurmctldParameters=enable_configless
 DisableRootJobs=YES
 EnforcePartLimits=ALL
 MaxJobCount=1000
