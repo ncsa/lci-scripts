@@ -65,6 +65,7 @@ systemctl start munge
 cd /mnt/beegfs/scratch/RPMS/x86_64
 
 dnf install -y \
+  mailx \
   ./slurm-23.11.6-1.el8.x86_64.rpm \
   ./slurm-contribs-23.11.6-1.el8.x86_64.rpm \
   ./slurm-devel-23.11.6-1.el8.x86_64.rpm \
@@ -72,7 +73,6 @@ dnf install -y \
   ./slurm-perlapi-23.11.6-1.el8.x86_64.rpm \
   ./slurm-slurmctld-23.11.6-1.el8.x86_64.rpm \
   ./slurm-slurmdbd-23.11.6-1.el8.x86_64.rpm
-
 
 # Install the RPMs needed on the compute nodes:
 
@@ -88,32 +88,130 @@ dnf install -y \
   ./slurm-slurmd-23.11.6-1.el8.x86_64.rpm
 
 # On the head and compute nodes, create a Slurm system account
+# On head node: 
 
+adduser --system -m -s /sbin/nologin -d /var/lib/slurm -c "Slurm system account"  slurm
 
-# Create slurmdbd.conf file. Copy slurmdbd.conf.example 
-# to slurmdbd.conf no changes should be necessary. 
+# Create same account on compute nodes, but make sure UID and GUID
+# are the same as on the head node. Check UID and GID on assinged on 
+# head node: 
+
+getent passwd slurm
+slurm:x:990:987:Slurm system account:/var/lib/slurm:/sbin/nologin
+
+# Now on compute nodes:
+
+groupadd -g 987 slurm 
+adduser --system -m -s /sbin/nologin -d /var/lib/slurm -c "Slurm system account" -u 990 -g slurm slurm
+
+# On head node, install the packages needed for MariaDB:
+
+dnf instally -y mariadb mariadb-server
+
+# Enable and start mariadb:
+
+systemctl enable mariadb
+systemctl start mariadb
+
+# Secure the database. Run the command below and set the root password for 
+# The DB to be LCI2024Maria and remove anonymous users, and disallow
+# root logins remotely, and remove test databases
+
+mysql_secure_installation
+
+# Connect to database, permissions for Slurm, and create DB: 
+
+mysql -p 
+MariaDB [(none)]> create user 'slurm'@'localhost' identified by 'LCI2024Slurm';
+MariaDB [(none)]> create user 'slurm'@'lci-head-XX-1' identified by 'LCI2024Slurm';
+MariaDB [(none)]> grant all on slurm_acct_db.* to 'slurm'@'localhost';
+MariaDB [(none)]> grant all on slurm_acct_db.* to 'slurm'@'lci-head-XX-1';
+MariaDB [(none)]> create database slurm_acct_db;
+
+# On head node, Create slurmdbd.conf file. Copy slurmdbd.conf.example 
+# to slurmdbd.conf
 
 cd /etc/slurm
 cp slurmdbd.conf{.example,}
 
+# ... and make the following changes:
 
+StoragePass=LCI2024Slurm
 
-# Now edit slurmdbd.conf and make these changes. Change "XX" to your
-# cluster number
+# Change ownership/permissions on slurmdbd.conf:
+
+chown root:slurm slurmdbd.conf
+chmod 0640 slurmdbd.conf 
+
+# Create log directory for slurm
+
+mkdir /var/log/slurm
+chown slurm:slurm /var/log/slurm
+chmod 0750 /var/log/slurm 
+
+# Enable and start slurmdbd
+
+systemctl enable slurmdbd
+systemctl start slurmdbd
+
+# Now copy slurm.conf.example to slurm.conf make these changes:
 
 ClusterName=lci-XX
 SlurmctldHost=lci-head-XX-1
+DisableRootJobs=YES
+EnforcePartLimits=ALL
+MaxJobCount=1000
+MaxStepCount=2000
 RebootProgram=/usr/sbin/reboot
+TaskPlugin=task/cgroup,task/affinity
 PriorityWeightAge=1000
 PriorityWeightFairshare=1000
 PriorityWeightJobSize=1000
 PriorityWeightPartition=1000
 PriorityWeightQOS=1000
+AccountingStorageEnforce=limits
+AccountingStorageHost=lci-head-42-1
+AccountingStorageType=accounting_storage/slurmdbd
+AccountingStorageUser=slurm
+AccountingStoreFlags=job_script
+SlurmctldLogFile=/var/log/slurm/slurmctld.log
+SlurmdLogFile=/var/log/slurm/slurmd.log
+NodeName=lci-compute-XX-[1-2] CPUs=2 Boards=1 SocketsPerBoard=2 CoresPerSocket=1 ThreadsPerCore=1 RealMemory=7685 State=UNKNOWN
+PartitionName=all Nodes=ALL Default=YES MaxTime=24:00:00 State=U
 
-
-
-# Create cgroup.conf from cgroup.conf.example
+# Create cgroup.conf from cgroup.conf.example (no changes needed)
 
 cp cgroup.conf{.example,}
 
-# Edit cgroup.cong to make these 
+# Set correct ownership/permissions on config files
+
+chown root:slurm *
+chmod 0640 *
+
+# Create directory /var/spool/slurmctld
+
+mkdir /var/spool/slurmctld
+chown slurm:slurm /var/spool/slurmctld
+chmod 0750 /var/spool/slurmctld
+
+# Enable and start slurmctld on head node
+
+systemctl enable slurmctld
+systemctl start slurmctld
+
+# On the compute nodes: 
+
+mkdir /var/log/slurm
+chown slurm:slurm /var/log/slurm
+chmod 0750 /var/log/slurm
+
+# Create /etc/sysconfig/slurmd with the following contents: 
+
+SLURMD_OPTIONS="--conf-server lci-head-XX-1"
+
+# Enable and start slurmd:
+
+systemctl enable slurmd
+systemctl start slurmd
+
+
