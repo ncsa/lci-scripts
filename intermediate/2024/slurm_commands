@@ -4,6 +4,12 @@
 # released because it was just released and I haven't tried it yet. 
 # It's also never a good idea to use a ".0" release. ;) 
 
+# To build Slurm and install Slum with the configuration below, the
+# powertools repo needs to be enabled: 
+
+dnf  config-manager --enable  powertools
+
+
 # Install the build prerequisites:
 
 yum install -y \
@@ -158,6 +164,7 @@ systemctl start slurmdbd
 
 ClusterName=lci-XX
 SlurmctldHost=lci-head-XX-1
+SlirmctldParameters=enable_configless
 DisableRootJobs=YES
 EnforcePartLimits=ALL
 MaxJobCount=1000
