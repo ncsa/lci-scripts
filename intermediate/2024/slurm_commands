@@ -177,14 +177,14 @@ PriorityWeightJobSize=1000
 PriorityWeightPartition=1000
 PriorityWeightQOS=1000
 AccountingStorageEnforce=limits
-AccountingStorageHost=lci-head-42-1
+AccountingStorageHost=lci-head-XX-1
 AccountingStorageType=accounting_storage/slurmdbd
 AccountingStorageUser=slurm
 AccountingStoreFlags=job_script
 SlurmctldLogFile=/var/log/slurm/slurmctld.log
 SlurmdLogFile=/var/log/slurm/slurmd.log
 NodeName=lci-compute-XX-[1-2] CPUs=2 Boards=1 SocketsPerBoard=2 CoresPerSocket=1 ThreadsPerCore=1 RealMemory=7685 State=UNKNOWN
-PartitionName=all Nodes=ALL Default=YES MaxTime=24:00:00 State=U
+PartitionName=all Nodes=ALL Default=YES MaxTime=24:00:00 State=UP
 
 # Create cgroup.conf from cgroup.conf.example (no changes needed)
 
@@ -226,13 +226,13 @@ systemctl start slurmd
 
 # sinfo 
 PARTITION AVAIL  TIMELIMIT  NODES  STATE NODELIST
-all*         up 1-00:00:00      2   idle lci-compute-42-[1-2]
+all*         up 1-00:00:00      2   idle lci-compute-XX-[1-2]
 
 # Create account "lci" and add user rocky it
 
 sacctmgr create account lci Description="LCI Intermediate Workshop" Organization="Linux Clusters Institute" Cluster=lci-XX
 
-sacctmgr create user rocky cluster=lci-42 DefaultAccount=lci
+sacctmgr create user rocky cluster=lci-XX DefaultAccount=lci
 
 # Check your work with the following commands: 
 
