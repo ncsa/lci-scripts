@@ -164,6 +164,7 @@ MaxJobCount=1000
 MaxStepCount=2000
 RebootProgram=/usr/sbin/reboot
 TaskPlugin=task/cgroup,task/affinity
+SelectTypeParameters=CR_Core_Memory
 PriorityWeightAge=1000
 PriorityWeightFairshare=1000
 PriorityWeightJobSize=1000
@@ -187,6 +188,7 @@ cp cgroup.conf{.example,}
 
 chown root:slurm *
 chmod 0640 *
+chmod 0644 slurm.conf 
 
 # Create directory /var/spool/slurmctld
 
@@ -214,4 +216,47 @@ SLURMD_OPTIONS="--conf-server lci-head-XX-1"
 systemctl enable slurmd
 systemctl start slurmd
 
+# Now run sinfo to check basic functionality (on any node)
 
+# sinfo 
+PARTITION AVAIL  TIMELIMIT  NODES  STATE NODELIST
+all*         up 1-00:00:00      2   idle lci-compute-42-[1-2]
+
+# Create account "lci" and add user rocky it
+
+sacctmgr create account lci Description="LCI Intermediate Workshop" Organization="Linux Clusters Institute" Cluster=lci-XX
+
+sacctmgr create user rocky cluster=lci-42 DefaultAccount=lci
+
+# Check your work with the following commands: 
+
+sacctmgr show accounts 
+sacctmgr show users
+
+# Create a directory for rocky on one of your shared filesystem, and 
+# make it owned/writable for rocky: 
+
+mkdir /mnt/beegfs/home/rocky
+chown rocky:rocky /mnt/beegfs/home/rocky
+chmod 0700 /mnt/beegfs/home/rocky 
+
+# Now as rocky
+
+cd /mnt/beegfs/home/rocky
+
+# create a sbatch script and submit it: 
+
+cat hello.sbatch 
+#!/bin/bash
+
+#SBATCH -n 4 
+#SBATCH -J Hello
+#SBATCH -t 00:01:00
+#SBATCH --mem=1M
+#SBATCH -o %x-%j.out
+#SBATCH -e %x-%j.out
+
+myname=$(hostname -s) 
+srun echo "Hello, World, from $myname"
+
+sbatch hello.sbatch
