@@ -1,0 +1,48 @@
+# ---------------------------------*-sh-*------------------------------------
+# Copyright (C) 2021-2022 OpenCFD Ltd.
+# SPDX-License-Identifier: (GPL-3.0+)
+#
+# Create openfoam '-run' (or -dev) image using Ubuntu.
+#
+# Example
+#     apptainer build openfoam2306.sif openfoam-run-template.def
+#     apptainer build --build-arg OS_VER=jammy --build-arg FOAM_VERSION=2306 ...
+#
+# Note
+#     Uses wget for fewer dependencies than curl
+#
+# ---------------------------------------------------------------------------
+Bootstrap: docker
+From: ubuntu:{{ OS_VER }}
+
+%files
+    openfoam-files.rc/* /openfoam/
+
+%arguments
+    OS_VER=latest
+    FOAM_VERSION=2306
+    PACKAGE=openfoam{{ FOAM_VERSION }}-dev
+
+%post
+    DEBIAN_FRONTEND=noninteractive
+
+    apt-get update
+    apt-get -y install --no-install-recommends \
+        apt-utils vim-tiny nano-tiny wget ca-certificates rsync
+
+    wget -q -O - https://dl.openfoam.com/add-debian-repo.sh | bash
+    apt-get update
+    apt-get -y install --no-install-recommends {{ PACKAGE }}
+    rm -rf /var/lib/apt/lists/*
+
+%post
+    /bin/sh /openfoam/assets/post-install.sh -fix-perms -no-sudo
+
+%runscript
+    exec /openfoam/run "$@"
+
+%labels
+    Author OpenCFD Ltd.
+    Author CIQ Inc.
+
+# ---------------------------------------------------------------------------
