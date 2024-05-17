@@ -1,0 +1,60 @@
+Bootstrap: docker
+From: spack/rockylinux8:0.22.0
+Stage: build
+
+%post
+  # Create the manifest file for the installation in /opt/spack-environment
+  mkdir /opt/spack-environment && cd /opt/spack-environment
+  cat << EOF > spack.yaml
+spack:
+  specs:
+  - gcc@12.3.0
+  - zlib-ng%gcc@12.3.0
+  - 7zip
+  - tcl
+  - lua
+  concretizer:
+    unify: true
+  config:
+    install_tree: /opt/software
+  view: /opt/views/view
+EOF
+
+  # Install all the required software
+  . /opt/spack/share/spack/setup-env.sh
+  spack -e . concretize
+  spack -e . install
+  spack gc -y
+  spack env activate --sh -d . >> /opt/spack-environment/environment_modifications.sh
+
+  # Strip the binaries to reduce the size of the image
+  find -L /opt/views/view/* -type f -exec readlink -f '{}' \; | \
+    xargs file -i | \
+    grep 'charset=binary' | \
+    grep 'x-executable\|x-archive\|x-sharedlib' | \
+    awk -F: '{print $1}' | xargs strip
+
+Bootstrap: docker
+From: docker.io/rockylinux:8
+Stage: final
+
+%files from build
+  /opt/spack-environment /opt
+  /opt/software /opt
+  /opt/views /opt
+  /opt/spack-environment/environment_modifications.sh /opt/spack-environment/environment_modifications.sh
+
+%post
+
+  # Symlink the old view location
+  ln -s /opt/views/view /opt/view
+
+  # Update, install and cleanup of system packages needed at run-time
+  dnf update -y && dnf install -y epel-release && dnf update -y
+  dnf install -y libgfortran wget
+  rm -rf /var/cache/dnf && dnf clean all
+  # Modify the environment without relying on sourcing shell specific files at startup
+  cat /opt/spack-environment/environment_modifications.sh >> $SINGULARITY_ENVIRONMENT
+
+%labels
+  apps gcc
