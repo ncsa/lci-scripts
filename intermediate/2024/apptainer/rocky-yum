@@ -1,0 +1,14 @@
+bootstrap: yum
+include: dnf
+mirrorurl: http://dl.rockylinux.org/pub/rocky/{{ version }}/BaseOS/x86_64/os/
+
+%environment
+    LC_ALL=C
+
+%arguments
+   version="8"
+
+%post
+    dnf -y update
+    dnf install -y epel-release
+    dnf install -y wget git vim
