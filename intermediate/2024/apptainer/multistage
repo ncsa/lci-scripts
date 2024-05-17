@@ -1,7 +1,10 @@
+#
+# First Stage
+#
+# Build go application using base image with golang installed
 Bootstrap: docker
 From: golang:1.12.3-alpine3.9
 Stage: one
-
 
 %post
         # prep environment
@@ -20,11 +23,8 @@ func main() {
 }
 
 EOF
-
         # build go application
         go build -o hello hello.go
-
-
 
 #
 # Second Stage
@@ -43,3 +43,4 @@ Stage: two
 # run application
 %runscript
         hello
+
