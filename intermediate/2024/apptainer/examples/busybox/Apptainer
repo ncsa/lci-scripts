@@ -1,0 +1,20 @@
+BootStrap: busybox
+MirrorURL: https://www.busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox
+
+%post
+    echo "Hello from inside the container"
+
+%runscript
+    echo "Running command: $*"
+    exec "$@"
+
+%appenv testapp
+    TESTAPP=testapp
+    export TESTAPP
+
+%appinstall testapp
+    echo 'echo $TESTAPP' > $APPTAINER_APPROOT/bin/testapp.sh
+    chmod 0755 $APPTAINER_APPROOT/bin/testapp.sh
+
+%apprun testapp
+    $TESTAPP.sh
