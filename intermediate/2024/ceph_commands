@@ -17,13 +17,15 @@ chmod +x cephadm
 ./cephadm add-repo --release reef
 ./cephadm install
 
+## Bootstrap your cluster
+cephadm bootstrap --mon-ip $(grep storage /etc/hosts | head -n 1 | awk '{print $1}') --allow-fqdn-hostname
+
 ## Push out ceph key from lci-storage-XX-1
 ssh-copy-id -f -i /etc/ceph/ceph.pub root@lci-storage-XX-2
 ssh-copy-id -f -i /etc/ceph/ceph.pub root@lci-storage-XX-3
 ssh-copy-id -f -i /etc/ceph/ceph.pub root@lci-storage-XX-4
 
-## Bootstrap your cluster
-cephadm bootstrap --mon-ip $(grep storage /etc/hosts | head -n 1 | awk '{print $1}') --allow-fqdn-hostname
+## Check Ceph Status
 cephadm shell -- ceph -v
 cephadm shell -- ceph status
 
@@ -65,8 +67,8 @@ cephadm shell -- ceph auth get-key client.admin > admin.secret
 
 ## Sync these files from lci-storage-XX-1 to all clients (lci-compute-XX-[1-2], lci-head-XX-1)
 /etc/ceph/admin.secret
-/etc/ceph.client.admin.keyring
-/etc/ceph.conf
+/etc/ceph/ceph.client.admin.keyring
+/etc/ceph/ceph.conf
 
 ## Mount CephFS on all clients (lci-compute-XX-[1-2], lci-head-XX-1)
 mount -t ceph $(grep storage /etc/hosts | awk '{print $1}' | xargs | sed 's/\ /,/g'):/ /mnt/cephfs -o name=admin,secretfile=/etc/ceph/admin.secret

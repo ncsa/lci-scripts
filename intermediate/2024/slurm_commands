@@ -1,0 +1,268 @@
+# On lci-head-XX-1:
+
+# We're going to use Slurm 23.11.6 even though 24.05.0 has been 
+# released because it was just released and I haven't tried it yet. 
+# It's also never a good idea to use a ".0" release. ;) 
+
+# To build Slurm and install Slum with the configuration below, the
+# powertools repo needs to be enabled: 
+
+dnf  config-manager --enable  powertools
+
+# Install the build prerequisites:
+
+yum install -y \
+  hdf5-devel \
+  hwloc-devel \
+  lua-devel \
+  mariadb-devel \
+  munge-devel \
+  munge-libs \
+  numactl-devel \
+  pam-devel \
+  pkgconf \
+  pmix-devel \
+  readline-devel \
+  ucx-devel
+
+wget https://download.schedmd.com/slurm/slurm-23.11.6.tar.bz2
+
+rpmbuild -ta slurm-23.11.6.tar.bz2 \
+  --with hdf5 \
+  --with hwloc \
+  --with lua \
+  --with numa \
+  --with pmix \
+  --with ucx 
+
+# The RPMs will be in located in ~/rpmbuild/RPMS/x86_64. Copy that RPMS
+# directory to your scratch directory where all the nodes can access
+# them
+
+cp -a ~/rpmbuild/RPMS /mnt/beegfs/scratch/
+
+# Before installing and configuring Slurm, configure and start MUNGE.
+# On the head node, create the munge key and then copy to the compute 
+# nodes 
+
+# Install the munge RPM on the head and compute nodes:
+
+dnf install -y munge
+create-munge-key
+
+# Copy the munge key to the compute nodes 
+
+scp -p /etc/munge/munge.key lci-compute-XX-1:/etc/munge/
+scp -p /etc/munge/munge.key lci-compute-XX-2:/etc/munge/
+
+# On compute nodes, change ownership of /etc/munge/munge.key to 
+# munge:munge
+
+chown munge:munge /etc/munge/munge.key
+
+# Enable and start munge on the head and compute nodes:
+
+systemctl enable munge
+systemctl start munge
+
+# Install the RPMS needed for slurmdbd and slurmctld on the head node
+
+cd /mnt/beegfs/scratch/RPMS/x86_64
+
+dnf install -y \
+  mailx \
+  ./slurm-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-contribs-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-devel-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-example-configs-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-perlapi-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-slurmctld-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-slurmdbd-23.11.6-1.el8.x86_64.rpm
+
+# Install the RPMs needed on the compute nodes:
+
+cd /mnt/beegfs/scratch/RPMS/x86_64
+
+dnf install -y \
+  ./slurm-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-contribs-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-devel-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-libpmi-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-pam_slurm-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-perlapi-23.11.6-1.el8.x86_64.rpm \
+  ./slurm-slurmd-23.11.6-1.el8.x86_64.rpm
+
+# On the head and compute nodes, create a Slurm system account
+# On head node: 
+
+adduser --system -m -s /sbin/nologin -d /var/lib/slurm -c "Slurm system account"  slurm
+
+# Create same account on compute nodes, but make sure UID and GUID
+# are the same as on the head node. Check UID and GID on assinged on 
+# head node: 
+
+getent passwd slurm
+slurm:x:990:987:Slurm system account:/var/lib/slurm:/sbin/nologin
+
+# Now on compute nodes:
+
+groupadd -g 987 slurm 
+adduser --system -m -s /sbin/nologin -d /var/lib/slurm -c "Slurm system account" -u 990 -g slurm slurm
+
+# On head node, install the packages needed for MariaDB:
+
+dnf instally -y mariadb mariadb-server
+
+# Enable and start mariadb:
+
+systemctl enable mariadb
+systemctl start mariadb
+
+# Secure the database. Run the command below and set the root password for 
+# The DB to be LCI2024Maria and remove anonymous users, and disallow
+# root logins remotely, and remove test databases
+
+mysql_secure_installation
+
+# Connect to database, permissions for Slurm, and create DB: 
+
+mysql -p 
+MariaDB [(none)]> create user 'slurm'@'localhost' identified by 'LCI2024Slurm';
+MariaDB [(none)]> create user 'slurm'@'lci-head-XX-1' identified by 'LCI2024Slurm';
+MariaDB [(none)]> grant all on slurm_acct_db.* to 'slurm'@'localhost';
+MariaDB [(none)]> grant all on slurm_acct_db.* to 'slurm'@'lci-head-XX-1';
+MariaDB [(none)]> create database slurm_acct_db;
+
+# On head node, Create slurmdbd.conf file. Copy slurmdbd.conf.example 
+# to slurmdbd.conf
+
+cd /etc/slurm
+cp slurmdbd.conf{.example,}
+
+# ... and make the following changes:
+
+StoragePass=LCI2024Slurm
+
+# Change ownership/permissions on slurmdbd.conf:
+
+chown root:slurm slurmdbd.conf
+chmod 0640 slurmdbd.conf 
+
+# Create log directory for slurm
+
+mkdir /var/log/slurm
+chown slurm:slurm /var/log/slurm
+chmod 0750 /var/log/slurm 
+
+# Enable and start slurmdbd
+
+systemctl enable slurmdbd
+systemctl start slurmdbd
+
+# Now copy slurm.conf.example to slurm.conf make these changes:
+
+ClusterName=lci-XX
+SlurmctldHost=lci-head-XX-1
+SlurmctldParameters=enable_configless
+DisableRootJobs=YES
+EnforcePartLimits=ALL
+MaxJobCount=1000
+MaxStepCount=2000
+RebootProgram=/usr/sbin/reboot
+TaskPlugin=task/cgroup,task/affinity
+SelectTypeParameters=CR_Core_Memory
+PriorityWeightAge=1000
+PriorityWeightFairshare=1000
+PriorityWeightJobSize=1000
+PriorityWeightPartition=1000
+PriorityWeightQOS=1000
+AccountingStorageEnforce=limits
+AccountingStorageHost=lci-head-XX-1
+AccountingStorageType=accounting_storage/slurmdbd
+AccountingStorageUser=slurm
+AccountingStoreFlags=job_script
+SlurmctldLogFile=/var/log/slurm/slurmctld.log
+SlurmdLogFile=/var/log/slurm/slurmd.log
+NodeName=lci-compute-XX-[1-2] CPUs=2 Boards=1 SocketsPerBoard=2 CoresPerSocket=1 ThreadsPerCore=1 RealMemory=7685 State=UNKNOWN
+PartitionName=all Nodes=ALL Default=YES MaxTime=24:00:00 State=UP
+
+# Create cgroup.conf from cgroup.conf.example (no changes needed)
+
+cp cgroup.conf{.example,}
+
+# Set correct ownership/permissions on config files
+
+chown root:slurm *
+chmod 0640 *
+chmod 0644 slurm.conf 
+
+# Create directory /var/spool/slurmctld
+
+mkdir /var/spool/slurmctld
+chown slurm:slurm /var/spool/slurmctld
+chmod 0750 /var/spool/slurmctld
+
+# Enable and start slurmctld on head node
+
+systemctl enable slurmctld
+systemctl start slurmctld
+
+# On the compute nodes: 
+
+mkdir /var/log/slurm
+chown slurm:slurm /var/log/slurm
+chmod 0750 /var/log/slurm
+
+# Create /etc/sysconfig/slurmd with the following contents: 
+
+SLURMD_OPTIONS="--conf-server lci-head-XX-1"
+
+# Enable and start slurmd:
+
+systemctl enable slurmd
+systemctl start slurmd
+
+# Now run sinfo to check basic functionality (on any node)
+
+# sinfo 
+PARTITION AVAIL  TIMELIMIT  NODES  STATE NODELIST
+all*         up 1-00:00:00      2   idle lci-compute-XX-[1-2]
+
+# Create account "lci" and add user rocky it
+
+sacctmgr create account lci Description="LCI Intermediate Workshop" Organization="Linux Clusters Institute" Cluster=lci-XX
+
+sacctmgr create user rocky cluster=lci-XX DefaultAccount=lci
+
+# Check your work with the following commands: 
+
+sacctmgr show accounts 
+sacctmgr show users
+
+# Create a directory for rocky on one of your shared filesystem, and 
+# make it owned/writable for rocky: 
+
+mkdir /mnt/beegfs/home/rocky
+chown rocky:rocky /mnt/beegfs/home/rocky
+chmod 0700 /mnt/beegfs/home/rocky 
+
+# Now as rocky
+
+cd /mnt/beegfs/home/rocky
+
+# create a sbatch script and submit it: 
+
+cat hello.sbatch 
+#!/bin/bash
+
+#SBATCH -n 4 
+#SBATCH -J Hello
+#SBATCH -t 00:01:00
+#SBATCH --mem=1M
+#SBATCH -o %x-%j.out
+#SBATCH -e %x-%j.out
+
+myname=$(hostname -s) 
+srun echo "Hello, World, from $myname"
+
+sbatch hello.sbatch
