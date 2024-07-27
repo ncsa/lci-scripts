@@ -1,0 +1,133 @@
+### Common -- Install Grafana
+## Install Grafana on Head node, add below contents to /etc/yum.repos.d/grafana.repo
+
+[grafana]
+name=grafana
+baseurl=https://rpm.grafana.com
+repo_gpgcheck=1
+enabled=1
+gpgcheck=1
+gpgkey=https://rpm.grafana.com/gpg.key
+
+## Install Grafana and Apache on head node
+dnf install httpd mod_ssl grafana -y
+setenforce 0
+systemctl start grafana-server
+
+## Create SSL Cert/Key and Fire Up Apache
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 3650 -nodes -subj "/C=US/ST=Oklahoma/L=Norman/O=LCI/OU=LCI/CN=lci-head-XX-1.ncsa.cloud"
+mv cert.pem /etc/pki/tls/certs/
+mv key.pem /etc/pki/tls/private/
+
+# Put the following in /etc/httpd/conf.d/lci.conf
+<VirtualHost *:80>
+   ServerName lci-head-XX-1.ncsa.cloud
+   Redirect / https://lci-head-XX-1.ncsa.cloud
+</VirtualHost>
+
+<VirtualHost *:443>
+  ServerName lci-head-XX-1.ncsa.cloud
+  ProxyPreserveHost on
+  ProxyPass "/"  "http://127.0.0.1:3000/"
+  ProxyPassReverse "/"  "https://lci-head-XX-1.ncsa.cloud/"
+  ErrorLog "/var/log/httpd/grafana-https_error_ssl.log"
+  ServerSignature Off
+  CustomLog "/var/log/httpd/grafana-https_access_ssl.log" combined
+  SSLEngine on
+  SSLCertificateFile      "/etc/pki/tls/certs/cert.pem"
+  SSLCertificateKeyFile   "/etc/pki/tls/private/key.pem"
+  SSLHonorCipherOrder On
+  SSLCipherSuite TLSv1.2:!eNULL:!aNULL:!DSS:!PSK:!kDHd:!kRSA:+AES:+ECDSA:+aECDH:+DHE:+kDH:+CAMELLIA
+  SSLProtocol TLSv1.2
+</VirtualHost>
+
+# Restart apache
+systemctl restart httpd
+
+## Should now be able to visit: https://lci-head-XX-1.ncsa.cloud and see Grafana (you'll need to ignore self-signed cert warning)
+
+### TIG (Telegraf/InfluxDB/Grafana) Option
+
+## Add influx repo to all 7 VMs; put the below contents in /etc/yum.repos.d/influx.repo
+
+[influxdb]
+name = InfluxData Repository - Stable
+baseurl = https://repos.influxdata.com/stable/$basearch/main
+enabled = 1
+gpgcheck = 1
+gpgkey = https://repos.influxdata.com/influxdata-archive_compat.key
+
+## Install Telegraf on all nodes
+dnf install telegraf -y
+
+## Install InfluxDB on your Head node
+dnf install influxdb
+systemctl start influxdb
+
+## Provision basic InfluxDB
+influx (puts you into influx shell)
+        create database lci
+        create user lci with password XXXXXXXX
+        grant all on lci to lci
+        quit
+
+## Delete default telegraf.conf file on all nodes
+rm -f /etc/telegraf/telegraf.conf
+
+## Put the contents below in a new /etc/telegraf/telegraf.conf file on all nodes
+
+[global_tags]
+
+[agent]
+  interval = "1m"
+  round_interval = true
+  metric_batch_size = 1000
+  metric_buffer_limit = 100000
+  collection_jitter = "0s"
+  flush_interval = "30s"
+  flush_jitter = "10s"
+  precision = ""
+  debug = false
+  quiet = false
+  logfile = ""
+  hostname = ""
+  omit_hostname = false
+
+[[outputs.influxdb]]
+  urls = ["http://lci-head-XX-1:8086"]
+  insecure_skip_verify = true
+  database = "lci"
+  retention_policy = ""
+  write_consistency = "any"
+  timeout = "5s"
+   username = "lci"
+   password = "XXXXXXXXX"
+
+[[inputs.cpu]]
+  percpu = false
+  totalcpu = true
+
+[[inputs.disk]]
+  ignore_fs = ["tmpfs", "devtmpfs", "devfs", "nfs"]
+
+[[inputs.mem]]
+
+[[inputs.processes]]
+
+[[inputs.system]]
+
+[[inputs.net]]
+
+## Restart telegraf daemon on all nodes to pick up new config
+systemctl restart telegraf
+
+## Ensure data reaching database (on the head node)
+influx
+        use lci
+        show measurements
+        show series
+        quit
+
+## Create InfluxDB Connection in Grafana
+
+## Import dashboards
