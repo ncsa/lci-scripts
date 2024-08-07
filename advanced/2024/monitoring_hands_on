@@ -1,0 +1,118 @@
+## Lustre FS Quick Setup
+
+# From this repo grab the lustre_deploy.sh script - copy it to your head node and execute it form there feeding it your cluster number, eg.:
+./lustre_deploy.sh 03
+
+# You should now have a Lustre FS mounted on your compute nodes; the RPMs were already pre-installed
+
+## Monitoring Quick Setup
+
+# Create SSL Cert/Key and Fire Up Apache (replace XX with your number)
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 3650 -nodes -subj "/C=US/ST=Illinois/L=Champaign/O=LCI/OU=LCI/CN=lci-head-XX-1.ncsa.cloud"
+mv cert.pem /etc/pki/tls/certs/
+mv key.pem /etc/pki/tls/private/
+
+# Edit the following in /etc/httpd/conf.d/lci.conf to have your correct hostname (replace XX)
+<VirtualHost *:80>
+   ServerName lci-head-XX-1.ncsa.cloud
+   Redirect / https://lci-head-XX-1.ncsa.cloud
+</VirtualHost>
+
+<VirtualHost *:443>
+  ServerName lci-head-XX-1.ncsa.cloud
+  ProxyPreserveHost on
+  ProxyPass "/"  "http://127.0.0.1:3000/"
+  ProxyPassReverse "/"  "https://lci-head-XX-1.ncsa.cloud/"
+  ErrorLog "/var/log/httpd/grafana-https_error_ssl.log"
+  ServerSignature Off
+  CustomLog "/var/log/httpd/grafana-https_access_ssl.log" combined
+  SSLEngine on
+  SSLCertificateFile      "/etc/pki/tls/certs/cert.pem"
+  SSLCertificateKeyFile   "/etc/pki/tls/private/key.pem"
+  SSLHonorCipherOrder On
+  SSLCipherSuite TLSv1.2:!eNULL:!aNULL:!DSS:!PSK:!kDHd:!kRSA:+AES:+ECDSA:+aECDH:+DHE:+kDH:+CAMELLIA
+  SSLProtocol TLSv1.2
+</VirtualHost>
+
+# Restart apache
+systemctl restart httpd
+
+# Should now be able to visit: https://lci-head-XX-1.ncsa.cloud and see Grafana (you'll need to ignore self-signed cert warning)
+
+# Edit /etc/telegraf/telegraf.conf on compute nodes and storage nodes to have proper hostname for URL (replace YY with your number)
+clush -w $(grep 'compute\|storage' /etc/hosts | awk '{print $2}' | xargs | sed 's/\ /,/g') "sed -i 's/head-XX/head-YY/' /etc/telegraf/telegraf.conf && systemctl restart telegraf"
+
+
+# Ensure data reaching database (on the head node) -- wait 1-2 minutes after above command
+influx
+        use lci
+        show measurements
+        show series
+        quit
+
+# Create InfluxDB Connection in Grafana (password in /etc/telegraf/telegraf.conf)
+- Left side menu: Connections > "Add new connection"
+- Find "InfluxDB"
+- Use the below information for the fields:
+	-- "Name": LCI
+	-- "Query Language": InfluxQL
+	-- "URL": http://localhost:8086
+	-- "Basic Auth" and "With Credentials" toggled ON
+	-- "Basic Auth Details": user is "lci", password is what is in /etc/telegraf/telegraf.conf
+	-- "Database": lci
+	-- "User/Password": same as credentials above
+	-- "HTTP Method": GET
+- Click "Save & Test" it should give you a green colored happy message
+
+
+## Monitoring Lustre via TIG
+
+# Pull down scripts from github on head node
+git clone https://github.com/jdmaloney/lustre_tig.git
+
+# Remove ExaScaler specific (we don't have that for labs), same for Robinhood as not covering that
+cd ./lustre_tig/lustre/
+rm -rf emf_perf_ping.sh lustre_ha_health_exa* lustre_server_mount_exa* lustre_changelog_check.sh lustre_robinhood*
+
+# Push out check scripts to servers; replace XX with cluster number
+rsync -avP ./lustre_tig/lustre lci-storage-XX-1:/etc/telegraf/
+rsync -avP ./lustre_tig/lustre lci-storage-XX-2:/etc/telegraf/
+rsync -avP ./lustre_tig/lustre lci-storage-XX-3:/etc/telegraf/
+rsync -avP ./lustre_tig/lustre lci-storage-XX-4:/etc/telegraf/
+
+# Similar for compute nodes; replace XX with cluster number
+clush -w $(grep compute /etc/hosts | awk '{print $2}' | xargs | sed 's/\ /,/g') "mkdir /etc/telegraf/lustre"
+rsync -avP ./lustre_tig/lustre/lustre_client.sh lci-compute-XX-1:/etc/telegraf/lustre/
+rsync -avP ./lustre_tig/lustre/lustre_client.sh lci-compute-XX-2:/etc/telegraf/lustre/
+rsync -avP ./lustre_tig/lustre/lfs_disk_check.sh lci-compute-XX-1:/etc/telegraf/lustre/
+rsync -avP ./lustre_tig/lustre/lfs_disk_check.sh lci-compute-XX-2:/etc/telegraf/lustre/
+
+# Push out lustre_config file to all nodes
+
+## Populate these lines, remove the rest:
+fs="/lustre/lci"  ## Mount path of File System for quota
+readonly filesystem=lci  ## Name of filesystem in cluster
+readonly map_file="/etc/telegraf/lustre/client_map" ## Path to file that maps IPs to hostnames for clients
+readonly paths="/lustre/lci" ## Paths to check the ls time on to verify FS functionality/perf
+readonly files="/lustre/lci/.check" ## Files to stat to verify FS functionality/mount/perf
+readonly mgs="" ## List of MGS host to check with lctl ping eg. "172.30.32.2@o2ib 172.19.24.8@tcp"
+
+
+
+# Push out telegraf config to all nodes and restart telegraf
+
+
+clush -w $(grep 'compute\|storage' /etc/hosts | awk '{print $2}' | xargs | sed 's/\ /,/g') "systemctl restart telegraf"
+
+
+# Confirm data in InfluxDB
+influx
+        use lci
+        show measurements ## Look for lustre related measurements
+        quit
+
+# Import Lustre dashboards
+
+## The .json files for these are found in the same lustre_tig repo; clone that to your local machine and add dashboards via Grafana GUI.  I'll be around to help here
+
+# Explore where checks are getting data from; what they are doing
