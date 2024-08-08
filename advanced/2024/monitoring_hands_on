@@ -91,6 +91,29 @@ rsync -avP ./lustre_tig/lustre/lfs_disk_check.sh lci-compute-XX-2:/etc/telegraf/
 
 # Push out lustre_config file to all nodes
 
+# Contents of /etc/telegraf/telegraf.d/lustre.conf
+[[inputs.lustre2]]
+
+ost_procfiles = ["/proc/fs/lustre/obdfilter/*/stats","/proc/fs/lustre/osd-ldiskfs/*/stats"]
+mds_procfiles = ["/proc/fs/lustre/mdt/*/md_stats"]
+
+[[inputs.exec]]
+  command = "/etc/telegraf/lustre/lustre_client_perf.sh"
+  timeout = "30s"
+  data_format = "influx"
+
+[[inputs.exec]]
+  command = "/etc/telegraf/lustre/lustre_server_mount.sh"
+  timeout = "30s"
+  data_format = "influx"
+
+[[inputs.exec]]
+  command = "/etc/telegraf/lustre/lustre_mount_count.sh"
+  timeout = "30s"
+  data_format = "influx"
+# End contents
+
+
 ## Populate these lines, remove the rest:
 fs="/lustre/lci"  ## Mount path of File System for quota
 readonly filesystem=lci  ## Name of filesystem in cluster
