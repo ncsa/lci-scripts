@@ -118,7 +118,8 @@ readonly paths="/lustre/lci" ## Paths to check the ls time on to verify FS funct
 readonly files="/lustre/lci/.check" ## Files to stat to verify FS functionality/mount/perf
 readonly mgs="" ## List of MGS host to check with lctl ping eg. "172.30.32.2@o2ib 172.19.24.8@tcp"
 
-
+## Allow telegraf to sudo on clients; on each compute node in /etc/sudoers.d/telegraf_sudo add the following contents:
+telegraf ALL = NOPASSWD: /usr/sbin/lctl,/usr/sbin/lnetctl
 
 # Push out telegraf config to all nodes and restart telegraf
 
