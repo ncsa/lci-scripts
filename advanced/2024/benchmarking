@@ -12,7 +12,7 @@ clush -w $(grep 'compute' /etc/hosts | awk '{print $2}' | xargs | sed 's/\ /,/g'
 
 ## Need to get root ssh keys setup between computes 1 and 2
 #SSH into compute-XX-1
-ssh-keygent -t rsa ## accept all the defaults
+ssh-keygen -t rsa ## accept all the defaults
 cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
 
 #Copy this same key setup over to compute-XX-1
