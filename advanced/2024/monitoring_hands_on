@@ -103,11 +103,6 @@ mds_procfiles = ["/proc/fs/lustre/mdt/*/md_stats"]
   data_format = "influx"
 
 [[inputs.exec]]
-  command = "/etc/telegraf/lustre/lustre_server_mount.sh"
-  timeout = "30s"
-  data_format = "influx"
-
-[[inputs.exec]]
   command = "/etc/telegraf/lustre/lustre_mount_count.sh"
   timeout = "30s"
   data_format = "influx"
