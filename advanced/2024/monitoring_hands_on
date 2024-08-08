@@ -9,6 +9,9 @@
 # Install clush
 dnf install python3-clustershell
 
+# Install bc
+clush -w $(grep 'compute\|storage' /etc/hosts | awk '{print $2}' | xargs | sed 's/\ /,/g') "dnf install bc -y"
+
 # Create SSL Cert/Key and Fire Up Apache (replace XX with your number)
 openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 3650 -nodes -subj "/C=US/ST=Illinois/L=Champaign/O=LCI/OU=LCI/CN=lci-head-XX-1.ncsa.cloud"
 mv cert.pem /etc/pki/tls/certs/
