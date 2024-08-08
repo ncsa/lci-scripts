@@ -1,0 +1,110 @@
+## General SETUP
+
+## Install openmpi on compute nodes -- needed to coordinate IOR and mdtest
+clush -w $(grep 'compute' /etc/hosts | awk '{print $2}' | xargs | sed 's/\ /,/g') dnf install openmpi openmpi-devel -y
+
+## SSH into each compute node and add mpi to your path
+#Append the following to your $PATH
+:/usr/lib64/openmpi/bin/
+
+# Should now look like:
+/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin:/usr/lpp/mmfs/bin:/usr/lib64/openmpi/bin/
+
+## Need to get root ssh keys setup between computes 1 and 2
+#SSH into compute-XX-1
+ssh-keygent -t rsa ## accept all the defaults
+cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+
+#Copy this same key setup over to compute-XX-1
+#On the head node
+cd /tmp/ && rsync -avP lci-compute-XX-1:/root/.ssh/id_rsa* .
+rsync -avP /tmp/id_rsa* lci-compute-XX-2:/root/.ssh/
+rm -f /tmp/id_rsa*
+
+#On compute-XX-2
+cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+
+# Verify that root can ssh without password between the two compute nodes
+
+# Create an mpi hosts file...we have no scheduler :) 
+# On either compute node run
+mkdir /lustre/lci/sw
+
+# In the file /lustre/lci/sw/mpi-hosts add the following lines
+lci-compute-XX-1 slots=2 max_slots=2
+lci-compute-XX-2 slots=2 max_slots=2
+
+## Setu for IOR install
+#On either compute node
+mkdir /lustre/lci/sw/ior
+
+#On the head node grab the IOR source and send it to your first compute node
+git clone https://github.com/hpc/ior.git
+rsync -avP ior lci-compute-XX-1:/root/
+
+#On the head node download the lustre-devel package...needed for the IOR compile; copy to BOTH compute nodes
+wget https://downloads.whamcloud.com/public/lustre/latest-release/el8.10/client/RPMS/x86_64/lustre-client-devel-2.15.5-1.el8.x86_64.rpm
+rsync -avP lustre-client-devel-2.15.5-1.el8.x86_64.rpm lci-compute-XX-1:/root/
+rsync -avP lustre-client-devel-2.15.5-1.el8.x86_64.rpm lci-compute-XX-2:/root/
+
+#On both compute nodes SSH to them and run:
+rpm -ivh /root/lustre-client-devel-2.15.5-1.el8.x86_64.rpm
+rm -rf /root/lustre-client-devel-2.15.5-1.el8.x86_64.rpm
+
+## IOR Install
+#On compute-XX-1
+cd /root/ior/
+./bootstrap
+./configure --prefix=/lustre/lci/sw/ior --with-lustre
+make
+make install
+
+#Confirm you have ior and mdtest binaries in /lustre/lci/sw/ior/bin/
+
+#We have limited OSTs; let make sure we have a PFL to spread things evenly
+lfs setstripe -E 16M -c 1 -E EOF -c 6 /lustre/lci
+
+## We can finally kick off IOR and mdtest runs; let's start with
+`which mpirun` --hostfile /lustre/lci/sw/mpi-hosts -n 4 --map-by slot --allow-run-as-root /lustre/lci/sw/ior/bin/ior -t 128k -o /lustre/lci/file -b 6g -a POSIX -F -C -g -w -i 1 -k -E -D 10
+
+## You can run read tests by flipping the -w to a -r
+
+## Before you run any additional write tests clean up the cruft by running the following on either compute node:
+rm -rf /lustre/lci/file.*
+
+## We'll talk about varying parameters as a group and you're free to play a bit here too....do note that the VM environment will mask some real-work realities
+
+## For MDTEST
+`which mpirun` --hostfile /lustre/lci/sw/mpi-hosts -n 4 --map-by slot --allow-run-as-root /lustre/lci/sw/ior/bin/mdtest -d /lustre/lci/bench -b 1 -z 2 -u -I 500 -i 3
+
+# Can also be a bit meaner; the FS can handle a bit more
+`which mpirun` --hostfile /lustre/lci/sw/mpi-hosts -n 4 --map-by slot --allow-run-as-root /lustre/lci/sw/ior/bin/mdtest -d /lustre/lci/bench -b 1 -z 3 -u -I 500 -i 3
+
+# You can keep playing with the -b, -z, and -I flags
+# Can also add in a value for -w so that files created aren't empty; something like -w 1000 so that all files created are 1KB..will def slow things down
+
+
+## IO500
+#On the head node
+git clone https://github.com/IO500/io500.git
+rsync -avP io500 lci-compute-18-1:/lustre/lci/sw/
+
+#On a compute node
+cd /lustre/lci/sw/io500
+./prepare.sh
+./io500 --list > config-all.ini
+
+#Set a short (and invalid) stonewall time in the config-all.ini file....for us that is 10...it has to be 10 or less; FS is too small
+stonewall-time = 10
+
+# We also should only run one-core "wide" here; so on either compute node run:
+/lustre/lci/sw/io500/io500 config-all.ini
+
+# If we had a bigger FS; we'd run it like:
+`which mpirun` --hostfile /lustre/lci/sw/mpi-hosts -n 4 --map-by slot --allow-run-as-root /lustre/lci/sw/io500/io500 config-all.ini
+
+## You can view saved summary results in
+/lustre/lci/sw/io500/io500/results/$date_stamp/results_summary.txt
+
+## If you were running for real (with a larger stonewall) you'd also want to add the following flag to your ./io500 command 
+--verify result.txt
