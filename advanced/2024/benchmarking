@@ -34,7 +34,7 @@ mkdir /lustre/lci/sw
 lci-compute-XX-1 slots=2 max_slots=2
 lci-compute-XX-2 slots=2 max_slots=2
 
-## Setu for IOR install
+## Setup for IOR install
 #On either compute node
 mkdir /lustre/lci/sw/ior
 
@@ -65,9 +65,9 @@ make install
 lfs setstripe -E 16M -c 1 -E EOF -c 6 /lustre/lci
 
 ## We can finally kick off IOR and mdtest runs; let's start with
-`which mpirun` --hostfile /lustre/lci/sw/mpi-hosts -n 4 --map-by slot --allow-run-as-root /lustre/lci/sw/ior/bin/ior -t 128k -o /lustre/lci/file -b 6g -a POSIX -F -C -g -w -i 1 -k -E -D 10
+`which mpirun` --hostfile /lustre/lci/sw/mpi-hosts -n 4 --map-by slot --allow-run-as-root /lustre/lci/sw/ior/bin/ior -t 128k -o /lustre/lci/file -b 6g -a POSIX -F -C -g -w -i 1 -k -E -D 14
 
-## You can run read tests by flipping the -w to a -r
+## You can run read tests by flipping the -w to a -r and shorten the stonewall time to 10 seconds
 
 ## Before you run any additional write tests clean up the cruft by running the following on either compute node:
 rm -rf /lustre/lci/file.*
@@ -87,7 +87,7 @@ rm -rf /lustre/lci/file.*
 ## IO500
 #On the head node
 git clone https://github.com/IO500/io500.git
-rsync -avP io500 lci-compute-18-1:/lustre/lci/sw/
+rsync -avP io500 lci-compute-XX-1:/lustre/lci/sw/
 
 #On a compute node
 cd /lustre/lci/sw/io500
