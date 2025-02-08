@@ -1,0 +1,16 @@
+- name: copy prrte and opnmpi packages to the nodes
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /tmp/
+  with_items:
+    - /tmp/rpmbuild/RPMS/x86_64/prrte-{{ prtte_version }}-1.el8.x86_64.rpm
+    - /tmp/rpmbuild/RPMS/x86_64/openmpi-{{ openmpi_version }}-1.el8.x86_64.rpm 
+
+- name: install prrte and openmpi rpm
+  ansible.builtin.dnf:
+    name: "{{ item }}" 
+    disable_gpg_check: true
+    state: installed
+  with_items:
+    - /tmp/prrte-{{ prtte_version }}-1.el8.x86_64.rpm 
+    - /tmp/openmpi-{{ openmpi_version }}-1.el8.x86_64.rpm 

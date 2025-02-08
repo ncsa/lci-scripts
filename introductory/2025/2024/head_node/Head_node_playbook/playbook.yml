@@ -1,0 +1,13 @@
+---
+####### head node play ############
+- name: Head node configuration
+  become: yes 
+  hosts: head
+  connection: local
+  tags: head_node_play
+  roles: 
+    - powertools
+    - timesync
+    - head-node_pkg_inst 
+    - head-node_nfs_server
+

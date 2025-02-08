@@ -1,0 +1,13 @@
+- name: Copy the rpm files into slurmd/files 
+  copy:
+    src: "/tmp/rpmbuild/RPMS/x86_64/{{ item }}"
+    dest: roles/slurmd/files/ 
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - slurm-{{ slurm_vers }}-1.el8.x86_64.rpm 
+    - slurm-perlapi-{{ slurm_vers }}-1.el8.x86_64.rpm 
+    - slurm-slurmd-{{ slurm_vers }}-1.el8.x86_64.rpm 
+    - slurm-libpmi-{{ slurm_vers }}-1.el8.x86_64.rpm 
+    - pmix-{{ pmix_release }}-1.el8.x86_64.rpm

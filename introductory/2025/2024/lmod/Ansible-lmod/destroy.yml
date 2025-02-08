@@ -1,0 +1,22 @@
+---
+####### All node play ############
+- name: Remove the LMOD related packages and directories 
+  become: yes
+  hosts:  all_nodes, head 
+  tasks:
+
+    - name: uninstall Lmod 
+      ansible.builtin.dnf:
+        name:  "{{ item }}"
+        state: absent
+      with_items:
+        - Lmod 
+
+    - name: remove files
+      ansible.builtin.file:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - /usr/share/lmod 
+        - /opt/apps
+
