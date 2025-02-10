@@ -41,10 +41,14 @@ zfs get all scratch
 ## NFS
 dnf -y install nfs-utils
 
-# Add following line to /etc/exports
-/scratch 192.168.0.5(rw,sync,no_root_squash)
+# Add following lines to /etc/exports (sub in IP addresses of your compute/login nodes)
+/scratch 192.168.0.X(rw,sync,no_root_squash)
+/scratch 192.168.0.X(rw,sync,no_root_squash)
+/scratch 192.168.0.X(rw,sync,no_root_squash)
 
 systemctl start nfs-server && exportfs -ra
+
+## On compute/login nodes
 mkdir -p /scratch
 192.168.0.4:/scratch	/scratch   nfs defaults 0 0
 mount /scratch
