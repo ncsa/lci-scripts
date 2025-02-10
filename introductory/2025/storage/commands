@@ -20,9 +20,9 @@ mdadm --zero-superblock --force /dev/$dev_regex
 mdadm --create /dev/md1 --level=6 --raid-devices=4 /dev/vdb /dev/vdc /dev/vdd /dev/vde
 lsblk
 cat /proc/mdstat
-mdadm -D /dev/md0
-mkfs.ext4 /dev/md0
-mkdir /scratch && mount /dev/md0 /scratch
+mdadm -D /dev/md1
+mkfs.ext4 /dev/md1
+mkdir /scratch && mount /dev/md1 /scratch
 
 
 ## ZFS
