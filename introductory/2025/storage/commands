@@ -1,0 +1,45 @@
+Storage Lab Commands -- LCI Intro 2023:
+
+##Commands section
+lsscsi
+fdisk -l
+
+dnf -y install sysstat
+iostat -xkz 2
+dd if=/dev/urandom of=/dev/$device bs=1M count=4500
+
+dnf -y install iotop
+iotop
+netstat -i $interface
+
+namei -l /usr/share/misc/magic
+
+## mdadm
+dnf -y install mdadm
+mdadm --zero-superblock --force /dev/$dev_regex
+mdadm --create --verbose /dev/md0 --level=6 --raid-devices=4 /dev/$dev_regex
+lsblk
+cat /proc/mdstat
+mdadm -D /dev/md0
+mkfs.ext4 /dev/md0
+mkdir /scratch && mount /dev/md0 /scratch
+
+
+## ZFS
+dnf -y install https://zfsonlinux.org/epel/zfs-release-2-3$(rpm --eval "%{dist}").noarch.rpm
+dnf install -y epel-release kernel-devel
+dnf install -y zfs
+/sbin/modprobe zfs
+zpool status
+zpool create scratch raidz2 $dev1 $dev2 $dev3 $dev4
+zpool status
+df -h
+zfs get all scratch
+
+## NFS
+dnf -y install nfs-utils
+/scratch 192.168.0.5(rw,sync,no_root_squash)
+systemctl start nfs-server && exportfs -ra
+mkdir -p /scratch
+192.168.0.4:/scratch	/scratch   nfs defaults 0 0
+mount /scratch
