@@ -50,5 +50,7 @@ systemctl start nfs-server && exportfs -ra
 
 ## On compute/login nodes
 mkdir -p /scratch
-192.168.0.4:/scratch	/scratch   nfs defaults 0 0
+
+#Use IP addres of storage node
+192.168.0.X:/scratch	/scratch   nfs defaults 0 0 
 mount /scratch
