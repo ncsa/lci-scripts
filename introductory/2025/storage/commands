@@ -26,12 +26,14 @@ mkdir /scratch && mount /dev/md1 /scratch
 
 
 ## ZFS
+umount /scratch
+mdadm --stop /dev/md1
 dnf -y install https://zfsonlinux.org/epel/zfs-release-2-3$(rpm --eval "%{dist}").noarch.rpm
 dnf install -y epel-release kernel-devel
 dnf install -y zfs
 /sbin/modprobe zfs
 zpool status
-zpool create scratch raidz2 $dev1 $dev2 $dev3 $dev4
+zpool create scratch raidz2 $dev1 $dev2 $dev3 $dev4 -f
 zpool status
 df -h
 zfs get all scratch
