@@ -42,10 +42,11 @@ useradd -u 2003 katie
 ## Central Logging
 
 # Remove comments for following lines in /etc/rsyslog.conf on lci-head-XX-1
-$ModLoad imudp.so
-$UDPServerRun 514
-$ModLoad imtcp.so
-$InputTCPServerRun 514
+module(load="imudp") # needs to be done just once
+input(type="imudp" port="514")
+
+module(load="imtcp") # needs to be done just once
+input(type="imtcp" port="514")
 
 # Add these two lines in the Modules section:
 $template DynamicFile,"/var/log/%HOSTNAME%/forwarded-logs.log"
