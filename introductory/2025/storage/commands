@@ -40,7 +40,10 @@ zfs get all scratch
 
 ## NFS
 dnf -y install nfs-utils
+
+# Add following line to /etc/exports
 /scratch 192.168.0.5(rw,sync,no_root_squash)
+
 systemctl start nfs-server && exportfs -ra
 mkdir -p /scratch
 192.168.0.4:/scratch	/scratch   nfs defaults 0 0
