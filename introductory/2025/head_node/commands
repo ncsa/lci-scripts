@@ -31,7 +31,7 @@ clush -g compute "uptime"
 
 ## Time Sync
 dnf install chronyd
-confirm config file meets expectation
+#confirm config file meets expectation
 systemctl start chronyd && systemctl enable chronyd
 
 # Creatre morest users
