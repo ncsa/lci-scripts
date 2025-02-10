@@ -31,7 +31,7 @@ storage: lci-storage-XX-1
 clush -g compute "uptime"
 
 ## Time Sync
-dnf install chronyd
+dnf install chrony
 #confirm config file meets expectation
 systemctl start chronyd && systemctl enable chronyd
 
@@ -54,7 +54,7 @@ $template DynamicFile,"/var/log/%HOSTNAME%/forwarded-logs.log"
 # Restart rsyslog on head node
 systemctl restart rsyslog
 
-# Add following to the very bottom of /etc/rsyslog on both compute nodes/storage node and restart rsyslog service on those nodes
+# Add following to the very bottom of /etc/rsyslog.conf on both compute nodes/storage node and restart rsyslog service on those nodes
 *.* @lci-head-XX-1
 systemctl restart rsyslog
 
