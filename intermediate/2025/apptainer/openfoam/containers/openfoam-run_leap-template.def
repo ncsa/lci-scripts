@@ -1,0 +1,47 @@
+# ---------------------------------*-sh-*------------------------------------
+# Copyright (C) 2023 OpenCFD Ltd.
+# SPDX-License-Identifier: (GPL-3.0+)
+#
+# Create openfoam '-run' image for openSUSE using science repo.
+#
+# Example
+#     apptainer build openfoam2306.sif openfoam-run_leap-template.def
+#     apptainer build --build-arg OS_VER=15.5 --build-arg FOAM_VERSION=2306 ...
+#
+# ---------------------------------------------------------------------------
+# Use add-science-repo.sh script, or
+#
+#  zypper -n addrepo \
+#  'https://download.opensuse.org/repositories/science/$releasever/' science
+#
+#  zypper -n --gpg-auto-import-keys refresh science
+#
+# ---------------------------------------------------------------------------
+Bootstrap: docker
+From: opensuse/leap:{{ OS_VER }}
+
+%files
+    openfoam-files.rc/* /openfoam/
+
+%arguments
+    OS_VER=15.5
+    FOAM_VERSION=2306
+    PACKAGE=openfoam{{ FOAM_VERSION }}-devel
+
+%post
+    zypper -n install nano wget rsync
+    wget -q -O - https://dl.openfoam.com/add-science-repo.sh | bash
+    zypper -n install {{ PACKAGE }}
+    zypper -n clean
+
+%post
+    /bin/sh /openfoam/assets/post-install.sh -fix-perms -no-sudo
+
+%runscript
+    exec /openfoam/run "$@"
+
+%labels
+    Author OpenCFD Ltd.
+    Author CIQ Inc.
+
+# ---------------------------------------------------------------------------

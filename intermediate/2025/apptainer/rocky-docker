@@ -1,0 +1,12 @@
+Bootstrap: docker
+From: rockylinux:{{ version }}
+
+%environment
+    LC_ALL=C
+
+%arguments
+   version="9.3
+
+%post
+    dnf -y update
+    dnf install -y epel-release

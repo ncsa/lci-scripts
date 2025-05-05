@@ -1,0 +1,38 @@
+# ---------------------------------*-sh-*------------------------------------
+# Copyright (C) 2021-2023 OpenCFD Ltd.
+# SPDX-License-Identifier: (GPL-3.0+)
+#
+# Create openfoam '-run' image for Rocky Linux using copr repo.
+#
+# Example
+#     apptainer build --fakeroot openfoam2306.sif openfoam-run_rocky.def
+#
+# ---------------------------------------------------------------------------
+Bootstrap: docker
+From: rockylinux/rockylinux:latest
+
+%files
+    openfoam-files.rc/* /openfoam/
+
+%post
+    dnf -y install wget rsync \
+    passwd shadow-utils nss_wrapper
+    dnf -y install 'dnf-command(config-manager)'
+    dnf -y config-manager --set-enabled powertools
+    dnf -y install epel-release
+    crb enable
+    dnf -y install 'dnf-command(copr)'
+    dnf -y copr enable openfoam/openfoam
+    dnf -y install openfoam2306-devel
+    dnf -y clean all
+
+%post
+    /bin/sh /openfoam/assets/post-install.sh -fix-perms -no-sudo
+
+%runscript
+    exec /openfoam/run "$@"
+
+%labels
+    Author OpenCFD Ltd.
+
+# ---------------------------------------------------------------------------

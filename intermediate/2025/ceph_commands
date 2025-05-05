@@ -1,0 +1,88 @@
+## From lci-storage-XX-1 do the below:
+
+## Get base ceph installed
+export CEPH_RELEASE=18.2.2
+curl --silent --remote-name --location https://download.ceph.com/rpm-${CEPH_RELEASE}/el8/noarch/cephadm
+chmod +x cephadm
+./cephadm add-repo --version 18.2.2
+./cephadm install
+
+## Bootstrap your cluster
+cephadm bootstrap --mon-ip $(grep storage /etc/hosts | head -n 1 | awk '{print $1}') --allow-fqdn-hostname
+
+## Push out ceph key from lci-storage-XX-1
+ssh-copy-id -f -i /etc/ceph/ceph.pub root@lci-storage-XX-2
+ssh-copy-id -f -i /etc/ceph/ceph.pub root@lci-storage-XX-3
+ssh-copy-id -f -i /etc/ceph/ceph.pub root@lci-storage-XX-4
+
+## Check Ceph Status
+cephadm shell -- ceph -v
+cephadm shell -- ceph status
+
+## Adjust hostnames on storage nodes; on each storage node run:
+hostname lci-storage-XX-[1-4] #Substitute cluster number for XX and run with appropriate final number
+
+## Expand the cluster
+cephadm shell -- ceph orch host add lci-storage-XX-2 $(grep lci-storage-XX-2 /etc/hosts | awk '{print $1}')
+cephadm shell -- ceph orch host add lci-storage-XX-3 $(grep lci-storage-XX-3 /etc/hosts | awk '{print $1}')
+cephadm shell -- ceph orch host add lci-storage-XX-4 $(grep lci-storage-XX-4 /etc/hosts | awk '{print $1}')
+
+## Verify 4 mon nodes
+cephadm shell -- ceph status ## May take a couple minutes for all to show up
+
+## Wipe drives from other labs; on EACH lci-storage-XX-[1-4] host run:
+dd if=/dev/zero of=/dev/vdb bs=1M count=5200 #Expect no space left message
+dd if=/dev/zeor of=/dev/vdc bs=1M count=520 #Expect no space left message
+sgdisk --zap-all /dev/vdb
+sgdisk --zap-all /dev/vdc
+
+## Show all available devices
+#Wait 30 seconds after last zap from above is done
+cephadm shell -- ceph orch device ls --refresh
+
+## Add disks to Ceph
+cephadm shell -- ceph orch apply osd --all-available-devices
+cephadm shell -- ceph status
+
+## Create CephFS
+cephadm shell -- ceph fs volume create lci lci-storage-XX-1.novalocal,lci-storage-XX-2.novalocal
+
+## Place Ceph Repo on Compute nodes and head node (following contents in /etc/yum.repos.d/ceph_stable.repo)
+
+[ceph_stable]
+baseurl = http://download.ceph.com/rpm-reef/el8/$basearch
+gpgcheck = 1
+gpgkey = https://download.ceph.com/keys/release.asc
+name = Ceph Stable $basearch Repo
+
+## Install Ceph Client on compute nodes and head node
+dnf install ceph-common -y
+
+## Make mount point on compute nodes and head node
+mkdir /mnt/cephfs
+
+## Gen key on lci-storage-XX-1
+cd /etc/ceph
+cephadm shell -- ceph auth get-key client.admin > admin.secret
+
+## Sync these files from lci-storage-XX-1 to all clients (lci-compute-XX-[1-2], lci-head-XX-1)
+/etc/ceph/admin.secret
+/etc/ceph/ceph.client.admin.keyring
+/etc/ceph/ceph.conf
+
+## Mount CephFS on all clients (lci-compute-XX-[1-2], lci-head-XX-1)
+mount -t ceph $(grep storage /etc/hosts | awk '{print $1}' | xargs | sed 's/\ /,/g'):/ /mnt/cephfs -o name=admin,secretfile=/etc/ceph/admin.secret
+
+## Sample project directories
+cd /mnt/cephfs
+mkdir -p projects/A
+mkdir -p projects/B
+mkdir -p projects/C
+
+## Set Quotas
+setfattr -n ceph.quota.max_bytes -v 104857600 /mnt/cephfs/projects/A  # A 100MB quota on dir A
+setfattr -n ceph.quota.max_files -v 100000 /mnt/cephfs/projects/B # A 100,000 inode limit on dir B
+
+## Can view quotas with:
+getfattr -n ceph.quota.max_bytes /mnt/cephfs/projects/A
+getfattr -n ceph.quota.max_files /mnt/cephfs/projects/B
