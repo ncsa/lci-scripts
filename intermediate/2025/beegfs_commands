@@ -65,7 +65,7 @@ chown root:root /etc/beegfs/connauthfile
 chmod 400 /etc/beegfs/connauthfile
 
 ## Tell the BeeGFS services about your connauthfile
-# On lci-head-XX-1 and lci-compute-XX-[1-2] edit /etc/beegfs/beegfs-client.conf and /etc/beegfs/beegfs-helperd set connAuthFile = /etc/beegfs/connauthfile
+# On lci-head-XX-1 and lci-compute-XX-[1-2] edit /etc/beegfs/beegfs-client.conf and /etc/beegfs/beegfs-helperd.conf set connAuthFile = /etc/beegfs/connauthfile
 
 # On lci-storage-XX-1 edit /etc/beegfs/beegfs-meta.conf and /etc/beegfs/beegfs-mgmtd.conf set connAuthFile = /etc/beegfs/connauthfile
 
