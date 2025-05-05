@@ -56,7 +56,7 @@ mount /dev/vdc /mnt/ost5
 /opt/beegfs/sbin/beegfs-setup-storage -p /mnt/ost4/beegfs_storage -s 5 -i 501 -m lci-storage-XX-1
 /opt/beegfs/sbin/beegfs-setup-storage -p /mnt/ost5/beegfs_storage -s 5 -i 502 -m lci-storage-XX-1
 
-## Setup the compute nodes; do the following on *each* compute node and head node
+## Setup the compute nodes; do the following on *each* compute node and head node (lci-compute-XX-[1-2] and lci-head-XX-1)
 /opt/beegfs/sbin/beegfs-setup-client -m lci-storage-XX-1
 
 ## Setup Conn Auth - on head node (lci-head-XX-1) generate the key and set perm
