@@ -32,7 +32,7 @@ cephadm shell -- ceph status ## May take a couple minutes for all to show up
 
 ## Wipe drives from other labs; on EACH lci-storage-XX-[1-4] host run:
 dd if=/dev/zero of=/dev/vdb bs=1M count=5200 #Expect no space left message
-dd if=/dev/zeor of=/dev/vdc bs=1M count=520 #Expect no space left message
+dd if=/dev/zero of=/dev/vdc bs=1M count=5200 #Expect no space left message
 sgdisk --zap-all /dev/vdb
 sgdisk --zap-all /dev/vdc
 
