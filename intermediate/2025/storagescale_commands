@@ -112,7 +112,7 @@ mmdf lci
 mmchdisk lci suspend -d "storage2_disk_1"
 
 ## Remove that disk to shrink the FS
-mmdeldisk lci “storage2_disk0” -r -N coreio
+mmdeldisk lci "storage2_disk_1" -r -N coreio
 
 ## Check NSD capacities again and you can see data got redistributed
 mmdf lci
