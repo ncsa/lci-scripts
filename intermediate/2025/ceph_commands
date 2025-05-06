@@ -46,19 +46,20 @@ cephadm shell -- ceph status
 
 ## Create CephFS
 cephadm shell -- ceph fs volume create lci lci-storage-XX-1.novalocal,lci-storage-XX-2.novalocal
+cephadm shell -- ceph orch apply mds lci
 
 ## Place Ceph Repo on Compute nodes and head node (following contents in /etc/yum.repos.d/ceph_stable.repo)
 
 [ceph_stable]
-baseurl = http://download.ceph.com/rpm-reef/el8/$basearch
+baseurl = https://download.ceph.com/rpm-18.2.2/el8/x86_64/
 gpgcheck = 1
 gpgkey = https://download.ceph.com/keys/release.asc
 name = Ceph Stable $basearch Repo
 
-## Install Ceph Client on compute nodes and head node
+## Install Ceph Client on compute nodes (lci-compute-XX-[1-2]) and head node
 dnf install ceph-common -y
 
-## Make mount point on compute nodes and head node
+## Make mount point on compute nodes (lci-compute-XX-[1-2]) and head node
 mkdir /mnt/cephfs
 
 ## Gen key on lci-storage-XX-1
