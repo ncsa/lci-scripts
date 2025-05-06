@@ -109,7 +109,7 @@ mmrepquota -j lci --block-size=auto
 mmdf lci
 
 ## Suspend a LUN just as a test
-mmchdisk lci suspend -d “storage2_disk0”
+mmchdisk lci suspend -d "storage2_disk_1"
 
 ## Remove that disk to shrink the FS
 mmdeldisk lci “storage2_disk0” -r -N coreio
