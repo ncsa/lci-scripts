@@ -370,7 +370,7 @@ for USER in "${USERS[@]}"; do
     done
 done
 
-echo -e "\n✅ Jobs submitted. Wait a moment and check job priority with:\n"
+echo -e "\n Jobs submitted. Wait a moment and check job priority with:\n"
 echo "  sprio"
 echo "  sshare -l"
 
