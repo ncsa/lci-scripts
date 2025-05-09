@@ -266,3 +266,126 @@ myname=$(hostname -s)
 srun echo "Hello, World, from $myname"
 
 sbatch hello.sbatch
+
+
+
+#### Fairshare Lab
+# Enable PriorityPlugin and FairShare in slurm.conf
+# Edit /etc/slurm/slurm.conf and configure:
+PriorityType=priority/multifactor
+PriorityWeightFairshare=100000
+
+# Other weights (age, job size, etc.) can be set to 0 to rely solely on fairshare:
+PriorityWeightAge=0
+PriorityWeightPartition=0
+PriorityWeightQOS=0
+PriorityWeightJobSize=0
+
+#### **Configure Accounting**
+# Make sure Slurm’s accounting is enabled and functioning:
+AccountingStorageType=accounting_storage/slurmdbd
+AccountingStorageHost=<your-accounting-db-host>
+# Start or restart slurmdbd and slurmctld if not running.
+
+## **Create Accounts and Users in SlurmDB**
+# create linux accounts for test users.
+useradd alice 
+useradd bob
+useradd carol
+
+# Use sacctmgr to define users and ensure they belong to accounts:
+sacctmgr add account default Description="Default Account"
+sacctmgr add user alice Account=default
+sacctmgr add user bob Account=default
+
+# All users in the same account will share resources fairly if configured equally.
+
+#### **Verify Setup**
+# Use sprio to view job priorities and sshare to inspect fairshare usage:
+
+sprio
+sshare
+
+## Notes
+#- Fairshare works by **reducing the priority** of users who have recently consumed more resources.
+#- For **equal resource distribution**, make sure all users/accounts have the same **initial shares** and **no overriding QoS**.
+
+## Account/User Setup via sacctmgr 
+
+# Create a default account
+sacctmgr add account default Description="Default account"
+
+# Add users to that account with equal shares
+sacctmgr add user alice Account=default
+sacctmgr add user bob Account=default
+sacctmgr add user carol Account=default
+
+
+# If needed, you can also set explicit shares (all equal):
+
+sacctmgr modify account default set Fairshare=1
+sacctmgr modify user alice set Fairshare=1
+sacctmgr modify user bob set Fairshare=1
+sacctmgr modify user carol set Fairshare=1
+
+
+---
+
+# With this setup:
+- All users have **equal shares** in scheduling.
+- Slurm will prioritize users with **lower past usage**.    
+- No other priority factor will interfere.
+
+
+## Test Script: Simulate Fairshare Behavior
+
+---------------------------------------------------------------------------
+#!/bin/bash
+
+# Simulate job submission by 3 users
+# You should run this as root or a user with permission to `su` to others
+
+USERS=("alice" "bob" "carol")
+JOB_SCRIPT="/tmp/test_job.sh"
+
+# Create a simple test job script
+cat <<EOF > "$JOB_SCRIPT"
+#!/bin/bash
+#SBATCH --job-name=fairshare-test
+#SBATCH --output=/tmp/fairshare-%j.out
+#SBATCH --time=00:01:00
+#SBATCH --ntasks=1
+
+sleep 30
+EOF
+
+chmod +x "$JOB_SCRIPT"
+
+echo "Submitting 3 jobs each for users: ${USERS[*]}"
+for USER in "${USERS[@]}"; do
+    for i in {1..3}; do
+        echo "Submitting job $i for $USER"
+        su - "$USER" -c "sbatch $JOB_SCRIPT"
+        sleep 1
+    done
+done
+
+echo -e "\n✅ Jobs submitted. Wait a moment and check job priority with:\n"
+echo "  sprio"
+echo "  sshare -l"
+
+-----------------------------------------------------------------------------
+
+## What to Look For
+#- sprio will show priority scores for pending jobs.
+#- sshare will show accumulated usage and remaining share.
+#- Initially, all users should have equal shares. Over time, users who run more jobs will accumulate usage, lowering their future job priority.
+
+## Optional Cleanup
+# Cancel all test jobs
+scancel -u alice
+scancel -u bob
+scancel -u carol
+rm -f "$JOB_SCRIPT"
+
+
