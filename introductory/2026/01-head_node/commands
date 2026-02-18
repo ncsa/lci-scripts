@@ -1,21 +1,21 @@
 ## SSH keys for passwordless SSH
 
 # As root on login node
-mkdir -p /root/.ssh
-chmod 700 /root/.ssh
-touch /root/.ssh/authorized_keys
-chmod 600 /root/.ssh/authorized_keys
-ssh-keygen -t rsa
-
-# As root on each compute node/storage node
-mkdir -p /root/.ssh
-chmod 700 /root/.ssh
-
-# As root on the login node
-cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
-scp /root/.ssh/authorized_keys lci-compute-XX-1:/root/.ssh
-scp /root/.ssh/authorized_keys lci-compute-XX-2:/root/.ssh
-scp /root/.ssh/authorized_keys lci-storage-XX-1:/root/.ssh
+# mkdir -p /root/.ssh
+# chmod 700 /root/.ssh
+# touch /root/.ssh/authorized_keys
+# chmod 600 /root/.ssh/authorized_keys
+# ssh-keygen -t rsa
+# 
+# # As root on each compute node/storage node
+# mkdir -p /root/.ssh
+# chmod 700 /root/.ssh
+# 
+# # As root on the login node
+# cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
+# scp /root/.ssh/authorized_keys lci-compute-XX-1:/root/.ssh
+# scp /root/.ssh/authorized_keys lci-compute-XX-2:/root/.ssh
+# scp /root/.ssh/authorized_keys lci-storage-XX-1:/root/.ssh
 
 ## Parallel Shell
 # On your head node for this section
@@ -60,6 +60,6 @@ systemctl restart rsyslog
 systemctl restart rsyslog
 
 # After a few minutes you should see new log directories in /var/log/ on lci-head-XX-1, a directory for each host forarding logs
-ls /var/log/messaegs/lci-[computes/storage]-XX-Y/
+ls /var/log/lci-[computes/storage]-XX-Y/
 
 

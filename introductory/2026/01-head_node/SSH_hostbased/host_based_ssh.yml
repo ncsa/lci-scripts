@@ -1,0 +1,55 @@
+############## Head node play ##################################
+- name: Head node host-based SSH client configuration
+  hosts: head
+  tasks: 
+
+    - name: copy ssh scripts for host based authentication
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}" 
+        owner: root
+        group: root
+        mode: "{{item.mode}}"
+      with_items:
+        - { src: 'ssh_lci.conf', dest: '/etc/ssh/ssh_config.d/', mode: '0644'}
+        - { src: 'ssh_known_hosts', dest: '/etc/ssh/', mode: '0644'}
+      tags: copy_ssh_files
+        
+
+############## Compute node play ###############################
+- name: Compute node host-based SSH configuration
+  hosts: all_nodes
+  tasks:
+
+     - name: copy sshd scripts for host based authentication
+       ansible.builtin.copy:
+         src: "{{ item.src }}"
+         dest: "{{ item.dest }}" 
+         owner: root
+         group: root
+         mode: "{{item.mode}}"
+       with_items:
+         - { src: 'ssh_lci.conf', dest: '/etc/ssh/ssh_config.d/', mode: '0644'}
+         - { src: 'sshd_lci.conf', dest: '/etc/ssh/sshd_config.d/', mode: '0644'}
+         - { src: 'ssh_known_hosts', dest: '/etc/ssh/', mode: '0644'}
+         - { src: 'hosts.equiv', dest: '/etc/', mode: '0644'}
+       tags: copy_ssd_files
+
+     - name: If there is no Include in sshd_config (older version of sshd)
+       ansible.builtin.shell: | 
+         cat /etc/ssh/sshd_config
+       register: include_sshd_contents
+
+     - name: Add host_based auth content into sshd_config if Include is absent 
+       ansible.builtin.blockinfile: 
+         insertafter: EOF
+         path: /etc/ssh/sshd_config 
+         block: |
+           HostbasedAuthentication yes
+           IgnoreUserKnownHosts yes
+       when: include_sshd_contents.stdout.find('Include /etc/ssh/sshd_config.d') == -1
+
+     - name: Restart SSH service on the nodes
+       ansible.builtin.service:
+         name: sshd
+         state: reloaded

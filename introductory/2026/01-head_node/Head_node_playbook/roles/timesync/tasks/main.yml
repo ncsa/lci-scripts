@@ -1,0 +1,6 @@
+  - name: Ensure time zones are in sync
+    ansible.builtin.command:
+      cmd: "{{ item }}" 
+    with_items: 
+      - timedatectl set-timezone America/Chicago
+      - timedatectl set-ntp yes 

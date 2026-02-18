@@ -1,0 +1,29 @@
+- name: Install dnf package for nfs-utils
+  ansible.builtin.dnf:
+    name: nfs-utils 
+    state: latest
+
+- name: Create directory for NFS exports if it does not exist
+  ansible.builtin.file:
+    path: /head/NFS
+    state: directory
+    mode: '0755'
+
+
+- name: Export /head/NFS 
+  ansible.builtin.lineinfile:
+    path: /etc/exports
+    line: /head/NFS  lci-compute*(rw,async) 
+    create: yes
+
+- name: Ensure nfs-utils service restarted
+  ansible.builtin.systemd_service:
+    state: restarted
+    name: nfs-utils
+    enabled: yes
+
+- name: Ensure nfs-server service restarted
+  ansible.builtin.systemd_service:
+    state: restarted
+    name: nfs-server
+    enabled: yes
