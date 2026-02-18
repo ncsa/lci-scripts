@@ -323,7 +323,7 @@ mkdir /head/NFS
 
 Add entry in file /etc/exports:
 
-```c
+```bash
 /head/NFS  lci-compute*(rw,async)
 ```
 
