@@ -79,17 +79,12 @@
 | 10:15 | Panel: Closing/Open Q&A/Review                  | JD Maloney & Alan Chapman |
 | 12:00 | Boxed Lunches To-Go                             | N/A                       |
 
-## Resources
-
-- Workshop Materials:
-- Documentation:
-- Support Contacts:
 
 ## Notes
 
 - Please bring your laptop with SSH client installed
 - All hands-on activities will be conducted on LCI systems
-- Workshop materials will be made available before the event
+
 
 ---
 
