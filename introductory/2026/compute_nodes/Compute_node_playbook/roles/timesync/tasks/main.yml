@@ -1,0 +1,3 @@
+  - name: Ensure time zones are in sync
+    ansible.builtin.command:
+      cmd: timedatectl set-timezone America/Chicago 

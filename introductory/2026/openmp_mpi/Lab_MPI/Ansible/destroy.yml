@@ -1,0 +1,70 @@
+---
+####### Compute node play ############
+- name: Remove the OpenMPI related packages and directories 
+  vars_files: group_vars/openmpi.yml
+  become: yes
+  hosts:  all_nodes
+  tasks:
+
+    - name: uninstall openmpi and prrte 
+      ansible.builtin.dnf:
+        name:  "{{ item }}"
+        state: absent
+      with_items:
+        - openmpi 
+        - prrte
+
+    - name: remove files
+      ansible.builtin.file:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+       - /tmp/prrte-{{ prtte_version }}-1.el8.x86_64.rpm
+       - /tmp/openmpi-{{ openmpi_version }}-1.el8.x86_64.rpm 
+
+    - name: terminate mpiuser user processes
+      ansible.builtin.command:
+        cmd: pkill -9 -u mpiuser
+      ignore_errors: True
+
+    - name: remove mpiuser account
+      ansible.builtin.user:
+        name: mpiuser
+        state: absent
+
+####### Head node play ############
+- name: Remove the OpenMPI related packages and directories 
+  vars_files: group_vars/openmpi.yml
+  become: yes
+  hosts: head
+  tasks:
+
+    - name: uninstall openmpi and prrte 
+      ansible.builtin.dnf:
+        name:  "{{ item }}"
+        state: absent
+      with_items:
+        - openmpi 
+        - prrte
+
+    - name: remove files
+      ansible.builtin.file:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - /tmp/rpmbuild/RPMS/x86_64/prrte-{{ prtte_version }}-1.el8.x86_64.rpm
+        - /tmp/rpmbuild/RPMS/x86_64/openmpi-{{ openmpi_version }}-1.el8.x86_64.rpm
+        - roles/openmpi-rpm-build/files/openmpi-{{ openmpi_version }}-1.src.rpm
+        - roles/openmpi-rpm-build/files/prrte-{{ prtte_version }}-1.src.rpm
+
+
+    - name: terminate mpiuser user processes
+      ansible.builtin.command:
+        cmd: pkill -9 -u mpiuser
+      ignore_errors: True
+
+    - name: remove mpiuser account
+      ansible.builtin.user:
+        name: mpiuser
+        state: absent
+        remove: true

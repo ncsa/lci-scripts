@@ -1,0 +1,92 @@
+---
+####### Compute node play ############
+- name: Remove the SLURM related packages and directories 
+  vars_files: group_vars/cluster_params.yml
+  become: yes
+  hosts:  all_nodes
+  tasks:
+
+    - name: stop services
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      with_items:
+        - slurmd 
+        - munge 
+      ignore_errors: True
+
+    - name: uninstall slurm
+      ansible.builtin.dnf:
+        name:  "{{ item }}"
+        state: absent
+      with_items:
+        - slurm-slurmd
+        - slurm-libpmi
+        - slurm
+        - slurm-perlapi
+        - slurm-libs
+        - munge
+        - pmix
+
+    - name: remove files
+      ansible.builtin.file:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - /etc/slurm
+        - /etc/munge
+        - /var/log/slurm 
+
+####### Head node play ############
+- name: Remove the SLURM related packages and directories 
+  vars_files: group_vars/cluster_params.yml
+  become: yes
+  hosts: head
+  tasks:
+
+    - name: stop services
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      with_items:
+        - slurmctld
+        - slurmdbd
+        - munge 
+      ignore_errors: True
+
+
+    - name: uninstall slurm
+      ansible.builtin.dnf:
+        name:  "{{ item }}"
+        state: absent
+      with_items:
+        - slurm-slurmdbd
+        - slurm-slurmctld
+        - slurm-devel
+        - slurm-example-configs
+        - slurm-libpmi
+        - slurm
+        - slurm-perlapi
+        - slurm-libs
+        - munge
+        - pmix
+
+    - name: remove files
+      ansible.builtin.file:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - /etc/slurm
+        - /etc/munge
+        - /var/log/slurm 
+        - roles/slurmd/files/pmix-{{ pmix_release }}-1.el8.x86_64.rpm
+        - roles/slurmd/files/slurm-{{ slurm_vers }}-1.el8.x86_64.rpm
+        - roles/slurmd/files/slurm-libpmi-{{ slurm_vers }}-1.el8.x86_64.rpm
+        - roles/slurmd/files/slurm-perlapi-{{ slurm_vers }}-1.el8.x86_64.rpm
+        - roles/slurmd/files/slurm-slurmd-{{ slurm_vers }}-1.el8.x86_64.rpm
+        - roles/slurm-rpm-build/files/slurm-{{ slurm_vers }}.tar.bz2
+        - roles/slurm-rpm-build/files/pmix-{{ pmix_release }}-1.src.rpm
+        - /tmp/rpmbuild
+
