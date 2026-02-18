@@ -1,0 +1,48 @@
+- name: Checking to see if prrte rpm.src exists 
+  ansible.builtin.stat:
+    path: roles/openmpi-rpm-build/files/prrte-{{ prtte_version }}-1.src.rpm
+  register: file_prrte_srcrpm
+
+- name: If it does not exist, download from the internet 
+  ansible.builtin.get_url:
+    url: https://github.com/openpmix/prrte/releases/download/v{{ prtte_version }}/prrte-{{ prtte_version }}-1.src.rpm
+    dest: roles/openmpi-rpm-build/files/prrte-{{ prtte_version }}-1.src.rpm
+  when: not file_prrte_srcrpm.stat.exists 
+
+- name: Checking to see if prrte rpm has already been created
+  ansible.builtin.stat:
+    path: /tmp/rpmbuild/RPMS/x86_64/prrte-{{ prtte_version }}-1.el8.x86_64.rpm
+  register: file_rpm
+
+- name: Building prrte rpm, this will skip if they are already built
+  ansible.builtin.command:
+    cmd: rpmbuild --define "_topdir /tmp/rpmbuild" --rebuild -ta roles/openmpi-rpm-build/files/prrte-{{ prtte_version }}-1.src.rpm 
+  when: not file_rpm.stat.exists
+
+- name: install prrte pkg 
+  ansible.builtin.dnf:
+    name: /tmp/rpmbuild/RPMS/x86_64/prrte-{{ prtte_version }}-1.el8.x86_64.rpm 
+    state: installed
+    disable_gpg_check: true
+
+- name: Checking to see if openmpi rpm.src exists 
+  ansible.builtin.stat:
+    path: roles/openmpi-rpm-build/files/openmpi-{{ openmpi_version }}-1.src.rpm
+  register: file_openmpi_srcrpm
+
+- name: If it does not exist, download from the internet 
+  ansible.builtin.get_url:
+    url: https://download.open-mpi.org/release/open-mpi/v{{ openmpi_base_version }}/openmpi-{{ openmpi_version }}-1.src.rpm
+    dest: roles/openmpi-rpm-build/files/openmpi-{{ openmpi_version }}-1.src.rpm
+  when: not file_openmpi_srcrpm.stat.exists 
+
+- name: Checking to see if openmpi rpm has already been created
+  ansible.builtin.stat:
+    path: /tmp/rpmbuild/RPMS/x86_64/openmpi-{{ openmpi_version }}-1.el8.x86_64.rpm
+  register: openmpi_rpm
+
+- name: Building openmpi rpm, this will skip if they are already built
+  ansible.builtin.command:
+    cmd: rpmbuild --define "_topdir /tmp/rpmbuild" --define 'install_in_opt 1' --rebuild -ta roles/openmpi-rpm-build/files/openmpi-{{ openmpi_version }}-1.src.rpm 
+  when: not openmpi_rpm.stat.exists
+
