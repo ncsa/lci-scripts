@@ -9,6 +9,8 @@ Enable Redhat powertools. Configure NFS server for user home directoris.
 
 - Fixing the host name on the head node.
 - Setting ssh host-based authentication.
+- Install Parallel Shell and configure for the cluster
+- Configure central logging
 - Install Ansible and configure Ansible environment for the cluster.
 - Use Ansible playbooks to:
   - Install packages.
@@ -51,7 +53,7 @@ appstream                        Rocky Linux 9 - AppStream
 baseos                           Rocky Linux 9 - BaseOS
 crb                              Rocky Linux 9 - CRB
 epel                             Extra Packages for Enterprise....
-epel-cisco-openh264              Extra Packages for Enterprise....
+epel-cisco-openh264              Extra Packages for Enterprise Cisco....
 extras                           Rocky Linux 9 - Extras
 ```
 
@@ -111,6 +113,7 @@ sudo hostnamectl set-hostname $correct_hostname
 ```bash
 ssh lci-compute-XX-1
 ```
+  - shouldn't work
 
 - as root
 
@@ -118,6 +121,7 @@ ssh lci-compute-XX-1
 sudo -i
 ssh lci-compute-XX-1
 ```
+- works
 
 ---
 
@@ -184,6 +188,53 @@ lci-storage-01-1
 ```bash
 systemctl restart sshd
 ```
+
+### Install Parallel Shell
+# On your head node for this section
+dnf install clustershell
+
+# Add the following to the /etc/clustershell/groups.d/local.cfg file (replace the example stuff)
+head: lci-head-XX-1
+compute: lci-compute-XX-[1-2]
+login: lci-head-XX-1
+storage: lci-storage-XX-1
+
+# Test it out
+clush -g compute "uptime"
+
+## Time Sync
+dnf install chrony
+#confirm config file meets expectation
+systemctl start chronyd && systemctl enable chronyd
+
+# Creatre morest users
+useradd -u 2002 justin
+useradd -u 2003 katie
+
+### Configure Central Logging
+
+# Remove comments for following lines in /etc/rsyslog.conf on lci-head-XX-1
+module(load="imudp") # needs to be done just once
+input(type="imudp" port="514")
+
+module(load="imtcp") # needs to be done just once
+input(type="imtcp" port="514")
+
+# Add these two lines in the Modules section:
+$template DynamicFile,"/var/log/%HOSTNAME%/forwarded-logs.log"
+*.* -?DynamicFile
+
+# Restart rsyslog on head node
+systemctl restart rsyslog
+
+# Add following to the very bottom of /etc/rsyslog.conf on both compute nodes/storage node and restart rsyslog service on those nodes
+*.* @lci-head-XX-1
+systemctl restart rsyslog
+
+# After a few minutes you should see new log directories in /var/log/ on lci-head-XX-1, a directory for each host forarding logs
+ls /var/log/lci-[computes/storage]-XX-Y/
+
+
 
 - We'll use Ansible to deliver these files to the nodes and restart ssh service.
 
