@@ -9,11 +9,10 @@ A concise, step-by-step command reference for students who want to get started q
 
 **Steps covered:**
 1. Fix hostname
-2. Setup SSH host-based authentication
-3. Run Head Node Ansible Playbook
-4. Install ClusterShell
-5. Create user accounts
-6. Configure central logging
+2. Run Head Node Ansible Playbook
+3. Install ClusterShell
+4. Create user accounts
+5. Configure central logging
 
 **Note:** Replace `XX` with your cluster number (e.g., `01`, `02`) throughout the file. Instructions for doing this with vim or nano are included at the top.
 
@@ -21,7 +20,6 @@ A concise, step-by-step command reference for students who want to get started q
 The comprehensive lab guide that walks students through the entire head node setup process with detailed explanations. This is the main instructional document and includes:
 - Initial cluster environment verification
 - Hostname configuration
-- SSH host-based authentication setup
 - Ansible playbook execution for automated configuration
 - Manual service configuration steps (clustershell, user accounts, central logging)
 - Quick reference commands at the end for post-playbook configuration

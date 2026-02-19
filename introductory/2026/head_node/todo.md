@@ -33,46 +33,7 @@ sudo hostnamectl set-hostname $correct_hostname
 
 ---
 
-## 2. Setup SSH Host-Based Authentication
-
-### Configure SSH files on head node:
-
-Add to `/etc/ssh/ssh_config`:
-```
-HostbasedAuthentication yes
-EnableSSHKeys yes
-```
-
-Add to `/etc/ssh/sshd_config`:
-```
-HostbasedAuthentication yes
-IgnoreUserKnownHosts yes
-IgnoreRhosts yes
-```
-
-### Download and run Ansible playbook:
-
-```bash
-cd ~
-git clone https://github.com/ncsa/lci-scripts.git
-cp -a lci-scripts/introductory/2026/head_node/SSH_hostbased .
-sudo dnf install ansible-core
-cd SSH_hostbased
-./gen_hosts_equiv.sh
-./ssh_key_scan.sh
-# Edit hosts.ini and replace XX with your cluster number
-sudo ansible-playbook host_based_ssh.yml
-```
-
-### Test SSH:
-```bash
-ssh lci-compute-XX-1
-ssh lci-compute-XX-2
-```
-
----
-
-## 3. Run Head Node Ansible Playbook
+## 2. Run Head Node Ansible Playbook
 
 ```bash
 cd ~
@@ -91,7 +52,7 @@ showmount -e
 
 ---
 
-## 4. Install ClusterShell
+## 3. Install ClusterShell
 
 ```bash
 sudo dnf install clustershell
@@ -112,7 +73,7 @@ clush -g compute "uptime"
 
 ---
 
-## 5. Create User Accounts
+## 4. Create User Accounts
 
 ```bash
 sudo useradd -u 2002 justin
@@ -121,7 +82,7 @@ sudo useradd -u 2003 katie
 
 ---
 
-## 6. Configure Central Logging
+## 5. Configure Central Logging
 
 ### On head node (lci-head-XX-1):
 
