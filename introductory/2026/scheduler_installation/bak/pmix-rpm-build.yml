@@ -1,11 +1,3 @@
-- name: Install PMIx build dependencies
-  ansible.builtin.dnf:
-    name:
-      - hwloc-devel
-      - libevent-devel
-      - python3-devel
-    state: present
-
 - name: Checking to see if the pmix SRC RPM exists 
   ansible.builtin.stat:
     path: roles/pmix-rpm-build/files/pmix-{{ pmix_release }}.src.rpm

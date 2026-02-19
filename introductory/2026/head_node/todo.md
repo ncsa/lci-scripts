@@ -1,13 +1,13 @@
 # Head Node Setup - Todo List
 
-Replace `XX` with your cluster number (e.g., 01, 02) in all commands.
+Replace `01` with your cluster number (e.g., 02, 03, etc.) in all commands and configuration files.
 
 ## How to Update This File with Your Cluster Number
 
 Using vim:
 ```bash
 vim todo.md
-:%s/XX/01/g
+:%s/01/<clusternumber>/g
 :wq
 ```
 
@@ -15,8 +15,8 @@ Using nano:
 ```bash
 nano todo.md
 # Press Ctrl+\ (search and replace)
-# Enter "XX" as search term
-# Enter "01" (your cluster number) as replacement
+# Enter "01" as search term
+# Enter your cluster number as replacement
 # Press A to replace all occurrences
 # Press Ctrl+O to save, then Enter to confirm
 # Press Ctrl+X to exit
