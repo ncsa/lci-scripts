@@ -190,49 +190,71 @@ systemctl restart sshd
 ```
 
 ### Install Parallel Shell
-# On your head node for this section
-dnf install clustershell
 
-# Add the following to the /etc/clustershell/groups.d/local.cfg file (replace the example stuff)
+**Note:** Replace `XX` with your cluster number (e.g., `01`, `02`) in all commands below.
+
+```bash
+# On your head node for this section - run as root
+dnf install clustershell
+```
+
+Add the following to the `/etc/clustershell/groups.d/local.cfg` file (replace the example stuff):
+```
 head: lci-head-XX-1
 compute: lci-compute-XX-[1-2]
 login: lci-head-XX-1
 storage: lci-storage-XX-1
+```
 
-# Test it out
+Test it out:
+```bash
 clush -g compute "uptime"
+```
 
-## Time Sync
-dnf install chrony
-#confirm config file meets expectation
-systemctl start chronyd && systemctl enable chronyd
+### Create User Accounts
 
-# Creatre morest users
+```bash
 useradd -u 2002 justin
 useradd -u 2003 katie
+```
 
 ### Configure Central Logging
 
-# Remove comments for following lines in /etc/rsyslog.conf on lci-head-XX-1
+On the head node (`lci-head-XX-1`), edit `/etc/rsyslog.conf` and uncomment the following lines:
+
+```bash
 module(load="imudp") # needs to be done just once
 input(type="imudp" port="514")
 
 module(load="imtcp") # needs to be done just once
 input(type="imtcp" port="514")
+```
 
-# Add these two lines in the Modules section:
+Add these two lines in the Modules section:
+```bash
 $template DynamicFile,"/var/log/%HOSTNAME%/forwarded-logs.log"
 *.* -?DynamicFile
+```
 
-# Restart rsyslog on head node
+Restart rsyslog on the head node:
+```bash
 systemctl restart rsyslog
+```
 
-# Add following to the very bottom of /etc/rsyslog.conf on both compute nodes/storage node and restart rsyslog service on those nodes
+On both compute nodes and the storage node, add the following to the very bottom of `/etc/rsyslog.conf`:
+```bash
 *.* @lci-head-XX-1
-systemctl restart rsyslog
+```
 
-# After a few minutes you should see new log directories in /var/log/ on lci-head-XX-1, a directory for each host forarding logs
+Then restart rsyslog on those nodes:
+```bash
+systemctl restart rsyslog
+```
+
+After a few minutes you should see new log directories in `/var/log/` on `lci-head-XX-1`, with a directory for each host forwarding logs:
+```bash
 ls /var/log/lci-[computes/storage]-XX-Y/
+```
 
 
 
@@ -347,14 +369,16 @@ systemctl restart mariadb
 
 ### Time set and synchronization
 
-Can be done with two commands:
+Time synchronization is handled by the Ansible playbook using `systemd-timesyncd` (enabled via `timedatectl set-ntp yes`), which is sufficient for basic NTP client needs on the head node. This is implemented by the `timesync` role.
+
+If you need to verify or set manually:
 
 ```bash
 timedatectl set-timezone America/Chicago
 timedatectl set-ntp yes
 ```
 
-We have role `timesync` in the Ansible playbook.
+**Note:** The playbook does not install `chrony`, as `systemd-timesyncd` provides adequate time synchronization for this environment.
 
 ---
 
@@ -416,3 +440,93 @@ showmount -e
 ```
 
 It should show the exportd directory and the clients.
+
+---
+
+## Quick Reference Commands
+
+The following commands can be executed after running the Ansible playbook to complete additional cluster configuration. Save these to a file and customize for your cluster.
+
+**First: Replace XX with your cluster number (e.g., 01, 02, etc.)**
+
+Using vim:
+```bash
+vim commands
+:%s/XX/01/g
+:wq
+```
+
+Using nano:
+```bash
+nano commands
+# Press Ctrl+\ (search and replace)
+# Enter "XX" as search term
+# Enter "01" (your cluster number) as replacement
+# Press A to replace all occurrences
+# Press Ctrl+O to save, then Enter to confirm
+# Press Ctrl+X to exit
+```
+
+### Parallel Shell Setup
+
+```bash
+# On your head node for this section - as root
+dnf install clustershell
+```
+
+Add the following to the `/etc/clustershell/groups.d/local.cfg` file:
+```
+head: lci-head-XX-1
+compute: lci-compute-XX-[1-2]
+login: lci-head-XX-1
+storage: lci-storage-XX-1
+```
+
+Test it out:
+```bash
+clush -g compute "uptime"
+```
+
+### Create User Accounts
+
+```bash
+useradd -u 2002 justin
+useradd -u 2003 katie
+```
+
+### Central Logging Configuration
+
+On the head node (`lci-head-XX-1`), edit `/etc/rsyslog.conf` and uncomment:
+```bash
+module(load="imudp") # needs to be done just once
+input(type="imudp" port="514")
+
+module(load="imtcp") # needs to be done just once
+input(type="imtcp" port="514")
+```
+
+Add these two lines in the Modules section:
+```bash
+$template DynamicFile,"/var/log/%HOSTNAME%/forwarded-logs.log"
+*.* -?DynamicFile
+```
+
+Restart rsyslog on the head node:
+```bash
+systemctl restart rsyslog
+```
+
+On both compute nodes and the storage node, add to `/etc/rsyslog.conf`:
+```bash
+*.* @lci-head-XX-1
+```
+
+Restart rsyslog:
+```bash
+systemctl restart rsyslog
+```
+
+After a few minutes, verify logs are being received:
+```bash
+ls /var/log/lci-[computes/storage]-XX-Y/
+```
