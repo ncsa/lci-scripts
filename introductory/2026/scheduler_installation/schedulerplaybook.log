@@ -1,0 +1,55 @@
+
+PLAY [Head node Scheduler configuration] ***************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [localhost]
+
+TASK [slurm-user : Setting SLURM user, group] **********************************
+included: /home/rocky/lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook/roles/slurm-user/tasks/slurm-user.yml for localhost
+
+TASK [slurm-user : Create slurm group] *****************************************
+ok: [localhost]
+
+TASK [slurm-user : Create the slurm user and add them to the slurm group] ******
+ok: [localhost]
+
+TASK [slurm-user : Setting SLURM directories] **********************************
+included: /home/rocky/lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook/roles/slurm-user/tasks/slurm-logs.yml for localhost
+
+TASK [slurm-user : Create & change ownership of /var/spool/slurm directory] ****
+ok: [localhost]
+
+TASK [slurm-user : Create & change ownership of /var/spool/slurmctld directory] ***
+ok: [localhost]
+
+TASK [slurm-user : Create /var/spool/slurm/cluster_state directory] ************
+ok: [localhost]
+
+TASK [slurm-user : Create /var/log/slurm directory] ****************************
+ok: [localhost]
+
+TASK [slurm-rpm-build : Build pmix on the head node] ***************************
+included: /home/rocky/lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook/roles/slurm-rpm-build/tasks/pmix-rpm-build.yml for localhost
+
+TASK [slurm-rpm-build : Install PMIx build dependencies] ***********************
+ok: [localhost]
+
+TASK [slurm-rpm-build : Checking to see if the pmix SRC RPM exists] ************
+ok: [localhost]
+
+TASK [slurm-rpm-build : If it does not exist, download it] *********************
+changed: [localhost]
+
+TASK [slurm-rpm-build : Checking to see if the pmix rpm have already been created] ***
+ok: [localhost]
+
+TASK [slurm-rpm-build : Building pmix rpms, this will skip if they are already built] ***
+changed: [localhost]
+
+TASK [slurm-rpm-build : Install RPM on the head node] **************************
+An exception occurred during task execution. To see the full traceback, use -vvv. The error was: OSError: Could not open: /tmp/rpmbuild/RPMS/x86_64/pmix-4.2.8-1.el8.x86_64.rpm
+fatal: [localhost]: FAILED! => {"changed": false, "module_stderr": "Traceback (most recent call last):\n  File \"/tmp/.ansible_rocky/ansible-tmp-1771538199.853193-130398-26231861780431/AnsiballZ_dnf.py\", line 107, in <module>\n    _ansiballz_main()\n  File \"/tmp/.ansible_rocky/ansible-tmp-1771538199.853193-130398-26231861780431/AnsiballZ_dnf.py\", line 99, in _ansiballz_main\n    invoke_module(zipped_mod, temp_path, ANSIBALLZ_PARAMS)\n  File \"/tmp/.ansible_rocky/ansible-tmp-1771538199.853193-130398-26231861780431/AnsiballZ_dnf.py\", line 47, in invoke_module\n    runpy.run_module(mod_name='ansible.modules.dnf', init_globals=dict(_module_fqn='ansible.modules.dnf', _modlib_path=modlib_path),\n  File \"/usr/lib64/python3.9/runpy.py\", line 225, in run_module\n    return _run_module_code(code, init_globals, run_name, mod_spec)\n  File \"/usr/lib64/python3.9/runpy.py\", line 97, in _run_module_code\n    _run_code(code, mod_globals, init_globals,\n  File \"/usr/lib64/python3.9/runpy.py\", line 87, in _run_code\n    exec(code, run_globals)\n  File \"/tmp/ansible_ansible.builtin.dnf_payload_y92yv3ls/ansible_ansible.builtin.dnf_payload.zip/ansible/modules/dnf.py\", line 1468, in <module>\n  File \"/tmp/ansible_ansible.builtin.dnf_payload_y92yv3ls/ansible_ansible.builtin.dnf_payload.zip/ansible/modules/dnf.py\", line 1457, in main\n  File \"/tmp/ansible_ansible.builtin.dnf_payload_y92yv3ls/ansible_ansible.builtin.dnf_payload.zip/ansible/modules/dnf.py\", line 1431, in run\n  File \"/tmp/ansible_ansible.builtin.dnf_payload_y92yv3ls/ansible_ansible.builtin.dnf_payload.zip/ansible/modules/dnf.py\", line 1076, in ensure\n  File \"/tmp/ansible_ansible.builtin.dnf_payload_y92yv3ls/ansible_ansible.builtin.dnf_payload.zip/ansible/modules/dnf.py\", line 976, in _install_remote_rpms\n  File \"/usr/lib/python3.9/site-packages/dnf/base.py\", line 1351, in add_remote_rpms\n    raise IOError(_(\"Could not open: {}\").format(' '.join(pkgs_error)))\nOSError: Could not open: /tmp/rpmbuild/RPMS/x86_64/pmix-4.2.8-1.el8.x86_64.rpm\n", "module_stdout": "", "msg": "MODULE FAILURE\nSee stdout/stderr for the exact error", "rc": 1}
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=15   changed=2    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+
