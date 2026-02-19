@@ -330,20 +330,24 @@ You should be able to ssh between the nodes and elevate privileges to root via s
 
 ### Setup Ansible
 
+The combined playbook configures both the head node and compute nodes.
+
 ```bash
 cd
 cp -a lci-scripts/introductory/head_node/Head_node_playbook .
 cd Head_node_playbook
 ```
 
-The Ansible directory contains
+The Ansible directory contains:
 
-- configuration file, ansible.cfg,
-- inventory file, hosts.ini,
-- playbook playbook.yml,
-- directory roles with tasks
+- configuration file, ansible.cfg
+- inventory file, hosts.ini (contains both [head] and [all_nodes] sections)
+- playbook playbook.yml (configures both head and compute nodes)
+- directory roles with tasks for both head and compute nodes
 
-The playbook, playbook.yml, calls the roles with various tasks.
+The playbook, playbook.yml, contains two plays:
+1. **Head node configuration** - runs locally on the head node
+2. **Compute node configuration** - runs on all compute nodes via SSH
 
 ---
 
@@ -440,31 +444,45 @@ The above is accomplished with the tasks in role `head-node_nfs_server`.
 
 ### Run Ansible playbook
 
-Fix the hostnames of the compute nodes in file hosts.ini
+Fix the hostnames in file hosts.ini for both the [head] and [all_nodes] sections.
+
+Run the combined playbook (configures both head and compute nodes):
 
 ```bash
 ansible-playbook playbook.yml
 ```
 
-Verify that mariadb service is running:
+Or run specific parts using tags:
+```bash
+# Configure only the head node
+ansible-playbook playbook.yml --tags head_node_play
+
+# Configure only compute nodes
+ansible-playbook playbook.yml --tags compute_node_play
+```
+
+Verify head node services:
 
 ```bash
 systemctl status mariadb
+timedatectl status
+showmount -e
 ```
 
-Verify that the time zone and synchronization, NTP, are set:
-
-```bash
-timedatectl  status
-```
-
-Verify that the NFS directory is exported:
+Verify NFS is exported:
 
 ```bash
 showmount -e
 ```
 
-It should show the exportd directory and the clients.
+It should show the exported directory and the clients.
+
+Verify compute nodes can access NFS:
+
+```bash
+ssh lci-compute-XX-1 ls /head/NFS
+ssh lci-compute-XX-2 ls /head/NFS
+```
 
 ---
 

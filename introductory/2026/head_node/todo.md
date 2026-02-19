@@ -49,21 +49,29 @@ cd Head_node_playbook
 
 ---
 
-## 3. Run Head Node Ansible Playbook
+## 3. Run Ansible Playbook
+
+The combined playbook configures both the head node and compute nodes.
 
 ```bash
 cd ~
 cp -a lci-scripts/introductory/head_node/Head_node_playbook .
 cd Head_node_playbook
-# Edit hosts.ini and replace XX with your cluster number
+# Edit hosts.ini and replace XX with your cluster number in both [head] and [all_nodes] sections
 ansible-playbook playbook.yml
 ```
 
-### Verify services:
+### Verify services on head node:
 ```bash
 systemctl status mariadb
 timedatectl status
 showmount -e
+```
+
+### Verify NFS mount on compute nodes:
+```bash
+ssh lci-compute-XX-1 ls /head/NFS
+ssh lci-compute-XX-2 ls /head/NFS
 ```
 
 ---

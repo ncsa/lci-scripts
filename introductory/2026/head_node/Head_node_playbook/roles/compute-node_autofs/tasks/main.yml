@@ -1,0 +1,32 @@
+    - name: install autofs
+      ansible.builtin.dnf:
+        name: autofs
+        state: present
+
+    - name: Creates directory
+      ansible.builtin.file:
+        path: /head
+        state: directory
+        mode: '0755'
+
+    - name: Copy auto.master
+      ansible.builtin.copy:
+        src: auto.master
+        dest: /etc/auto.master
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Copy auto.nfs
+      ansible.builtin.copy:
+        src: auto.nfs
+        dest: /etc/auto.nfs
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Restart service autofs
+      ansible.builtin.systemd_service:
+        state: restarted
+        daemon_reload: yes
+        name: autofs
