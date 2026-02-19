@@ -2,6 +2,8 @@
 
 [Click on the link for updated version of the lab on github](https://github.com/ncsa/lci-scripts/tree/main/introductory/head_node/Lab_head_node.md)
 
+> **Quick Start:** For a condensed list of commands only, see [`todo.md`](todo.md) in this directory.
+
 **Objective:** Setting up ssh host-based authentication and Ansible cluster management.
 Enable Redhat powertools. Configure NFS server for user home directoris.
 
