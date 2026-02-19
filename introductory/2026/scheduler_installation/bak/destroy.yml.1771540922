@@ -81,11 +81,11 @@
         - /etc/slurm
         - /etc/munge
         - /var/log/slurm 
-        - roles/slurmd/files/pmix-{{ pmix_release }}-1.el9.x86_64.rpm
-        - roles/slurmd/files/slurm-{{ slurm_vers }}-1.el9.x86_64.rpm
-        - roles/slurmd/files/slurm-libpmi-{{ slurm_vers }}-1.el9.x86_64.rpm
-        - roles/slurmd/files/slurm-perlapi-{{ slurm_vers }}-1.el9.x86_64.rpm
-        - roles/slurmd/files/slurm-slurmd-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - roles/slurmd/files/pmix-{{ pmix_release }}-1.el8.x86_64.rpm
+        - roles/slurmd/files/slurm-{{ slurm_vers }}-1.el8.x86_64.rpm
+        - roles/slurmd/files/slurm-libpmi-{{ slurm_vers }}-1.el8.x86_64.rpm
+        - roles/slurmd/files/slurm-perlapi-{{ slurm_vers }}-1.el8.x86_64.rpm
+        - roles/slurmd/files/slurm-slurmd-{{ slurm_vers }}-1.el8.x86_64.rpm
         - roles/slurm-rpm-build/files/slurm-{{ slurm_vers }}.tar.bz2
         - roles/slurm-rpm-build/files/pmix-{{ pmix_release }}-1.src.rpm
         - /tmp/rpmbuild

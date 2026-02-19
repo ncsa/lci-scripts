@@ -44,12 +44,41 @@ TASK [slurm-rpm-build : Checking to see if the pmix rpm have already been create
 ok: [localhost]
 
 TASK [slurm-rpm-build : Building pmix rpms, this will skip if they are already built] ***
-changed: [localhost]
+skipping: [localhost]
 
 TASK [slurm-rpm-build : Install RPM on the head node] **************************
-An exception occurred during task execution. To see the full traceback, use -vvv. The error was: OSError: Could not open: /tmp/rpmbuild/RPMS/x86_64/pmix-4.2.8-1.el8.x86_64.rpm
-fatal: [localhost]: FAILED! => {"changed": false, "module_stderr": "Traceback (most recent call last):\n  File \"/tmp/.ansible_rocky/ansible-tmp-1771538199.853193-130398-26231861780431/AnsiballZ_dnf.py\", line 107, in <module>\n    _ansiballz_main()\n  File \"/tmp/.ansible_rocky/ansible-tmp-1771538199.853193-130398-26231861780431/AnsiballZ_dnf.py\", line 99, in _ansiballz_main\n    invoke_module(zipped_mod, temp_path, ANSIBALLZ_PARAMS)\n  File \"/tmp/.ansible_rocky/ansible-tmp-1771538199.853193-130398-26231861780431/AnsiballZ_dnf.py\", line 47, in invoke_module\n    runpy.run_module(mod_name='ansible.modules.dnf', init_globals=dict(_module_fqn='ansible.modules.dnf', _modlib_path=modlib_path),\n  File \"/usr/lib64/python3.9/runpy.py\", line 225, in run_module\n    return _run_module_code(code, init_globals, run_name, mod_spec)\n  File \"/usr/lib64/python3.9/runpy.py\", line 97, in _run_module_code\n    _run_code(code, mod_globals, init_globals,\n  File \"/usr/lib64/python3.9/runpy.py\", line 87, in _run_code\n    exec(code, run_globals)\n  File \"/tmp/ansible_ansible.builtin.dnf_payload_y92yv3ls/ansible_ansible.builtin.dnf_payload.zip/ansible/modules/dnf.py\", line 1468, in <module>\n  File \"/tmp/ansible_ansible.builtin.dnf_payload_y92yv3ls/ansible_ansible.builtin.dnf_payload.zip/ansible/modules/dnf.py\", line 1457, in main\n  File \"/tmp/ansible_ansible.builtin.dnf_payload_y92yv3ls/ansible_ansible.builtin.dnf_payload.zip/ansible/modules/dnf.py\", line 1431, in run\n  File \"/tmp/ansible_ansible.builtin.dnf_payload_y92yv3ls/ansible_ansible.builtin.dnf_payload.zip/ansible/modules/dnf.py\", line 1076, in ensure\n  File \"/tmp/ansible_ansible.builtin.dnf_payload_y92yv3ls/ansible_ansible.builtin.dnf_payload.zip/ansible/modules/dnf.py\", line 976, in _install_remote_rpms\n  File \"/usr/lib/python3.9/site-packages/dnf/base.py\", line 1351, in add_remote_rpms\n    raise IOError(_(\"Could not open: {}\").format(' '.join(pkgs_error)))\nOSError: Could not open: /tmp/rpmbuild/RPMS/x86_64/pmix-4.2.8-1.el8.x86_64.rpm\n", "module_stdout": "", "msg": "MODULE FAILURE\nSee stdout/stderr for the exact error", "rc": 1}
+ok: [localhost]
+
+TASK [slurm-rpm-build : Build and SLURM on the head node] **********************
+included: /home/rocky/lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook/roles/slurm-rpm-build/tasks/slurm-rpm-build.yml for localhost
+
+TASK [slurm-rpm-build : Checking to see if the slurm .tar.bz2 file exists] *****
+ok: [localhost]
+
+TASK [slurm-rpm-build : If it does not exist, pull latest version of slurm down] ***
+skipping: [localhost]
+
+TASK [slurm-rpm-build : Checking to see if the slurm rpms have already been created] ***
+ok: [localhost]
+
+TASK [slurm-rpm-build : Building slurm rpms, this will skip if they are already built] ***
+changed: [localhost]
+
+TASK [slurm-rpm-build : Copy RPM] **********************************************
+included: /home/rocky/lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook/roles/slurm-rpm-build/tasks/slurm-rpm-copy.yml for localhost
+
+TASK [slurm-rpm-build : Copy the rpm files into slurmd/files] ******************
+An exception occurred during task execution. To see the full traceback, use -vvv. The error was: If you are using a module and expect the file to exist on the remote, see the remote_src option
+failed: [localhost] (item=slurm-23.11.1-1.el8.x86_64.rpm) => {"ansible_loop_var": "item", "changed": false, "item": "slurm-23.11.1-1.el8.x86_64.rpm", "msg": "Could not find or access '/tmp/rpmbuild/RPMS/x86_64/slurm-23.11.1-1.el8.x86_64.rpm' on the Ansible Controller.\nIf you are using a module and expect the file to exist on the remote, see the remote_src option"}
+An exception occurred during task execution. To see the full traceback, use -vvv. The error was: If you are using a module and expect the file to exist on the remote, see the remote_src option
+failed: [localhost] (item=slurm-perlapi-23.11.1-1.el8.x86_64.rpm) => {"ansible_loop_var": "item", "changed": false, "item": "slurm-perlapi-23.11.1-1.el8.x86_64.rpm", "msg": "Could not find or access '/tmp/rpmbuild/RPMS/x86_64/slurm-perlapi-23.11.1-1.el8.x86_64.rpm' on the Ansible Controller.\nIf you are using a module and expect the file to exist on the remote, see the remote_src option"}
+An exception occurred during task execution. To see the full traceback, use -vvv. The error was: If you are using a module and expect the file to exist on the remote, see the remote_src option
+failed: [localhost] (item=slurm-slurmd-23.11.1-1.el8.x86_64.rpm) => {"ansible_loop_var": "item", "changed": false, "item": "slurm-slurmd-23.11.1-1.el8.x86_64.rpm", "msg": "Could not find or access '/tmp/rpmbuild/RPMS/x86_64/slurm-slurmd-23.11.1-1.el8.x86_64.rpm' on the Ansible Controller.\nIf you are using a module and expect the file to exist on the remote, see the remote_src option"}
+An exception occurred during task execution. To see the full traceback, use -vvv. The error was: If you are using a module and expect the file to exist on the remote, see the remote_src option
+failed: [localhost] (item=slurm-libpmi-23.11.1-1.el8.x86_64.rpm) => {"ansible_loop_var": "item", "changed": false, "item": "slurm-libpmi-23.11.1-1.el8.x86_64.rpm", "msg": "Could not find or access '/tmp/rpmbuild/RPMS/x86_64/slurm-libpmi-23.11.1-1.el8.x86_64.rpm' on the Ansible Controller.\nIf you are using a module and expect the file to exist on the remote, see the remote_src option"}
+An exception occurred during task execution. To see the full traceback, use -vvv. The error was: If you are using a module and expect the file to exist on the remote, see the remote_src option
+failed: [localhost] (item=pmix-4.2.8-1.el8.x86_64.rpm) => {"ansible_loop_var": "item", "changed": false, "item": "pmix-4.2.8-1.el8.x86_64.rpm", "msg": "Could not find or access '/tmp/rpmbuild/RPMS/x86_64/pmix-4.2.8-1.el8.x86_64.rpm' on the Ansible Controller.\nIf you are using a module and expect the file to exist on the remote, see the remote_src option"}
 
 PLAY RECAP *********************************************************************
-localhost                  : ok=15   changed=2    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+localhost                  : ok=20   changed=2    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0   
 

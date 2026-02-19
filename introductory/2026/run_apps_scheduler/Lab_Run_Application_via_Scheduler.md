@@ -3,6 +3,10 @@
 
 [Click on the link for the updated version of the Lab on gitlab](https://github.com/ncsa/lci-scripts/tree/main/introductory/run_apps_scheduler/Lab_Run_Application_via_Scheduler.md)
 
+> **Note:** This lab uses code from the OpenMP/MPI lab. If you haven't copied the code to your $HOME directory yet, you can do so with:
+> ```bash
+> cp -r lci-scripts/introductory/2026/openmp_mpi/Lab_MPI .
+> ```
 
 ## Lab: Build a Cluster: Run Application via Scheduler
 
@@ -36,17 +40,17 @@ For correct accounting, association, and resource assignments, users and account
 
 Accounts in SLURM have the meaning like posix groups in Linux.
 
-We create account (group) lci2024:
+We create account (group) lci2026:
 
 ```bash
-sudo sacctmgr -i add account lci2024 Description="LCI 2024 workshop"
+sudo sacctmgr -i add account lci2026 Description="LCI 2026 workshop"
 ```
 
-We create users `mpiuser` and `rocky` and assign them to cluster "cluster" and account (group) lci2024:
+We create users `mpiuser` and `rocky` and assign them to cluster "cluster" and account (group) lci2026:
 
 ```bash
-sudo sacctmgr -i create user name=mpiuser cluster=cluster account=lci2024
-sudo sacctmgr -i create user name=rocky cluster=cluster account=lci2024
+sudo sacctmgr -i create user name=mpiuser cluster=cluster account=lci2026
+sudo sacctmgr -i create user name=rocky cluster=cluster account=lci2026
 ```
 
 Check the accounts and users:
@@ -89,7 +93,7 @@ sudo su - mpiuser
 
 Step into OpenMP directory:
 ```bash
-cd OpenMP
+cd ~/Lab_MPI/OpenMP
 ```
 
 
@@ -110,7 +114,7 @@ sinfo -N -l
 Step into directory OpenMP, setup 2 threads for a run, then run heated_plate_openmp.x:
 
 ```bash
-cd OpenMP
+cd ~/Lab_MPI/OpenMP
 export OMP_NUM_THREADS=2
 ./heated_plate.x 
 ```
@@ -171,8 +175,7 @@ It should show pmi2, mpix, and pmix_4.
 Change directory to MPI, and run `mpi_heat2D.x` through `srun` with 4, 6, and 8 processes:
 
 ```bash
-cd 
-cd MPI
+cd ~/Lab_MPI/MPI
 srun --mpi=pmix -n 4  mpi_heat2D.x
 srun --mpi=pmix_v4 -n 4  mpi_heat2D.x
 ```
@@ -247,8 +250,7 @@ Check out the stdo output file, slurm-\<job_id\>.out
 Step into directory OpenMP:
 
 ```bash
-cd 
-cd OpenMP
+cd ~/Lab_MPI/OpenMP
 ```
 
 Check out submit script `openmp_batch.sh`. It is using the SLURM environment variables and a scratch directory.
@@ -309,8 +311,7 @@ If resources are unavailable, jobs will stay in the queue.
 Go to the MPI directory:
 
 ```bash
-cd 
-cd MPI
+cd ~/Lab_MPI/MPI
 ```
 
 Launch `srun` with bash, and requesting 2 tasks:
@@ -419,7 +420,7 @@ If one of the firelds don't fit in the output, expand the number of positions in
 61.batch               batch  COMPLETED     lci-compute-01-1   00:16:16
 61.0                   prted  COMPLETED     lci-compute-01-2   00:32:36
 
- ```
+  ```
 
 ### 10. Command `scontrol`
 
