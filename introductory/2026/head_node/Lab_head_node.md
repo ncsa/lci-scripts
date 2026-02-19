@@ -103,6 +103,29 @@ Change the hostname:
 sudo hostnamectl set-hostname $correct_hostname
 ```
 
+---
+
+## 2. Install Ansible
+
+### On the head node:
+
+Install ansible-core:
+
+```bash
+sudo dnf install -y ansible-core
+```
+
+### On compute nodes:
+
+Edit `Head_node_playbook/hosts.ini` and update the hostnames to match your cluster number (e.g., change `01` to your actual cluster number), then run the install script:
+
+```bash
+cd Head_node_playbook
+./installansible.sh
+```
+
+This script will install ansible-core on all compute nodes listed in the hosts.ini file.
+
 ## SSH connection to the compute nodes:
 
 - passwordless for root

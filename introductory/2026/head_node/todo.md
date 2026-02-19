@@ -33,7 +33,23 @@ sudo hostnamectl set-hostname $correct_hostname
 
 ---
 
-## 2. Run Head Node Ansible Playbook
+## 2. Install Ansible
+
+### On the head node:
+```bash
+sudo dnf install -y ansible-core
+```
+
+### On compute nodes:
+Edit `Head_node_playbook/hosts.ini` and update hostnames to match your cluster number, then run:
+```bash
+cd Head_node_playbook
+./installansible.sh
+```
+
+---
+
+## 3. Run Head Node Ansible Playbook
 
 ```bash
 cd ~
@@ -52,7 +68,7 @@ showmount -e
 
 ---
 
-## 3. Install ClusterShell
+## 4. Install ClusterShell
 
 ```bash
 sudo dnf install clustershell
@@ -73,7 +89,7 @@ clush -g compute "uptime"
 
 ---
 
-## 4. Create User Accounts
+## 5. Create User Accounts
 
 ```bash
 sudo useradd -u 2002 justin
@@ -82,7 +98,7 @@ sudo useradd -u 2003 katie
 
 ---
 
-## 5. Configure Central Logging
+## 6. Configure Central Logging
 
 ### On head node (lci-head-XX-1):
 
