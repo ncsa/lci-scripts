@@ -1,0 +1,249 @@
+---
+# Cleanup script to remove all Slurm repositories and packages from all nodes
+- name: Remove Slurm Repos and Packages from Head Node
+  hosts: head
+  connection: local
+  become: yes
+  
+  tasks:
+    - name: Stop all Slurm services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+      loop:
+        - slurmctld
+        - slurmdbd
+        - slurmd
+        - slurmrestd
+
+    - name: Remove Slurm packages installed via RPM
+      ansible.builtin.dnf:
+        name:
+          - slurm
+          - slurm-slurmctld
+          - slurm-slurmdbd
+          - slurm-slurmd
+          - slurm-perlapi
+          - slurm-libpmi
+          - slurm-devel
+          - slurm-example-configs
+          - slurm-pam_slurm
+          - slurm-contribs
+          - slurm-torque
+          - slurm-openlava
+        state: absent
+        autoremove: yes
+      ignore_errors: yes
+
+    - name: Remove SchedMD Slurm repository files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/yum.repos.d/slurm.repo
+        - /etc/yum.repos.d/slurm-schedmd.repo
+        - /etc/yum.repos.d/schedmd-slurm.repo
+        - /etc/yum.repos.d/slurm-23.11.repo
+      ignore_errors: yes
+
+    - name: Remove custom RPM repository directory
+      ansible.builtin.file:
+        path: /root/rpmbuild
+        state: absent
+      ignore_errors: yes
+
+    - name: Remove temporary RPM build directory
+      ansible.builtin.file:
+        path: /tmp/rpmbuild
+        state: absent
+      ignore_errors: yes
+
+    - name: Clean dnf cache
+      ansible.builtin.command:
+        cmd: dnf clean all
+      ignore_errors: yes
+
+    - name: Remove Slurm source build directories
+      ansible.builtin.file:
+        path: "/tmp/slurm-{{ item }}"
+        state: absent
+      loop:
+        - '23.11.1'
+        - '25.05.6'
+      ignore_errors: yes
+
+    - name: Remove old Slurm installation directories
+      ansible.builtin.file:
+        path: "/opt/slurm/{{ item }}-built"
+        state: absent
+      loop:
+        - '23.11.1'
+        - '25.05.6'
+      ignore_errors: yes
+
+    - name: Remove Slurm configuration files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/slurm/slurm.conf
+        - /etc/slurm/slurmdbd.conf
+        - /etc/slurm/cgroup.conf
+        - /etc/slurm/job_container.conf
+        - /etc/slurm
+        - /etc/default/slurmd
+        - /etc/profile.d/slurm.sh
+      ignore_errors: yes
+
+    - name: Remove Slurm systemd service files
+      ansible.builtin.file:
+        path: "/etc/systemd/system/{{ item }}"
+        state: absent
+      loop:
+        - slurmctld.service
+        - slurmdbd.service
+        - slurmd.service
+        - slurmrestd.service
+      ignore_errors: yes
+
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: Remove Slurm data directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/spool/slurm
+        - /var/spool/slurmctld
+        - /var/spool/slurmd
+        - /var/spool/slurmd.spool
+        - /var/spool/slurm.state
+        - /var/log/slurm
+        - /var/run/slurm
+      ignore_errors: yes
+
+    - name: Remove Slurm user and group
+      ansible.builtin.user:
+        name: slurm
+        state: absent
+        remove: yes
+      ignore_errors: yes
+
+    - name: Remove slurm group
+      ansible.builtin.group:
+        name: slurm
+        state: absent
+      ignore_errors: yes
+
+
+- name: Remove Slurm from Compute Nodes
+  hosts: all_nodes
+  become: yes
+  
+  tasks:
+    - name: Stop slurmd service
+      ansible.builtin.systemd:
+        name: slurmd
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+
+    - name: Remove Slurm packages on compute nodes
+      ansible.builtin.dnf:
+        name:
+          - slurm
+          - slurm-slurmd
+          - slurm-perlapi
+          - slurm-libpmi
+        state: absent
+        autoremove: yes
+      ignore_errors: yes
+
+    - name: Remove SchedMD repository files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/yum.repos.d/slurm.repo
+        - /etc/yum.repos.d/slurm-schedmd.repo
+        - /etc/yum.repos.d/schedmd-slurm.repo
+        - /etc/yum.repos.d/slurm-23.11.repo
+      ignore_errors: yes
+
+    - name: Clean dnf cache on compute nodes
+      ansible.builtin.command:
+        cmd: dnf clean all
+      ignore_errors: yes
+
+    - name: Remove Slurm source build directories
+      ansible.builtin.file:
+        path: "/tmp/slurm-{{ item }}"
+        state: absent
+      loop:
+        - '23.11.1'
+        - '25.05.6'
+      ignore_errors: yes
+
+    - name: Remove old Slurm installation directories
+      ansible.builtin.file:
+        path: "/opt/slurm/{{ item }}-built"
+        state: absent
+      loop:
+        - '23.11.1'
+        - '25.05.6'
+      ignore_errors: yes
+
+    - name: Remove /opt/slurm directory entirely
+      ansible.builtin.file:
+        path: /opt/slurm
+        state: absent
+      ignore_errors: yes
+
+    - name: Remove Slurm configuration
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/slurm
+        - /etc/default/slurmd
+        - /etc/profile.d/slurm.sh
+      ignore_errors: yes
+
+    - name: Remove systemd service file
+      ansible.builtin.file:
+        path: /etc/systemd/system/slurmd.service
+        state: absent
+      ignore_errors: yes
+
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: Remove Slurm directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/spool/slurmd
+        - /var/spool/slurmd.spool
+        - /var/spool/slurm.state
+        - /var/log/slurm
+        - /var/run/slurm
+      ignore_errors: yes
+
+    - name: Remove Slurm user on compute nodes
+      ansible.builtin.user:
+        name: slurm
+        state: absent
+        remove: yes
+      ignore_errors: yes
+
+    - name: Remove slurm group on compute nodes
+      ansible.builtin.group:
+        name: slurm
+        state: absent
+      ignore_errors: yes
