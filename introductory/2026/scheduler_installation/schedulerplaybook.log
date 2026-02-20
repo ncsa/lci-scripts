@@ -62,23 +62,63 @@ TASK [slurm-rpm-build : Checking to see if the slurm rpms have already been crea
 ok: [localhost]
 
 TASK [slurm-rpm-build : Building slurm rpms, this will skip if they are already built] ***
-changed: [localhost]
+skipping: [localhost]
 
 TASK [slurm-rpm-build : Copy RPM] **********************************************
 included: /home/rocky/lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook/roles/slurm-rpm-build/tasks/slurm-rpm-copy.yml for localhost
 
 TASK [slurm-rpm-build : Copy the rpm files into slurmd/files] ******************
-An exception occurred during task execution. To see the full traceback, use -vvv. The error was: If you are using a module and expect the file to exist on the remote, see the remote_src option
-failed: [localhost] (item=slurm-23.11.1-1.el8.x86_64.rpm) => {"ansible_loop_var": "item", "changed": false, "item": "slurm-23.11.1-1.el8.x86_64.rpm", "msg": "Could not find or access '/tmp/rpmbuild/RPMS/x86_64/slurm-23.11.1-1.el8.x86_64.rpm' on the Ansible Controller.\nIf you are using a module and expect the file to exist on the remote, see the remote_src option"}
-An exception occurred during task execution. To see the full traceback, use -vvv. The error was: If you are using a module and expect the file to exist on the remote, see the remote_src option
-failed: [localhost] (item=slurm-perlapi-23.11.1-1.el8.x86_64.rpm) => {"ansible_loop_var": "item", "changed": false, "item": "slurm-perlapi-23.11.1-1.el8.x86_64.rpm", "msg": "Could not find or access '/tmp/rpmbuild/RPMS/x86_64/slurm-perlapi-23.11.1-1.el8.x86_64.rpm' on the Ansible Controller.\nIf you are using a module and expect the file to exist on the remote, see the remote_src option"}
-An exception occurred during task execution. To see the full traceback, use -vvv. The error was: If you are using a module and expect the file to exist on the remote, see the remote_src option
-failed: [localhost] (item=slurm-slurmd-23.11.1-1.el8.x86_64.rpm) => {"ansible_loop_var": "item", "changed": false, "item": "slurm-slurmd-23.11.1-1.el8.x86_64.rpm", "msg": "Could not find or access '/tmp/rpmbuild/RPMS/x86_64/slurm-slurmd-23.11.1-1.el8.x86_64.rpm' on the Ansible Controller.\nIf you are using a module and expect the file to exist on the remote, see the remote_src option"}
-An exception occurred during task execution. To see the full traceback, use -vvv. The error was: If you are using a module and expect the file to exist on the remote, see the remote_src option
-failed: [localhost] (item=slurm-libpmi-23.11.1-1.el8.x86_64.rpm) => {"ansible_loop_var": "item", "changed": false, "item": "slurm-libpmi-23.11.1-1.el8.x86_64.rpm", "msg": "Could not find or access '/tmp/rpmbuild/RPMS/x86_64/slurm-libpmi-23.11.1-1.el8.x86_64.rpm' on the Ansible Controller.\nIf you are using a module and expect the file to exist on the remote, see the remote_src option"}
-An exception occurred during task execution. To see the full traceback, use -vvv. The error was: If you are using a module and expect the file to exist on the remote, see the remote_src option
-failed: [localhost] (item=pmix-4.2.8-1.el8.x86_64.rpm) => {"ansible_loop_var": "item", "changed": false, "item": "pmix-4.2.8-1.el8.x86_64.rpm", "msg": "Could not find or access '/tmp/rpmbuild/RPMS/x86_64/pmix-4.2.8-1.el8.x86_64.rpm' on the Ansible Controller.\nIf you are using a module and expect the file to exist on the remote, see the remote_src option"}
+changed: [localhost] => (item=slurm-23.11.1-1.el9.x86_64.rpm)
+changed: [localhost] => (item=slurm-perlapi-23.11.1-1.el9.x86_64.rpm)
+changed: [localhost] => (item=slurm-slurmd-23.11.1-1.el9.x86_64.rpm)
+changed: [localhost] => (item=slurm-libpmi-23.11.1-1.el9.x86_64.rpm)
+changed: [localhost] => (item=pmix-4.2.8-1.el9.x86_64.rpm)
+
+TASK [slurm-rpm-build : Install head node RPMs] ********************************
+included: /home/rocky/lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook/roles/slurm-rpm-build/tasks/slurm-rpm-inst.yml for localhost
+
+TASK [slurm-rpm-build : Install RPMs on the head node] *************************
+changed: [localhost] => (item=slurm-23.11.1-1.el9.x86_64.rpm)
+changed: [localhost] => (item=slurm-example-configs-23.11.1-1.el9.x86_64.rpm)
+changed: [localhost] => (item=slurm-slurmctld-23.11.1-1.el9.x86_64.rpm)
+changed: [localhost] => (item=slurm-slurmdbd-23.11.1-1.el9.x86_64.rpm)
+changed: [localhost] => (item=slurm-perlapi-23.11.1-1.el9.x86_64.rpm)
+changed: [localhost] => (item=slurm-libpmi-23.11.1-1.el9.x86_64.rpm)
+changed: [localhost] => (item=slurm-devel-23.11.1-1.el9.x86_64.rpm)
+
+TASK [slurm-rpm-build : Copying slurm.conf into place with correct permissions] ***
+changed: [localhost]
+
+TASK [slurm-rpm-build : Copying slurmdbd.conf into place with correct permissions] ***
+changed: [localhost]
+
+TASK [slurm-rpm-build : Copying cgroup.conf into place with correct permissions] ***
+changed: [localhost]
+
+TASK [slurm-rpm-build : Copying mariadb-server.cnf into place] *****************
+changed: [localhost]
+
+TASK [head-node_munge_key : Install Munge through DNF] *************************
+ok: [localhost]
+
+TASK [head-node_munge_key : Check if the munge.key exists] *********************
+ok: [localhost]
+
+TASK [head-node_munge_key : Create munge.key] **********************************
+changed: [localhost]
+
+TASK [head-node_munge_key : Copy munge.key into /etc/munge] ********************
+changed: [localhost]
+
+TASK [head-node_munge_key : Restart munge service] *****************************
+changed: [localhost]
+
+TASK [slurmdbd : Restart mariadb service] **************************************
+changed: [localhost]
+
+TASK [slurmdbd : Create a new database named slurm_acct_db] ********************
+fatal: [localhost]: FAILED! => {"changed": false, "msg": "unable to find /root/.my.cnf. Exception message: (1698, \"Access denied for user 'root'@'localhost'\")"}
 
 PLAY RECAP *********************************************************************
-localhost                  : ok=20   changed=2    unreachable=0    failed=1    skipped=2    rescued=0    ignored=0   
+localhost                  : ok=32   changed=11   unreachable=0    failed=1    skipped=3    rescued=0    ignored=0   
 
