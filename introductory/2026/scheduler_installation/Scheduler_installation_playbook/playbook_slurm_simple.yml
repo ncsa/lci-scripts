@@ -1,0 +1,212 @@
+---
+####### Build and Install Slurm (all-in-one playbook)
+- name: Build and Install Slurm on head node
+  vars_files: group_vars/cluster_params.yml
+  become: yes
+  hosts: head
+  connection: local
+  tags: slurm_build
+
+  tasks:
+    - name: Install build dependencies
+      ansible.builtin.dnf:
+        name:
+          - hwloc-devel
+          - libevent-devel
+          - python3-devel
+          - rpm-build
+          - make
+          - gcc
+        state: present
+
+    - name: Download PMIx source RPM
+      ansible.builtin.get_url:
+        url: "https://github.com/openpmix/openpmix/releases/download/v{{ pmix_release }}/pmix-{{ pmix_release }}-1.src.rpm"
+        dest: "/tmp/pmix-{{ pmix_release }}-1.src.rpm"
+      ignore_errors: yes
+
+    - name: Build PMIx RPMs
+      ansible.builtin.command:
+        cmd: "rpmbuild --define '_topdir /tmp/rpmbuild' --rebuild -ta /tmp/pmix-{{ pmix_release }}-1.src.rpm"
+        creates: "/tmp/rpmbuild/RPMS/x86_64/pmix-{{ pmix_release }}-1.el9.x86_64.rpm"
+
+    - name: Download Slurm source
+      ansible.builtin.get_url:
+        url: "https://download.schedmd.com/slurm/slurm-{{ slurm_vers }}.tar.bz2"
+        dest: "/tmp/slurm-{{ slurm_vers }}.tar.bz2"
+      ignore_errors: yes
+
+    - name: Build Slurm RPMs
+      ansible.builtin.command:
+        cmd: "rpmbuild --define '_topdir /tmp/rpmbuild' --define '_with_pmix --with-pmix' -ta /tmp/slurm-{{ slurm_vers }}.tar.bz2 --with mysql --nodeps"
+        creates: "/tmp/rpmbuild/RPMS/x86_64/slurm-{{ slurm_vers }}-1.el9.x86_64.rpm"
+
+    - name: Install Slurm packages on head node
+      ansible.builtin.dnf:
+        name:
+          - /tmp/rpmbuild/RPMS/x86_64/slurm-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /tmp/rpmbuild/RPMS/x86_64/slurm-slurmctld-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /tmp/rpmbuild/RPMS/x86_64/slurm-slurmdbd-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /tmp/rpmbuild/RPMS/x86_64/slurm-perlapi-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /tmp/rpmbuild/RPMS/x86_64/slurm-libpmi-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /tmp/rpmbuild/RPMS/x86_64/slurm-devel-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /tmp/rpmbuild/RPMS/x86_64/slurm-example-configs-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /tmp/rpmbuild/RPMS/x86_64/pmix-{{ pmix_release }}-1.el9.x86_64.rpm
+        state: present
+        disable_gpg_check: yes
+
+    - name: Create slurm user and group
+      ansible.builtin.group:
+        name: slurm
+        state: present
+
+    - name: Create slurm user
+      ansible.builtin.user:
+        name: slurm
+        group: slurm
+        state: present
+
+    - name: Create slurm directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: slurm
+        group: slurm
+        mode: '0755'
+      with_items:
+        - /etc/slurm
+        - /var/spool/slurm
+        - /var/spool/slurmctld
+        - /var/log/slurm
+
+    - name: Configure slurm.conf
+      ansible.builtin.template:
+        src: roles/slurmd/templates/slurm.conf.j2
+        dest: /etc/slurm/slurm.conf
+        owner: slurm
+        group: slurm
+        mode: '0644'
+
+    - name: Configure slurmdbd.conf
+      ansible.builtin.template:
+        src: roles/slurmd/templates/slurmdbd.conf.j2
+        dest: /etc/slurm/slurmdbd.conf
+        owner: slurm
+        group: slurm
+        mode: '0600'
+
+    - name: Configure cgroup.conf
+      ansible.builtin.copy:
+        content: |
+          CgroupMountpoint=/sys/fs/cgroup
+          CgroupPlugin=autodetect
+        dest: /etc/slurm/cgroup.conf
+        owner: slurm
+        group: slurm
+        mode: '0644'
+
+    - name: Start and enable Slurm services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      with_items:
+        - slurmctld
+        - slurmdbd
+
+####### Install on compute nodes
+- name: Install Slurm on compute nodes
+  vars_files: group_vars/cluster_params.yml
+  become: yes
+  hosts: all_nodes
+  tags: slurm_compute
+
+  tasks:
+    - name: Copy RPMs from head node to compute nodes
+      ansible.builtin.copy:
+        src: "/tmp/rpmbuild/RPMS/x86_64/{{ item }}"
+        dest: /tmp/
+        remote_src: yes
+      with_items:
+        - slurm-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - slurm-slurmd-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - slurm-perlapi-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - slurm-libpmi-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - pmix-{{ pmix_release }}-1.el9.x86_64.rpm
+      delegate_to: "{{ groups['head'][0] }}"
+
+    - name: Create slurm user and group
+      ansible.builtin.group:
+        name: slurm
+        state: present
+
+    - name: Create slurm user
+      ansible.builtin.user:
+        name: slurm
+        group: slurm
+        state: present
+
+    - name: Create slurm directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: slurm
+        group: slurm
+        mode: '0755'
+      with_items:
+        - /etc/slurm
+        - /var/spool/slurmd
+        - /var/log/slurm
+
+    - name: Install Slurm packages
+      ansible.builtin.dnf:
+        name:
+          - /tmp/slurm-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /tmp/slurm-slurmd-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /tmp/slurm-perlapi-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /tmp/slurm-libpmi-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /tmp/pmix-{{ pmix_release }}-1.el9.x86_64.rpm
+        state: present
+        disable_gpg_check: yes
+
+    - name: Cleanup RPMs
+      ansible.builtin.file:
+        path: "/tmp/{{ item }}"
+        state: absent
+      with_items:
+        - slurm-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - slurm-slurmd-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - slurm-perlapi-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - slurm-libpmi-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - pmix-{{ pmix_release }}-1.el9.x86_64.rpm
+
+    - name: Configure slurm.conf
+      ansible.builtin.template:
+        src: roles/slurmd/templates/slurm.conf.j2
+        dest: /etc/slurm/slurm.conf
+        owner: slurm
+        group: slurm
+        mode: '0644'
+
+    - name: Configure cgroup.conf
+      ansible.builtin.copy:
+        content: |
+          CgroupMountpoint=/sys/fs/cgroup
+          CgroupPlugin=autodetect
+        dest: /etc/slurm/cgroup.conf
+        owner: slurm
+        group: slurm
+        mode: '0644'
+
+    - name: Wait for slurmctld
+      ansible.builtin.wait_for:
+        host: "{{ slurm_controller }}"
+        port: 6817
+        timeout: 30
+      ignore_errors: yes
+
+    - name: Start slurmd
+      ansible.builtin.systemd:
+        name: slurmd
+        state: started
+        enabled: yes
