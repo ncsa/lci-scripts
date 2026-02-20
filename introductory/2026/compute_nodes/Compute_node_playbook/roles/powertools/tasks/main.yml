@@ -1,8 +1,0 @@
-- name: Enable the EPEL repo
-  ansible.builtin.dnf:
-     name: epel-release
-     state: latest
-
-- name: Enable the powertools repo
-  ansible.builtin.command:
-     cmd: dnf config-manager --set-enabled powertools
