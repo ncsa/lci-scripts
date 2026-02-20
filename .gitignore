@@ -2,4 +2,8 @@
 AGENTS.md
 sess*
 fix.md
-bak/*
+
+# Ignore all backup directories at any level
+**/bak/
+**/*.backup*
+**/*.bak
