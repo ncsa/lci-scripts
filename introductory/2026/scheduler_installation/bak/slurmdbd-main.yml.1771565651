@@ -1,8 +1,3 @@
-  - name: Ensure hostname is set correctly without domain suffix
-    ansible.builtin.hostname:
-      name: "{{ slurm_controller }}"
-    ignore_errors: yes
-
   - name: Restart mariadb service
     ansible.builtin.service:
       name: mariadb
