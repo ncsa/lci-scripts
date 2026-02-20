@@ -47,7 +47,7 @@
 
   - name: Wait for slurmctld to be available on head node
     ansible.builtin.wait_for:
-      host: "{{ hostvars['localhost']['ansible_hostname'] }}"
+      host: "{{ slurm_controller }}"
       port: 6817
       timeout: 30
     ignore_errors: yes

@@ -117,7 +117,7 @@ TASK [slurmdbd : Restart mariadb service] **************************************
 changed: [localhost]
 
 TASK [slurmdbd : Set MySQL root password] **************************************
-fatal: [localhost]: FAILED! => {"changed": true, "cmd": "mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY 'lcilab2024'; FLUSH PRIVILEGES;\"\n", "delta": "0:00:00.010079", "end": "2026-02-19 22:02:46.082042", "msg": "non-zero return code", "rc": 1, "start": "2026-02-19 22:02:46.071963", "stderr": "ERROR 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)", "stderr_lines": ["ERROR 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)"], "stdout": "", "stdout_lines": []}
+fatal: [localhost]: FAILED! => {"changed": true, "cmd": "mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY 'lcilab2024'; FLUSH PRIVILEGES;\"\n", "delta": "0:00:00.010138", "end": "2026-02-19 22:51:18.923738", "msg": "non-zero return code", "rc": 1, "start": "2026-02-19 22:51:18.913600", "stderr": "ERROR 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)", "stderr_lines": ["ERROR 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)"], "stdout": "", "stdout_lines": []}
 ...ignoring
 
 TASK [slurmdbd : Create a new database named slurm_acct_db] ********************
@@ -175,8 +175,8 @@ ok: [lci-compute-01-1]
 ok: [lci-compute-01-2]
 
 TASK [compute-node_munge_key : Install munge on compute nodes] *****************
-ok: [lci-compute-01-1]
 ok: [lci-compute-01-2]
+ok: [lci-compute-01-1]
 
 TASK [compute-node_munge_key : Copy mungekey with owner and permissions to the compute nodes] ***
 ok: [lci-compute-01-1]
@@ -187,10 +187,10 @@ changed: [lci-compute-01-2]
 changed: [lci-compute-01-1]
 
 TASK [slurmd : Copy compute node RPMs to /tmp for installation] ****************
-ok: [lci-compute-01-2] => (item=pmix-4.2.8-1.el9.x86_64.rpm)
 ok: [lci-compute-01-1] => (item=pmix-4.2.8-1.el9.x86_64.rpm)
-ok: [lci-compute-01-2] => (item=slurm-23.11.1-1.el9.x86_64.rpm)
+ok: [lci-compute-01-2] => (item=pmix-4.2.8-1.el9.x86_64.rpm)
 ok: [lci-compute-01-1] => (item=slurm-23.11.1-1.el9.x86_64.rpm)
+ok: [lci-compute-01-2] => (item=slurm-23.11.1-1.el9.x86_64.rpm)
 ok: [lci-compute-01-1] => (item=slurm-perlapi-23.11.1-1.el9.x86_64.rpm)
 ok: [lci-compute-01-2] => (item=slurm-perlapi-23.11.1-1.el9.x86_64.rpm)
 ok: [lci-compute-01-1] => (item=slurm-slurmd-23.11.1-1.el9.x86_64.rpm)
@@ -211,14 +211,18 @@ ok: [lci-compute-01-1] => (item=slurm-libpmi-23.11.1-1.el9.x86_64.rpm)
 ok: [lci-compute-01-2] => (item=slurm-libpmi-23.11.1-1.el9.x86_64.rpm)
 
 TASK [slurmd : Create & change ownership of /etc/slurm/] ***********************
-ok: [lci-compute-01-1]
-ok: [lci-compute-01-2]
+changed: [lci-compute-01-1]
+changed: [lci-compute-01-2]
 
 TASK [slurmd : Copy slurm.conf into place with correct permissions] ************
-ok: [lci-compute-01-1]
-ok: [lci-compute-01-2]
+changed: [lci-compute-01-1]
+changed: [lci-compute-01-2]
 
 TASK [slurmd : Copy cgroup.conf into place with correct permissions] ***********
+changed: [lci-compute-01-1]
+changed: [lci-compute-01-2]
+
+TASK [slurmd : Wait for slurmctld to be available on head node] ****************
 ok: [lci-compute-01-1]
 ok: [lci-compute-01-2]
 
@@ -227,7 +231,7 @@ fatal: [lci-compute-01-1]: FAILED! => {"changed": false, "msg": "Unable to start
 fatal: [lci-compute-01-2]: FAILED! => {"changed": false, "msg": "Unable to start service slurmd: Job for slurmd.service failed because the control process exited with error code.\nSee \"systemctl status slurmd.service\" and \"journalctl -xeu slurmd.service\" for details.\n"}
 
 PLAY RECAP *********************************************************************
-lci-compute-01-1           : ok=17   changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
-lci-compute-01-2           : ok=17   changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+lci-compute-01-1           : ok=18   changed=4    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+lci-compute-01-2           : ok=18   changed=4    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
 localhost                  : ok=37   changed=7    unreachable=0    failed=0    skipped=5    rescued=0    ignored=1   
 
