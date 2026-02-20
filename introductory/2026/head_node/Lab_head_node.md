@@ -1,7 +1,5 @@
 # Lab - Build a Cluster: Head Node
 
-[Click on the link for updated version of the lab on github](https://github.com/ncsa/lci-scripts/tree/main/introductory/head_node/Lab_head_node.md)
-
 > **Quick Start:** For a condensed list of commands only, see [`todo.md`](todo.md) in this directory.
 
 **Objective:** Setting up ssh host-based authentication and Ansible cluster management.
@@ -22,18 +20,9 @@ Enable Redhat powertools. Configure NFS server for user home directoris.
 
 ---
 
-### Initial head and compute node bootstrap (what happened first)
-
-- PXE boot from the network: DHCP, tftp services.
-- Kernel and ramdisk loaded in the RAM.
-- Kickstart installation of OS on the disk.
-- Initial system configuration in ks.cfg
-
----
-
 ### Lab cluster environment
 
-This is what we have now:
+This is what we have to start:
 
 - Head node and compute nodes already have redhat based operating system:
 
@@ -50,12 +39,12 @@ dnf repolist
 ```
 
 ```text
-repo id				 repo name
+repo id                          repo name
 appstream                        Rocky Linux 9 - AppStream
 baseos                           Rocky Linux 9 - BaseOS
 crb                              Rocky Linux 9 - CRB
-epel                             Extra Packages for Enterprise....
-epel-cisco-openh264              Extra Packages for Enterprise Cisco....
+epel                             Extra Packages for Enterprise Linux 9 - x86_64
+epel-cisco-openh264              Extra Packages for Enterprise Linux 9 openh264 (From Cisco) - x86_64
 extras                           Rocky Linux 9 - Extras
 ```
 
@@ -64,7 +53,6 @@ extras                           Rocky Linux 9 - Extras
 ```bash
 timedatectl  status
 ```
-
 Shows `NTP service: active`
 
 - Passwordless sudo privilege:
@@ -87,22 +75,29 @@ hostname
 
 ### Fix the head node hostname to match that for the 192.168.45. interface:
 
+Current hostname:
+```bash
+hostname
+```
+
+To change hostname, we need to find the correct one from the /etc/hosts file. The correct hostname should be lci-head, followed by two numbers, then -1.
 ```bash
 correct_hostname=$(grep lci-head-[0-9][0-9]-1$ /etc/hosts | cut -f 2)
 ```
 
-It should be lci-head, followed by two numbers.
-
+Now check that the hostname we have in the variable is correct:
 ```bash
 echo $correct_hostname
 ```
 
 Change the hostname:
-
 ```bash
 sudo hostnamectl set-hostname $correct_hostname
 ```
-
+Verify the change:
+```bash
+hostname
+```
 ---
 
 ## 2. Install Ansible
@@ -115,13 +110,13 @@ Install ansible-core:
 sudo dnf install -y ansible-core
 ```
 
-### On compute nodes:
+### On compute nodes (as rocky):
 
 Edit `Head_node_playbook/hosts.ini` and update the hostnames to match your cluster number (e.g., change `01` to your actual cluster number), then run the install script:
 
 ```bash
 cd Head_node_playbook
-./installansible.sh
+sudo bash installansible.sh
 ```
 
 This script will install ansible-core on all compute nodes listed in the hosts.ini file.
@@ -133,15 +128,13 @@ This script will install ansible-core on all compute nodes listed in the hosts.i
 
 ### SSH tests
 
-- as rocky
-
+As rocky
 ```bash
 ssh lci-compute-XX-1
 ```
   - shouldn't work
 
-- as root
-
+As root
 ```bash
 sudo -i
 ssh lci-compute-XX-1
@@ -169,34 +162,30 @@ Host-based authentication is needed for users to ssh to the compute nodes withou
 | /etc/ssh/ssh_config      | /etc/ssh/sshd_config  |
 | /etc/ssh/ssh_known_hosts | /etc/hosts.equiv      |
 
-- The following entries need to be added to the configuration files:
+The following entries need to be added/uncommented in the configuration files:
 
 /etc/ssh/ssh_config:
-
 ```shell
 HostbasedAuthentication yes
-EnableSSHKeys yes
 ```
 
 /etc/ssh/sshd_config:
-
 ```shell
-HostbasedAuthentication yes
 IgnoreUserKnownHosts yes
 IgnoreRhosts yes
 ```
 
-/etc/hosts.equiv (maybe different on your cluster):
+/etc/hosts (maybe different on your cluster):
 
 ```shell
 192.168.1.88
 192.168.1.170
 192.168.1.183
 192.168.1.177
-lci-head-01-1
-lci-compute-01-1
-lci-compute-01-2
-lci-storage-01-1
+lci-head-XX-1
+lci-compute-XX-1
+lci-compute-XX-2
+lci-storage-XX-1
 ```
 
 /etc/ssh/ssh_known_hosts (maybe different on your cluster):

@@ -1,15 +1,15 @@
 ---
 ####### head node play ############
 - name: Head node configuration
-  become: yes 
+  become: yes
   hosts: head
   connection: local
   tags: head_node_play
-  roles: 
-    - powertools
-    - timesync
-    - head-node_pkg_inst 
-    - head-node_nfs_server
+  roles:
+      - crb
+      - timesync
+      - head-node_pkg_inst
+      - head-node_nfs_server
 
 ####### compute node play ########
 - name: Compute node configuration
@@ -17,7 +17,7 @@
   hosts: all_nodes
   tags: compute_node_play
   roles:
-    - powertools
-    - timesync
-    - compute-node_pkg_inst    
-    - compute-node_autofs
+      - crb
+      - timesync
+      - compute-node_pkg_inst
+      - compute-node_autofs

@@ -1,6 +1,6 @@
 # Head Node Setup - Todo List
 
-Replace `01` with your cluster number (e.g., 02, 03, etc.) in all commands and configuration files.
+Replace `XX` with your cluster number (e.g., 02, 03, etc.) in all commands and configuration files.
 
 ## How to Update This File with Your Cluster Number
 
@@ -9,17 +9,6 @@ Using vim:
 vim todo.md
 :%s/01/<clusternumber>/g
 :wq
-```
-
-Using nano:
-```bash
-nano todo.md
-# Press Ctrl+\ (search and replace)
-# Enter "01" as search term
-# Enter your cluster number as replacement
-# Press A to replace all occurrences
-# Press Ctrl+O to save, then Enter to confirm
-# Press Ctrl+X to exit
 ```
 
 ---
@@ -37,10 +26,10 @@ sudo hostnamectl set-hostname $correct_hostname
 
 ### On the head node:
 ```bash
-sudo dnf install -y ansible-core
+dnf install -y ansible-core
 ```
 
-### On compute nodes:
+### On head node:
 Edit `Head_node_playbook/hosts.ini` and update hostnames to match your cluster number, then run:
 ```bash
 cd Head_node_playbook
