@@ -39,16 +39,9 @@ sudo hostnamectl set-hostname $correct_hostname
 dnf install -y ansible-core
 ```
 
-### On head node:
-Edit `Head_node_playbook/hosts.ini` and update hostnames to match your cluster number, then run:
-```bash
-cd Head_node_playbook
-./installansible.sh
-```
-
 ---
 
-## 3. Run Ansible Playbook
+## 3. Install ansible on compute nodes and Run Ansible Playbook
 
 The combined playbook configures both the head node and compute nodes.
 
@@ -57,6 +50,7 @@ cd ~
 cp -a lci-scripts/introductory/2026/head_node/Head_node_playbook .
 cd Head_node_playbook
 # Edit hosts.ini and replace XX with your cluster number in both [head] and [all_nodes] sections
+bash installansible.sh
 ansible-playbook playbook.yml
 ```
 
@@ -66,16 +60,16 @@ systemctl status mariadb
 timedatectl status
 showmount -e
 ```
-
-### Verify NFS mount on compute nodes:
+### Create file in /head/NFS on head node and verify it is visible on compute nodes:
 ```bash
+touch /head/NFS/testfile
 ssh lci-compute-XX-1 ls /head/NFS
 ssh lci-compute-XX-2 ls /head/NFS
 ```
 
 ---
 
-## 4. Install ClusterShell
+## 4. Install ClusterShell - to run commands on multiple nodes at once.
 
 ```bash
 sudo dnf install clustershell
