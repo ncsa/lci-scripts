@@ -1,0 +1,107 @@
+---
+####### Install Slurm from official repository (head node downloads, distributes to compute nodes)
+- name: Download Slurm RPMs on head node
+  vars_files: group_vars/cluster_params.yml
+  become: yes
+  hosts: head
+  connection: local
+  tags: slurm_download
+
+  tasks:
+    - name: Create directory for Slurm RPMs
+      ansible.builtin.file:
+        path: /opt/slurm-rpms
+        state: directory
+        mode: '0755'
+
+    - name: Download Slurm RPMs for head node
+      ansible.builtin.get_url:
+        url: "https://download.schedmd.com/slurm/rpms/el9/x86_64/{{ item }}"
+        dest: "/opt/slurm-rpms/{{ item }}"
+        mode: '0644'
+      with_items:
+        - slurm-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - slurm-slurmctld-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - slurm-slurmdbd-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - slurm-perlapi-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - slurm-libpmi-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - slurm-devel-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - slurm-example-configs-{{ slurm_vers }}-1.el9.x86_64.rpm
+
+    - name: Download Slurm RPMs for compute nodes
+      ansible.builtin.get_url:
+        url: "https://download.schedmd.com/slurm/rpms/el9/x86_64/{{ item }}"
+        dest: "/opt/slurm-rpms/{{ item }}"
+        mode: '0644'
+      with_items:
+        - slurm-slurmd-{{ slurm_vers }}-1.el9.x86_64.rpm
+
+    - name: Download PMIx RPM
+      ansible.builtin.get_url:
+        url: "https://download.schedmd.com/slurm/rpms/el9/x86_64/pmix-{{ pmix_release }}-1.el9.x86_64.rpm"
+        dest: "/opt/slurm-rpms/pmix-{{ pmix_release }}-1.el9.x86_64.rpm"
+        mode: '0644'
+
+####### Install on head node
+- name: Install Slurm on head node
+  vars_files: group_vars/cluster_params.yml
+  become: yes
+  hosts: head
+  connection: local
+  tags: slurm_head
+
+  tasks:
+    - name: Install Slurm packages on head node
+      ansible.builtin.dnf:
+        name:
+          - /opt/slurm-rpms/slurm-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /opt/slurm-rpms/slurm-slurmctld-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /opt/slurm-rpms/slurm-slurmdbd-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /opt/slurm-rpms/slurm-perlapi-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /opt/slurm-rpms/slurm-libpmi-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /opt/slurm-rpms/slurm-devel-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /opt/slurm-rpms/slurm-example-configs-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /opt/slurm-rpms/pmix-{{ pmix_release }}-1.el9.x86_64.rpm
+        state: present
+        disable_gpg_check: yes
+
+####### Distribute and install on compute nodes
+- name: Install Slurm on compute nodes
+  vars_files: group_vars/cluster_params.yml
+  become: yes
+  hosts: all_nodes
+  tags: slurm_compute
+
+  tasks:
+    - name: Copy RPMs to compute nodes
+      ansible.builtin.copy:
+        src: "/opt/slurm-rpms/{{ item }}"
+        dest: /tmp/
+      with_items:
+        - slurm-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - slurm-slurmd-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - slurm-perlapi-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - slurm-libpmi-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - pmix-{{ pmix_release }}-1.el9.x86_64.rpm
+
+    - name: Install Slurm packages on compute nodes
+      ansible.builtin.dnf:
+        name:
+          - /tmp/slurm-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /tmp/slurm-slurmd-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /tmp/slurm-perlapi-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /tmp/slurm-libpmi-{{ slurm_vers }}-1.el9.x86_64.rpm
+          - /tmp/pmix-{{ pmix_release }}-1.el9.x86_64.rpm
+        state: present
+        disable_gpg_check: yes
+
+    - name: Cleanup RPMs from /tmp
+      ansible.builtin.file:
+        path: "/tmp/{{ item }}"
+        state: absent
+      with_items:
+        - slurm-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - slurm-slurmd-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - slurm-perlapi-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - slurm-libpmi-{{ slurm_vers }}-1.el9.x86_64.rpm
+        - pmix-{{ pmix_release }}-1.el9.x86_64.rpm
