@@ -1,4 +1,4 @@
-slurm_vers: '23.11.1'
+slurm_vers: '25.05.6'
 pmix_release: '4.2.8'
 slurm_controller: 'lci-head-01-1'
 cluster_name: 'cluster'
