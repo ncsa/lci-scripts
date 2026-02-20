@@ -20,20 +20,41 @@ Enable Redhat powertools. Configure NFS server for user home directoris.
 
 ---
 
+## Quick Reference Commands
+
+The following commands can be executed after running the Ansible playbook to complete additional cluster configuration. Save these to a file and customize for your cluster.
+
+**First: Replace XX with your cluster number (e.g., 01, 02, etc.)**
+
+Using vim:
+```bash
+vim commands
+:%s/XX/01/g
+:wq
+```
+
+Pull the lci-scipts repository to get the playbook and other scripts:
+
+```bash
+git clone https://github.com/ncsa/lci-scripts.git
+``` 
+---
+
 ### Lab cluster environment
 
 This is what we have to start:
 
-- Head node and compute nodes already have redhat based operating system:
-
+Head node and compute nodes already have redhat based operating system:<br>
+- To verify, run the following command:
 ```bash
 cat /etc/redhat-release
 ```
-
+expected output should be something like:
+```text
 Rocky Linux release 9.7 (Blue Onyx)
+```
 
 - Base package repositories:
-
 ```bash
 dnf repolist
 ```
@@ -53,31 +74,43 @@ extras                           Rocky Linux 9 - Extras
 ```bash
 timedatectl  status
 ```
-Shows `NTP service: active`
-
-- Passwordless sudo privilege:
-
-```bash
-sudo whoami
+- expected output should show correct time zone and that NTP service is active. For example, it might say `Time zone: America/Chicago (CDT, -0500)` and `NTP service: active`.
+```text                                                                                                                                                                                                                                                                                                                                                                                    
+               Local time: Fri 2026-02-20 12:22:04 CST                                                                                                                                                                                   
+           Universal time: Fri 2026-02-20 18:22:04 UTC                                                                                                                                                                                   
+                 RTC time: Fri 2026-02-20 18:22:04                                                                                                                                                                                       
+                Time zone: America/Chicago (CST, -0600)                                                                                                                                                                                  
+System clock synchronized: yes                                                                                                                                                                                                           
+              NTP service: active                                                                                                                                                                                                        
+          RTC in local TZ: no 
 ```
 
-### Hosts in the cluster:
+### 01. Hosts in the cluster:
 
 ```bash
 cat /etc/hosts
 ```
-
-- Headnode hostname:
-
-```sh
-hostname
+- expected output on lci-head-01-1 (names will be different for your cluster):
+```text
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4                                                                                                                                                           
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6                                                                                                                                                           
+                                                                                                                                                                                                                                         
+141.142.221.155 lci-head-01-1.ncsa.cloud                                                                                                                                                                                                 
+192.168.1.25    lci-head-01-1                                                                                                                                                                                                            
+192.168.1.181   lci-compute-01-1                                                                                                                                                                                                         
+192.168.1.176   lci-compute-01-2                                                                                                                                                                                                         
+192.168.1.254   lci-storage-01-1 
 ```
 
-### Fix the head node hostname to match that for the 192.168.45. interface:
+### 02. Fix the head node hostname to match that for the 192.168.45. interface:
 
 Current hostname:
 ```bash
 hostname
+```
+- expected output on lci-head-01-1 (names will be different for your cluster):
+```text
+lci-head-01-1.novalocal
 ```
 
 To change hostname, we need to find the correct one from the /etc/hosts file. The correct hostname should be lci-head, followed by two numbers, then -1.
@@ -89,6 +122,9 @@ Now check that the hostname we have in the variable is correct:
 ```bash
 echo $correct_hostname
 ```
+```text
+lci-head-01-1
+```
 
 Change the hostname:
 ```bash
@@ -98,9 +134,12 @@ Verify the change:
 ```bash
 hostname
 ```
+```text
+lci-head-01-1
+```
 ---
 
-## 2. Install Ansible
+## 03. Install Ansible
 
 ### On the head node:
 
@@ -112,7 +151,8 @@ sudo dnf install -y ansible-core
 
 ### On compute nodes (as rocky):
 
-Edit `Head_node_playbook/hosts.ini` and update the hostnames to match your cluster number (e.g., change `01` to your actual cluster number), then run the install script:
+Edit `Head_node_playbook/hosts.ini` and update the hostnames to match your cluster number (e.g., change `XX` 
+to your actual cluster number), then run the install script:
 
 ```bash
 cd Head_node_playbook
@@ -121,7 +161,7 @@ sudo bash installansible.sh
 
 This script will install ansible-core on all compute nodes listed in the hosts.ini file.
 
-## SSH connection to the compute nodes:
+## 04. SSH connection to the compute nodes:
 
 - passwordless for root
 - needs password for users
@@ -139,76 +179,15 @@ As root
 sudo -i
 ssh lci-compute-XX-1
 ```
-- works
+- works - which is why we are working as root
 
 ---
 
-### Host based SSH authentication setup on the cluster
-
-- **Motivation**
-
-There are three commonly used SSH authentication techniques:
-
-- user name and password
-- public/private keys
-- host based
-
-Host-based authentication is needed for users to ssh to the compute nodes without password to start MPI computational jobs. An alternative solution would be using the private/public ssh keys, but that would need to be done for every user on the cluster.
-
-- **Configuration files** for the host based authentication:
-
-| **SSH client files:**    | **SSH server files:** |
-| ------------------------ | --------------------- |
-| /etc/ssh/ssh_config      | /etc/ssh/sshd_config  |
-| /etc/ssh/ssh_known_hosts | /etc/hosts.equiv      |
-
-The following entries need to be added/uncommented in the configuration files:
-
-/etc/ssh/ssh_config:
-```shell
-HostbasedAuthentication yes
-```
-
-/etc/ssh/sshd_config:
-```shell
-IgnoreUserKnownHosts yes
-IgnoreRhosts yes
-```
-
-/etc/hosts (maybe different on your cluster):
-
-```shell
-192.168.1.88
-192.168.1.170
-192.168.1.183
-192.168.1.177
-lci-head-XX-1
-lci-compute-XX-1
-lci-compute-XX-2
-lci-storage-XX-1
-```
-
-/etc/ssh/ssh_known_hosts (maybe different on your cluster):
-
-```shell
-192.168.1.88 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDAa2nljkZQEwniXRg/Fm3qf/JBRH68cqdOoftra0oDbVBFGf2YJ53YgZgvD608qN6eCH5hOEEpw5VqHeP1ohjOWv6nT7d2RQ7zp8Pp+bWDfCahC0tpbinb6mnbk75FMHuh6GDBWi9TiMlcPq8jd9uI1RIqtxFnI2j5z2tiTTKlZz2+iNc6UilDdBfXs3ZqMqrG3sAmCbf0T0eSpbCoKYrrG0pGF8QDJi/RI98oJtiL12QpiXupCGKaycT9dU+IxlvD6GHyGcVjR60mXTUzSAqibgrUQkYgZrpyrpGqkuAONylSB4Xdcb/Z1d/kW6MYYk/cZE+DfeV+ezUrQYCGJcQqKzAVQqYVQVANDuGmIQCUK9xKzD6xMkazFjLhkW+nUPBHVghmMDm1uF8CWbbcmzhPjpBoVKwIhePdqaPlRyXS8xa0jeTdCKn83YcF0VpyIzSYVDSTwQIssvQu9EcxXZE5HsB6HdFFdAR9K/DZIiMtecg05or+XjG/lRGLElHV0Pk=
-192.168.1.170 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCteJ6VLa+EC60BKEJQ2pqsDfnEE/Rr9+D36Wyc018NF6aXImKhdNA7kDF3e8Nedun/RuoXW/8AWXGfIt/JKJCe3tNUeexYYVq8XEEVpLXMIKdUuPD04oXIvNqCcD4BIXyvebDsFCckLWceplIarRGJwglJRxtYHgh9bQHFXLeIGqRx6YFgwi37VLAQ1klZNZLwnArtBJbYnf0z79hbwxCJ7pugi0eSp1LlUhV733QyGW+J84AmGjxySf4w8+a20GjxUTdJrGngK0OMT8wEkKvmLTL9LnPWGunUOgYai7sJXTbuuhsYJJxSiMFIypoaX5WHUYmYCEkCgsKV6jy0EUX8V6/HJbwlWSLi/g8vhlmiN+Zy2he7WqgT4zFRCJZmv5IHob7pDniTyA9TZiKNAS3xSsz89JEfxqjtupYX2b1aSN5JIpOUrKiiWD+pWaMLAkb37jhfWhy7uPYD585HIYeMB3XC1bfuWa94cfJEsiYnbSt0q90jx2IHG0r4e/b2vy0=
-
-...
-```
-
-- We need to deliver these configuration files to the cluster nodes and restart sshd daemon:
+### 05. Install Parallel Shell
+- On your head node for this section - run as root
+- **Note:** Replace `XX` with your cluster number (e.g., `01`, `02`) in all commands below.
 
 ```bash
-systemctl restart sshd
-```
-
-### Install Parallel Shell
-
-**Note:** Replace `XX` with your cluster number (e.g., `01`, `02`) in all commands below.
-
-```bash
-# On your head node for this section - run as root
 dnf install clustershell
 ```
 
@@ -225,14 +204,14 @@ Test it out:
 clush -g compute "uptime"
 ```
 
-### Create User Accounts
+### 06. Create User Accounts
 
 ```bash
 useradd -u 2002 justin
 useradd -u 2003 katie
 ```
 
-### Configure Central Logging
+### 07. Configure Central Logging
 
 On the head node (`lci-head-XX-1`), edit `/etc/rsyslog.conf` and uncomment the following lines:
 
@@ -266,299 +245,6 @@ systemctl restart rsyslog
 ```
 
 After a few minutes you should see new log directories in `/var/log/` on `lci-head-XX-1`, with a directory for each host forwarding logs:
-```bash
-ls /var/log/lci-[computes/storage]-XX-Y/
-```
-
-
-
-- We'll use Ansible to deliver these files to the nodes and restart ssh service.
-
-Download Ansible playbooks from github.
-
-```bash
-git clone https://github.com/ncsa/lci-scripts.git
-```
-
-Copy folder SSH_hostbased into your home directory:
-
-```bash
-cp -a lci-scripts/introductory/SSH_hostbased .
-```
-
-Install package ansible:
-
-```bash
-sudo dnf install ansible-core
-```
-
-```bash
-cd SSH_hostbased
-```
-
-Generate file hosts.equiv and ssh_known_hosts by running two shell scripts:
-
-```bash
-./gen_hosts_equiv.sh
-./ssh_key_scan.sh
-```
-
-Fix the compute node hostnames in the inventory files, hosts.ini.
-
-Run the playbook:
-
-```bash
-sudo ansible-playbook host_based_ssh.yml
-```
-
-Check if you can ssh as user rocky to nodes `lci-compute-xx-1` and `lci-compute-xx-2` without password.
-
-You should be able to ssh between the nodes and elevate privileges to root via sudo.
-
----
-
-### Setup Ansible
-
-The combined playbook configures both the head node and compute nodes.
-
-```bash
-cd
-cp -a lci-scripts/introductory/head_node/Head_node_playbook .
-cd Head_node_playbook
-```
-
-The Ansible directory contains:
-
-- configuration file, ansible.cfg
-- inventory file, hosts.ini (contains both [head] and [all_nodes] sections)
-- playbook playbook.yml (configures both head and compute nodes)
-- directory roles with tasks for both head and compute nodes
-
-The playbook, playbook.yml, contains two plays:
-1. **Head node configuration** - runs locally on the head node
-2. **Compute node configuration** - runs on all compute nodes via SSH
-
----
-
-### Head node package installation
-
-The latest EPEL release release needs to be installed. It can be done with command:
-
-```bash
-sudo dnf install epel-release
-```
-
-The power tools can be enabled by command
-
-```bash
-sudo dnf config-manager --set-enabled powertools
-```
-
-We, however, will accomplish these by running Ansible playbooks.
-
-Role `powertools` is taking care of the above tasks.
-
-The following packages need to be installed on the head node:
-
-```shell
-ansible
-rpm-build
-pam-devel
-perl
-perl-DBI
-openssl-devel
-readline-devel
-mariadb-devel
-mariadb-server
-python3-PyMySQL
-munge-libs
-munge-devel
-```
-
-These are installed by role `head-node_pkg_inst`.
-
-The same role restarts `mariadb` (MySQL) server.
-
-If done by hand, it would be:
-
-```bash
-systemctl restart mariadb
-```
-
-### Time set and synchronization
-
-Time synchronization is handled by the Ansible playbook using `systemd-timesyncd` (enabled via `timedatectl set-ntp yes`), which is sufficient for basic NTP client needs on the head node. This is implemented by the `timesync` role.
-
-If you need to verify or set manually:
-
-```bash
-timedatectl set-timezone America/Chicago
-timedatectl set-ntp yes
-```
-
-**Note:** The playbook does not install `chrony`, as `systemd-timesyncd` provides adequate time synchronization for this environment.
-
----
-
-### NFS server for home directories
-
-Install package nfs-utils can be installed by command dnf:
-
-```bash
-sudo dnf install nfs-utils
-```
-
-Create export directory:
-
-```bash
-mkdir /head/NFS
-```
-
-Add entry in file /etc/exports:
-
-```bash
-/head/NFS  lci-compute*(rw,async)
-```
-
-Restart NFS services:
-
-```bash
-systemctl restart nfs-utils
-systemctl restart nfs-server
-```
-
-The above is accomplished with the tasks in role `head-node_nfs_server`.
-
----
-
-### Run Ansible playbook
-
-Fix the hostnames in file hosts.ini for both the [head] and [all_nodes] sections.
-
-Run the combined playbook (configures both head and compute nodes):
-
-```bash
-ansible-playbook playbook.yml
-```
-
-Or run specific parts using tags:
-```bash
-# Configure only the head node
-ansible-playbook playbook.yml --tags head_node_play
-
-# Configure only compute nodes
-ansible-playbook playbook.yml --tags compute_node_play
-```
-
-Verify head node services:
-
-```bash
-systemctl status mariadb
-timedatectl status
-showmount -e
-```
-
-Verify NFS is exported:
-
-```bash
-showmount -e
-```
-
-It should show the exported directory and the clients.
-
-Verify compute nodes can access NFS:
-
-```bash
-ssh lci-compute-XX-1 ls /head/NFS
-ssh lci-compute-XX-2 ls /head/NFS
-```
-
----
-
-## Quick Reference Commands
-
-The following commands can be executed after running the Ansible playbook to complete additional cluster configuration. Save these to a file and customize for your cluster.
-
-**First: Replace XX with your cluster number (e.g., 01, 02, etc.)**
-
-Using vim:
-```bash
-vim commands
-:%s/XX/01/g
-:wq
-```
-
-Using nano:
-```bash
-nano commands
-# Press Ctrl+\ (search and replace)
-# Enter "XX" as search term
-# Enter "01" (your cluster number) as replacement
-# Press A to replace all occurrences
-# Press Ctrl+O to save, then Enter to confirm
-# Press Ctrl+X to exit
-```
-
-### Parallel Shell Setup
-
-```bash
-# On your head node for this section - as root
-dnf install clustershell
-```
-
-Add the following to the `/etc/clustershell/groups.d/local.cfg` file:
-```
-head: lci-head-XX-1
-compute: lci-compute-XX-[1-2]
-login: lci-head-XX-1
-storage: lci-storage-XX-1
-```
-
-Test it out:
-```bash
-clush -g compute "uptime"
-```
-
-### Create User Accounts
-
-```bash
-useradd -u 2002 justin
-useradd -u 2003 katie
-```
-
-### Central Logging Configuration
-
-On the head node (`lci-head-XX-1`), edit `/etc/rsyslog.conf` and uncomment:
-```bash
-module(load="imudp") # needs to be done just once
-input(type="imudp" port="514")
-
-module(load="imtcp") # needs to be done just once
-input(type="imtcp" port="514")
-```
-
-Add these two lines in the Modules section:
-```bash
-$template DynamicFile,"/var/log/%HOSTNAME%/forwarded-logs.log"
-*.* -?DynamicFile
-```
-
-Restart rsyslog on the head node:
-```bash
-systemctl restart rsyslog
-```
-
-On both compute nodes and the storage node, add to `/etc/rsyslog.conf`:
-```bash
-*.* @lci-head-XX-1
-```
-
-Restart rsyslog:
-```bash
-systemctl restart rsyslog
-```
-
-After a few minutes, verify logs are being received:
 ```bash
 ls /var/log/lci-[computes/storage]-XX-Y/
 ```

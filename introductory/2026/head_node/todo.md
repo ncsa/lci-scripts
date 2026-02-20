@@ -12,7 +12,15 @@ vim todo.md
 ## run the below comamands as root
 ```bash
 sudo -i
+cd
 ```
+
+## Pull the lci-scipts repository to get the playbook and other scripts:
+
+```bash
+git clone https://github.com/ncsa/lci-scripts.git
+``` 
+
 ---
 
 ## 1. Fix Hostname
@@ -46,7 +54,7 @@ The combined playbook configures both the head node and compute nodes.
 
 ```bash
 cd ~
-cp -a lci-scripts/introductory/head_node/Head_node_playbook .
+cp -a lci-scripts/introductory/2026/head_node/Head_node_playbook .
 cd Head_node_playbook
 # Edit hosts.ini and replace XX with your cluster number in both [head] and [all_nodes] sections
 ansible-playbook playbook.yml
