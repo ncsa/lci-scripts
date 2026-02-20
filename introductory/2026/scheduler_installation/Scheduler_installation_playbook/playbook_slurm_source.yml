@@ -137,16 +137,16 @@
         state: started
         enabled: yes
 
-    - name: Check if slurm_acct_db database exists
+    - name: Check if slurm database user exists
       ansible.builtin.shell: |
-        mysql -u root -e "SELECT 1 FROM mysql.user WHERE user='slurm' AND host='localhost';" 2>/dev/null | grep -q 1
+        mysql -u root -S /var/lib/mysql/mysql.sock -e "SELECT 1 FROM mysql.user WHERE user='slurm' AND host='localhost';" 2>/dev/null | grep -q 1
       register: slurm_db_exists
       ignore_errors: yes
       changed_when: false
 
     - name: Create slurm_acct_db database and user
       ansible.builtin.shell: |
-        mysql -u root <<'EOF'
+        mysql -u root -S /var/lib/mysql/mysql.sock <<'EOF'
         CREATE DATABASE IF NOT EXISTS slurm_acct_db;
         CREATE USER IF NOT EXISTS 'slurm'@'localhost' IDENTIFIED BY '{{ db_pwd }}';
         GRANT ALL PRIVILEGES ON slurm_acct_db.* TO 'slurm'@'localhost';
