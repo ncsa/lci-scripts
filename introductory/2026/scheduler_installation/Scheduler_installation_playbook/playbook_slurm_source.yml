@@ -137,14 +137,22 @@
         state: started
         enabled: yes
 
+    - name: Check if slurm_acct_db database exists
+      ansible.builtin.shell: |
+        mysql -u root -e "SELECT 1 FROM mysql.user WHERE user='slurm' AND host='localhost';" 2>/dev/null | grep -q 1
+      register: slurm_db_exists
+      ignore_errors: yes
+      changed_when: false
+
     - name: Create slurm_acct_db database and user
-      ansible.builtin.mysql_query:
-        login_unix_socket: /var/lib/mysql/mysql.sock
-        query: |
-          CREATE DATABASE IF NOT EXISTS slurm_acct_db;
-          CREATE USER IF NOT EXISTS 'slurm'@'localhost' IDENTIFIED BY '{{ db_pwd }}';
-          GRANT ALL PRIVILEGES ON slurm_acct_db.* TO 'slurm'@'localhost';
-          FLUSH PRIVILEGES;
+      ansible.builtin.shell: |
+        mysql -u root <<'EOF'
+        CREATE DATABASE IF NOT EXISTS slurm_acct_db;
+        CREATE USER IF NOT EXISTS 'slurm'@'localhost' IDENTIFIED BY '{{ db_pwd }}';
+        GRANT ALL PRIVILEGES ON slurm_acct_db.* TO 'slurm'@'localhost';
+        FLUSH PRIVILEGES;
+        EOF
+      when: slurm_db_exists.rc != 0
       ignore_errors: yes
 
     # Step 04: Download and build Slurm
@@ -176,9 +184,16 @@
         mode: '0755'
       when: not slurm_built.stat.exists
 
+    - name: Create PAM directory before configure (required for Slurm 25.x)
+      ansible.builtin.file:
+        path: "/opt/slurm/{{ slurm_vers }}-built/lib64/security"
+        state: directory
+        mode: '0755'
+      when: not slurm_built.stat.exists
+
     - name: Configure Slurm
       ansible.builtin.command:
-        cmd: |
+        cmd: >
           ../configure --without-shared-libslurm
           --with-munge
           --with-hwloc
@@ -190,7 +205,6 @@
           --with-ucx
           --with-lua
           --enable-pam
-          --with-pam_dir=/opt/slurm/{{ slurm_vers }}-built/lib64/security
           --sysconfdir=/etc/slurm
         chdir: "/tmp/slurm-{{ slurm_vers }}/build"
       when: not slurm_built.stat.exists
