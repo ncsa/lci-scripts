@@ -29,6 +29,14 @@
       group: slurm
       mode: 0755
 
+  - name: Create & change ownership of /var/spool/slurmd
+    ansible.builtin.file:
+      path: /var/spool/slurmd
+      state: directory
+      owner: slurm
+      group: slurm
+      mode: 0755
+
   - name: Copy slurm.conf into place with correct permissions
     ansible.builtin.template:
      src: slurm.conf.j2
