@@ -1,7 +1,8 @@
-  - name: Copy compute node RPMs to /tmp for installation
-    ansible.builtin.copy: 
-      src: "{{ item }}"
-      dest: /tmp
+  - name: Copy compute node RPMs from head node to compute nodes
+    ansible.builtin.copy:
+      src: "/tmp/rpmbuild/RPMS/x86_64/{{ item }}"
+      dest: /tmp/
+      remote_src: yes
     with_items:
       - pmix-{{ pmix_release }}-1.el9.x86_64.rpm
       - slurm-{{ slurm_vers }}-1.el9.x86_64.rpm
@@ -11,7 +12,7 @@
 
   - name: Install compute node RPMs
     ansible.builtin.dnf:
-      name: "/tmp/{{ item }}" 
+      name: "/tmp/{{ item }}"
       disable_gpg_check: yes
       state: present
     with_items:
