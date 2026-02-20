@@ -1,0 +1,233 @@
+
+PLAY [Head node Scheduler configuration] ***************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [localhost]
+
+TASK [slurm-user : Setting SLURM user, group] **********************************
+included: /home/rocky/lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook/roles/slurm-user/tasks/slurm-user.yml for localhost
+
+TASK [slurm-user : Create slurm group] *****************************************
+ok: [localhost]
+
+TASK [slurm-user : Create the slurm user and add them to the slurm group] ******
+ok: [localhost]
+
+TASK [slurm-user : Setting SLURM directories] **********************************
+included: /home/rocky/lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook/roles/slurm-user/tasks/slurm-logs.yml for localhost
+
+TASK [slurm-user : Create & change ownership of /var/spool/slurm directory] ****
+ok: [localhost]
+
+TASK [slurm-user : Create & change ownership of /var/spool/slurmctld directory] ***
+ok: [localhost]
+
+TASK [slurm-user : Create /var/spool/slurm/cluster_state directory] ************
+ok: [localhost]
+
+TASK [slurm-user : Create /var/log/slurm directory] ****************************
+ok: [localhost]
+
+TASK [slurm-rpm-build : Build pmix on the head node] ***************************
+included: /home/rocky/lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook/roles/slurm-rpm-build/tasks/pmix-rpm-build.yml for localhost
+
+TASK [slurm-rpm-build : Install PMIx build dependencies] ***********************
+ok: [localhost]
+
+TASK [slurm-rpm-build : Checking to see if the pmix SRC RPM exists] ************
+ok: [localhost]
+
+TASK [slurm-rpm-build : If it does not exist, download it] *********************
+changed: [localhost]
+
+TASK [slurm-rpm-build : Checking to see if the pmix rpm have already been created] ***
+ok: [localhost]
+
+TASK [slurm-rpm-build : Building pmix rpms, this will skip if they are already built] ***
+skipping: [localhost]
+
+TASK [slurm-rpm-build : Install RPM on the head node] **************************
+ok: [localhost]
+
+TASK [slurm-rpm-build : Build and SLURM on the head node] **********************
+included: /home/rocky/lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook/roles/slurm-rpm-build/tasks/slurm-rpm-build.yml for localhost
+
+TASK [slurm-rpm-build : Checking to see if the slurm .tar.bz2 file exists] *****
+ok: [localhost]
+
+TASK [slurm-rpm-build : If it does not exist, pull latest version of slurm down] ***
+skipping: [localhost]
+
+TASK [slurm-rpm-build : Checking to see if the slurm rpms have already been created] ***
+ok: [localhost]
+
+TASK [slurm-rpm-build : Building slurm rpms, this will skip if they are already built] ***
+skipping: [localhost]
+
+TASK [slurm-rpm-build : Copy RPM] **********************************************
+included: /home/rocky/lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook/roles/slurm-rpm-build/tasks/slurm-rpm-copy.yml for localhost
+
+TASK [slurm-rpm-build : Copy the rpm files into slurmd/files] ******************
+ok: [localhost] => (item=slurm-23.11.1-1.el9.x86_64.rpm)
+ok: [localhost] => (item=slurm-perlapi-23.11.1-1.el9.x86_64.rpm)
+ok: [localhost] => (item=slurm-slurmd-23.11.1-1.el9.x86_64.rpm)
+ok: [localhost] => (item=slurm-libpmi-23.11.1-1.el9.x86_64.rpm)
+ok: [localhost] => (item=pmix-4.2.8-1.el9.x86_64.rpm)
+
+TASK [slurm-rpm-build : Install head node RPMs] ********************************
+included: /home/rocky/lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook/roles/slurm-rpm-build/tasks/slurm-rpm-inst.yml for localhost
+
+TASK [slurm-rpm-build : Install RPMs on the head node] *************************
+ok: [localhost] => (item=slurm-23.11.1-1.el9.x86_64.rpm)
+ok: [localhost] => (item=slurm-example-configs-23.11.1-1.el9.x86_64.rpm)
+ok: [localhost] => (item=slurm-slurmctld-23.11.1-1.el9.x86_64.rpm)
+ok: [localhost] => (item=slurm-slurmdbd-23.11.1-1.el9.x86_64.rpm)
+ok: [localhost] => (item=slurm-perlapi-23.11.1-1.el9.x86_64.rpm)
+ok: [localhost] => (item=slurm-libpmi-23.11.1-1.el9.x86_64.rpm)
+ok: [localhost] => (item=slurm-devel-23.11.1-1.el9.x86_64.rpm)
+
+TASK [slurm-rpm-build : Copying slurm.conf into place with correct permissions] ***
+ok: [localhost]
+
+TASK [slurm-rpm-build : Copying slurmdbd.conf into place with correct permissions] ***
+ok: [localhost]
+
+TASK [slurm-rpm-build : Copying cgroup.conf into place with correct permissions] ***
+ok: [localhost]
+
+TASK [slurm-rpm-build : Copying mariadb-server.cnf into place] *****************
+ok: [localhost]
+
+TASK [head-node_munge_key : Install Munge through DNF] *************************
+ok: [localhost]
+
+TASK [head-node_munge_key : Check if the munge.key exists] *********************
+ok: [localhost]
+
+TASK [head-node_munge_key : Create munge.key] **********************************
+skipping: [localhost]
+
+TASK [head-node_munge_key : Copy munge.key into /etc/munge] ********************
+ok: [localhost]
+
+TASK [head-node_munge_key : Restart munge service] *****************************
+changed: [localhost]
+
+TASK [slurmdbd : Restart mariadb service] **************************************
+changed: [localhost]
+
+TASK [slurmdbd : Set MySQL root password] **************************************
+fatal: [localhost]: FAILED! => {"changed": true, "cmd": "mysql -u root -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY 'lcilab2024'; FLUSH PRIVILEGES;\"\n", "delta": "0:00:00.010079", "end": "2026-02-19 22:02:46.082042", "msg": "non-zero return code", "rc": 1, "start": "2026-02-19 22:02:46.071963", "stderr": "ERROR 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)", "stderr_lines": ["ERROR 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)"], "stdout": "", "stdout_lines": []}
+...ignoring
+
+TASK [slurmdbd : Create a new database named slurm_acct_db] ********************
+ok: [localhost]
+
+TASK [slurmdbd : Create database user slurm with slurm_acct_db privileges] *****
+ok: [localhost]
+
+TASK [slurmdbd : Restart slurmdbd service] *************************************
+changed: [localhost]
+
+TASK [slurmdbd : Restart slurmctld service] ************************************
+changed: [localhost]
+
+TASK [slurmdbd : Check if the cluster account has already been created in mysql] ***
+changed: [localhost]
+
+TASK [slurmdbd : Create slurm cluster name cluster] ****************************
+skipping: [localhost]
+
+PLAY [Compute node Scheduler configuration] ************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [lci-compute-01-1]
+ok: [lci-compute-01-2]
+
+TASK [slurm-user : Setting SLURM user, group] **********************************
+included: /home/rocky/lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook/roles/slurm-user/tasks/slurm-user.yml for lci-compute-01-1, lci-compute-01-2
+
+TASK [slurm-user : Create slurm group] *****************************************
+ok: [lci-compute-01-1]
+ok: [lci-compute-01-2]
+
+TASK [slurm-user : Create the slurm user and add them to the slurm group] ******
+ok: [lci-compute-01-1]
+ok: [lci-compute-01-2]
+
+TASK [slurm-user : Setting SLURM directories] **********************************
+included: /home/rocky/lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook/roles/slurm-user/tasks/slurm-logs.yml for lci-compute-01-1, lci-compute-01-2
+
+TASK [slurm-user : Create & change ownership of /var/spool/slurm directory] ****
+ok: [lci-compute-01-1]
+ok: [lci-compute-01-2]
+
+TASK [slurm-user : Create & change ownership of /var/spool/slurmctld directory] ***
+ok: [lci-compute-01-1]
+ok: [lci-compute-01-2]
+
+TASK [slurm-user : Create /var/spool/slurm/cluster_state directory] ************
+ok: [lci-compute-01-1]
+ok: [lci-compute-01-2]
+
+TASK [slurm-user : Create /var/log/slurm directory] ****************************
+ok: [lci-compute-01-1]
+ok: [lci-compute-01-2]
+
+TASK [compute-node_munge_key : Install munge on compute nodes] *****************
+ok: [lci-compute-01-1]
+ok: [lci-compute-01-2]
+
+TASK [compute-node_munge_key : Copy mungekey with owner and permissions to the compute nodes] ***
+ok: [lci-compute-01-1]
+ok: [lci-compute-01-2]
+
+TASK [compute-node_munge_key : Restart munge service after munge.key has been copied] ***
+changed: [lci-compute-01-2]
+changed: [lci-compute-01-1]
+
+TASK [slurmd : Copy compute node RPMs to /tmp for installation] ****************
+ok: [lci-compute-01-2] => (item=pmix-4.2.8-1.el9.x86_64.rpm)
+ok: [lci-compute-01-1] => (item=pmix-4.2.8-1.el9.x86_64.rpm)
+ok: [lci-compute-01-2] => (item=slurm-23.11.1-1.el9.x86_64.rpm)
+ok: [lci-compute-01-1] => (item=slurm-23.11.1-1.el9.x86_64.rpm)
+ok: [lci-compute-01-1] => (item=slurm-perlapi-23.11.1-1.el9.x86_64.rpm)
+ok: [lci-compute-01-2] => (item=slurm-perlapi-23.11.1-1.el9.x86_64.rpm)
+ok: [lci-compute-01-1] => (item=slurm-slurmd-23.11.1-1.el9.x86_64.rpm)
+ok: [lci-compute-01-2] => (item=slurm-slurmd-23.11.1-1.el9.x86_64.rpm)
+ok: [lci-compute-01-1] => (item=slurm-libpmi-23.11.1-1.el9.x86_64.rpm)
+ok: [lci-compute-01-2] => (item=slurm-libpmi-23.11.1-1.el9.x86_64.rpm)
+
+TASK [slurmd : Install compute node RPMs] **************************************
+ok: [lci-compute-01-1] => (item=pmix-4.2.8-1.el9.x86_64.rpm)
+ok: [lci-compute-01-2] => (item=pmix-4.2.8-1.el9.x86_64.rpm)
+ok: [lci-compute-01-1] => (item=slurm-23.11.1-1.el9.x86_64.rpm)
+ok: [lci-compute-01-2] => (item=slurm-23.11.1-1.el9.x86_64.rpm)
+ok: [lci-compute-01-1] => (item=slurm-perlapi-23.11.1-1.el9.x86_64.rpm)
+ok: [lci-compute-01-2] => (item=slurm-perlapi-23.11.1-1.el9.x86_64.rpm)
+ok: [lci-compute-01-1] => (item=slurm-slurmd-23.11.1-1.el9.x86_64.rpm)
+ok: [lci-compute-01-2] => (item=slurm-slurmd-23.11.1-1.el9.x86_64.rpm)
+ok: [lci-compute-01-1] => (item=slurm-libpmi-23.11.1-1.el9.x86_64.rpm)
+ok: [lci-compute-01-2] => (item=slurm-libpmi-23.11.1-1.el9.x86_64.rpm)
+
+TASK [slurmd : Create & change ownership of /etc/slurm/] ***********************
+ok: [lci-compute-01-1]
+ok: [lci-compute-01-2]
+
+TASK [slurmd : Copy slurm.conf into place with correct permissions] ************
+ok: [lci-compute-01-1]
+ok: [lci-compute-01-2]
+
+TASK [slurmd : Copy cgroup.conf into place with correct permissions] ***********
+ok: [lci-compute-01-1]
+ok: [lci-compute-01-2]
+
+TASK [slurmd : Restart slurmd service] *****************************************
+fatal: [lci-compute-01-1]: FAILED! => {"changed": false, "msg": "Unable to start service slurmd: Job for slurmd.service failed because the control process exited with error code.\nSee \"systemctl status slurmd.service\" and \"journalctl -xeu slurmd.service\" for details.\n"}
+fatal: [lci-compute-01-2]: FAILED! => {"changed": false, "msg": "Unable to start service slurmd: Job for slurmd.service failed because the control process exited with error code.\nSee \"systemctl status slurmd.service\" and \"journalctl -xeu slurmd.service\" for details.\n"}
+
+PLAY RECAP *********************************************************************
+lci-compute-01-1           : ok=17   changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+lci-compute-01-2           : ok=17   changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+localhost                  : ok=37   changed=7    unreachable=0    failed=0    skipped=5    rescued=0    ignored=1   
+
