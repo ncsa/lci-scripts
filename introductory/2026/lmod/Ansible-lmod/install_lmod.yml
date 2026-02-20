@@ -1,0 +1,26 @@
+---
+- name: Install a package
+  hosts: head, all_nodes
+  gather_facts: no
+
+  tasks:
+    - name: install Lmod 
+      ansible.builtin.dnf:
+        name: Lmod
+        state: present
+
+    - name: apps directory copy
+      ansible.builtin.copy:
+        src: Modules/apps
+        dest: /opt
+        mode: '0755'
+
+    - name: modulefiles directory copy
+      ansible.builtin.copy:
+        src: Modules/modulefiles
+        dest: /usr/share/lmod/lmod/ 
+
+    - name:  SitePackage_LOGS.lua copy 
+      ansible.builtin.copy:
+        src: Modules/libexec/SitePackage_LOGS.lua
+        dest: /usr/share/lmod/lmod/libexec

@@ -1,0 +1,12 @@
+  - name: Create slurm group
+    ansible.builtin.group:
+      name: slurm
+      state: present
+      gid: 1024
+
+  - name: Create the slurm user and add them to the slurm group
+    ansible.builtin.user:
+      name: slurm
+      comment: Slurm Workload Manager
+      uid: 1024
+      group: slurm

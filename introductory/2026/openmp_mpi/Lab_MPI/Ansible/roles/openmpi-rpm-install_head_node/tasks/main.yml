@@ -1,0 +1,5 @@
+- name: install opeenmpi pkg
+  ansible.builtin.dnf:
+    name: /tmp/rpmbuild/RPMS/x86_64/openmpi-{{ openmpi_version }}-1.el8.x86_64.rpm
+    disable_gpg_check: true
+    state: installed

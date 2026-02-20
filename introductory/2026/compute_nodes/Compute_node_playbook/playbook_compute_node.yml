@@ -1,0 +1,11 @@
+---
+####### compute node play ########
+- name: Compute node configuration
+  become: yes
+  hosts: all_nodes
+  tags: compute_node_play
+  roles:
+    - powertools
+    - timesync
+    - compute-node_pkg_inst    
+    - compute-node_autofs 

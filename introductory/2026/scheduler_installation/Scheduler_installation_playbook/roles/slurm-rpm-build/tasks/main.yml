@@ -1,0 +1,15 @@
+- name: Build pmix on the head node
+  include_tasks: pmix-rpm-build.yml
+  tags: pmix_rpm_build
+
+- name: Build and SLURM on the head node
+  include_tasks: slurm-rpm-build.yml
+  tags: slurm_rpm_build
+
+- name: Copy RPM
+  include_tasks: slurm-rpm-copy.yml
+  tags: slurm_rpm_copy
+
+- name: Install head node RPMs
+  include_tasks: slurm-rpm-inst.yml
+  tags: slurm_rpm_inst
