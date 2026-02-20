@@ -1,8 +1,7 @@
 # Head Node Setup - Todo List
 
-Replace `XX` with your cluster number (e.g., 02, 03, etc.) in all commands and configuration files.
-
 ## How to Update This File with Your Cluster Number
+Replace `XX` with your cluster number (e.g., 02, 03, etc.) in all commands and configuration files.
 
 Using vim:
 ```bash
@@ -10,7 +9,10 @@ vim todo.md
 :%s/01/<clusternumber>/g
 :wq
 ```
-
+## run the below comamands as root
+```bash
+sudo -i
+```
 ---
 
 ## 1. Fix Hostname
