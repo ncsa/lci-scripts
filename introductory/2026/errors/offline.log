@@ -1,0 +1,21 @@
+
+PLAY [Download Slurm RPMs on head node] ****************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [localhost]
+
+TASK [Create directory for Slurm RPMs] *****************************************
+changed: [localhost]
+
+TASK [Download Slurm RPMs for head node] ***************************************
+failed: [localhost] (item=slurm-23.11.1-1.el9.x86_64.rpm) => {"ansible_loop_var": "item", "changed": false, "dest": "/opt/slurm-rpms/slurm-23.11.1-1.el9.x86_64.rpm", "elapsed": 0, "item": "slurm-23.11.1-1.el9.x86_64.rpm", "msg": "Request failed", "response": "HTTP Error 404: Not Found", "status_code": 404, "url": "https://download.schedmd.com/slurm/rpms/el9/x86_64/slurm-23.11.1-1.el9.x86_64.rpm"}
+failed: [localhost] (item=slurm-slurmctld-23.11.1-1.el9.x86_64.rpm) => {"ansible_loop_var": "item", "changed": false, "dest": "/opt/slurm-rpms/slurm-slurmctld-23.11.1-1.el9.x86_64.rpm", "elapsed": 0, "item": "slurm-slurmctld-23.11.1-1.el9.x86_64.rpm", "msg": "Request failed", "response": "HTTP Error 404: Not Found", "status_code": 404, "url": "https://download.schedmd.com/slurm/rpms/el9/x86_64/slurm-slurmctld-23.11.1-1.el9.x86_64.rpm"}
+failed: [localhost] (item=slurm-slurmdbd-23.11.1-1.el9.x86_64.rpm) => {"ansible_loop_var": "item", "changed": false, "dest": "/opt/slurm-rpms/slurm-slurmdbd-23.11.1-1.el9.x86_64.rpm", "elapsed": 0, "item": "slurm-slurmdbd-23.11.1-1.el9.x86_64.rpm", "msg": "Request failed", "response": "HTTP Error 404: Not Found", "status_code": 404, "url": "https://download.schedmd.com/slurm/rpms/el9/x86_64/slurm-slurmdbd-23.11.1-1.el9.x86_64.rpm"}
+failed: [localhost] (item=slurm-perlapi-23.11.1-1.el9.x86_64.rpm) => {"ansible_loop_var": "item", "changed": false, "dest": "/opt/slurm-rpms/slurm-perlapi-23.11.1-1.el9.x86_64.rpm", "elapsed": 0, "item": "slurm-perlapi-23.11.1-1.el9.x86_64.rpm", "msg": "Request failed", "response": "HTTP Error 404: Not Found", "status_code": 404, "url": "https://download.schedmd.com/slurm/rpms/el9/x86_64/slurm-perlapi-23.11.1-1.el9.x86_64.rpm"}
+failed: [localhost] (item=slurm-libpmi-23.11.1-1.el9.x86_64.rpm) => {"ansible_loop_var": "item", "changed": false, "dest": "/opt/slurm-rpms/slurm-libpmi-23.11.1-1.el9.x86_64.rpm", "elapsed": 0, "item": "slurm-libpmi-23.11.1-1.el9.x86_64.rpm", "msg": "Request failed", "response": "HTTP Error 404: Not Found", "status_code": 404, "url": "https://download.schedmd.com/slurm/rpms/el9/x86_64/slurm-libpmi-23.11.1-1.el9.x86_64.rpm"}
+failed: [localhost] (item=slurm-devel-23.11.1-1.el9.x86_64.rpm) => {"ansible_loop_var": "item", "changed": false, "dest": "/opt/slurm-rpms/slurm-devel-23.11.1-1.el9.x86_64.rpm", "elapsed": 0, "item": "slurm-devel-23.11.1-1.el9.x86_64.rpm", "msg": "Request failed", "response": "HTTP Error 404: Not Found", "status_code": 404, "url": "https://download.schedmd.com/slurm/rpms/el9/x86_64/slurm-devel-23.11.1-1.el9.x86_64.rpm"}
+failed: [localhost] (item=slurm-example-configs-23.11.1-1.el9.x86_64.rpm) => {"ansible_loop_var": "item", "changed": false, "dest": "/opt/slurm-rpms/slurm-example-configs-23.11.1-1.el9.x86_64.rpm", "elapsed": 0, "item": "slurm-example-configs-23.11.1-1.el9.x86_64.rpm", "msg": "Request failed", "response": "HTTP Error 404: Not Found", "status_code": 404, "url": "https://download.schedmd.com/slurm/rpms/el9/x86_64/slurm-example-configs-23.11.1-1.el9.x86_64.rpm"}
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=2    changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+
