@@ -72,11 +72,11 @@ ssh lci-compute-XX-2 ls /head/NFS
 ## 4. Install ClusterShell - to run commands on multiple nodes at once.
 
 ```bash
-sudo dnf install clustershell
+dnf install -y clustershell
 ```
 
-Add to `/etc/clustershell/groups.d/local.cfg`:
-```
+### Edit `/etc/clustershell/groups.d/local.cfg` remove everything uncommented and add:
+```text
 head: lci-head-XX-1
 compute: lci-compute-XX-[1-2]
 login: lci-head-XX-1
@@ -93,8 +93,8 @@ clush -g compute "uptime"
 ## 5. Create User Accounts
 
 ```bash
-sudo useradd -u 2002 justin
-sudo useradd -u 2003 katie
+useradd -u 2002 justin
+useradd -u 2003 katie
 ```
 
 ---
@@ -111,7 +111,7 @@ module(load="imtcp")
 input(type="imtcp" port="514")
 ```
 
-Add to Modules section:
+Add to the end of '### Modules ###' section:
 ```
 $template DynamicFile,"/var/log/%HOSTNAME%/forwarded-logs.log"
 *.* -?DynamicFile
@@ -119,7 +119,7 @@ $template DynamicFile,"/var/log/%HOSTNAME%/forwarded-logs.log"
 
 Restart:
 ```bash
-sudo systemctl restart rsyslog
+systemctl restart rsyslog
 ```
 
 ### On compute and storage nodes:
@@ -131,7 +131,7 @@ Add to bottom of `/etc/rsyslog.conf`:
 
 Restart:
 ```bash
-sudo systemctl restart rsyslog
+systemctl restart rsyslog
 ```
 
 ### Verify on head node:
