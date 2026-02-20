@@ -1,0 +1,55 @@
+## First: Replace XX with your cluster number (e.g., 01, 02, etc.)
+#
+# Using vim:
+#   vim commands
+#   :%s/XX/01/g
+#   :wq
+#
+# Using nano:
+#   nano commands
+#   Press Ctrl+\ (search and replace)
+#   Enter "XX" as search term
+#   Enter "01" (your cluster number) as replacement
+#   Press A to replace all occurrences
+#   Press Ctrl+O to save, then Enter to confirm
+#   Press Ctrl+X to exit
+
+## Parallel Shell
+# On your head node for this section - as root
+dnf install clustershell
+
+# Add the following to the /etc/clustershell/groups.d/local.cfg file (replace the example stuff)
+head: lci-head-XX-1
+compute: lci-compute-XX-[1-2]
+login: lci-head-XX-1
+storage: lci-storage-XX-1
+
+# Test it out
+clush -g compute "uptime"
+
+# Creatre morest users
+useradd -u 2002 justin
+useradd -u 2003 katie
+
+## Central Logging
+# Remove comments for following lines in /etc/rsyslog.conf on lci-head-XX-1
+module(load="imudp") # needs to be done just once
+input(type="imudp" port="514")
+
+module(load="imtcp") # needs to be done just once
+input(type="imtcp" port="514")
+
+# Add these two lines in the Modules section:
+$template DynamicFile,"/var/log/%HOSTNAME%/forwarded-logs.log"
+*.* -?DynamicFile
+
+# Restart rsyslog on head node
+systemctl restart rsyslog
+
+# Add following to the very bottom of /etc/rsyslog.conf on both compute nodes/storage node and restart rsyslog service on those nodes
+*.* @lci-head-XX-1
+systemctl restart rsyslog
+
+# After a few minutes you should see new log directories in /var/log/ on lci-head-XX-1, a directory for each host forarding logs
+ls /var/log/lci-[computes/storage]-XX-Y/
+
