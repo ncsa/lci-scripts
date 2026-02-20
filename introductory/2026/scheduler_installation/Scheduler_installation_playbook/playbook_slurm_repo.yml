@@ -1,0 +1,101 @@
+---
+####### Install Slurm from official repository (no RPM building needed) ############
+- name: Install Slurm from official repository
+  vars_files: group_vars/cluster_params.yml
+  become: yes
+  hosts: all
+  tags: slurm_install
+
+  tasks:
+    - name: Add Slurm YUM repository
+      ansible.builtin.yum_repository:
+        name: slurm
+        description: Slurm Workload Manager
+        baseurl: https://download.schedmd.com/slurm/rpms/el9/{{ ansible_architecture }}/
+        gpgcheck: no
+        enabled: yes
+
+    - name: Install Slurm packages on head node
+      ansible.builtin.dnf:
+        name:
+          - slurm-{{ slurm_vers }}
+          - slurm-slurmctld
+          - slurm-slurmdbd
+          - slurm-perlapi
+          - slurm-libpmi
+          - slurm-devel
+          - slurm-example-configs
+        state: present
+      when: inventory_hostname in groups['head'] or inventory_hostname == 'localhost'
+
+    - name: Install Slurm packages on compute nodes
+      ansible.builtin.dnf:
+        name:
+          - slurm-{{ slurm_vers }}
+          - slurm-slurmd
+          - slurm-perlapi
+          - slurm-libpmi
+        state: present
+      when: inventory_hostname in groups['all_nodes']
+
+    - name: Install PMIx
+      ansible.builtin.dnf:
+        name: pmix
+        state: present
+
+    - name: Configure slurm.conf
+      ansible.builtin.template:
+        src: slurm.conf.j2
+        dest: /etc/slurm/slurm.conf
+        owner: slurm
+        group: slurm
+        mode: '0644'
+
+    - name: Configure slurmdbd.conf
+      ansible.builtin.template:
+        src: slurmdbd.conf.j2
+        dest: /etc/slurm/slurmdbd.conf
+        owner: slurm
+        group: slurm
+        mode: '0600'
+      when: inventory_hostname in groups['head'] or inventory_hostname == 'localhost'
+
+    - name: Configure cgroup.conf
+      ansible.builtin.copy:
+        content: |
+          CgroupMountpoint=/sys/fs/cgroup
+          CgroupPlugin=autodetect
+        dest: /etc/slurm/cgroup.conf
+        owner: slurm
+        group: slurm
+        mode: '0644'
+
+    - name: Create slurm directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: slurm
+        group: slurm
+        mode: '0755'
+      with_items:
+        - /var/spool/slurm
+        - /var/spool/slurmctld
+        - /var/spool/slurmd
+        - /var/log/slurm
+
+    - name: Start and enable Slurm services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      with_items:
+        - slurmctld
+        - slurmdbd
+      when: inventory_hostname in groups['head'] or inventory_hostname == 'localhost'
+
+    - name: Start and enable slurmd on compute nodes
+      ansible.builtin.systemd:
+        name: slurmd
+        state: started
+        enabled: yes
+      when: inventory_hostname in groups['all_nodes']
