@@ -8,6 +8,10 @@ fix.md
 **/*.backup*
 **/*.bak
 
+# Ignore all opencode directories
+**/.opencode/
+**/.opencode
+
 # Log files
 *.log
 logs/
