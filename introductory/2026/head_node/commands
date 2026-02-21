@@ -46,6 +46,16 @@ storage: lci-storage-XX-1
 # Test ClusterShell
 clush -g compute "uptime"
 
+# Fix hostnames on compute nodes (remove .novalocal suffix)
+# Get short hostname from /etc/hosts and set it properly
+clush -g compute 'correct_hostname=$(grep $(hostname -s) /etc/hosts | grep lci-compute | head -1 | awk "{print \$2}"); sudo hostnamectl set-hostname $correct_hostname'
+
+# Fix hostname on storage node
+clush -g storage 'correct_hostname=$(grep $(hostname -s) /etc/hosts | grep lci-storage | head -1 | awk "{print \$2}"); sudo hostnamectl set-hostname $correct_hostname'
+
+# Verify hostnames are fixed
+clush -g compute,storage "hostname"
+
 # 5. Create User Accounts
 useradd -u 2002 justin
 useradd -u 2003 katie

@@ -75,7 +75,7 @@ TASK [Verify root can now connect] *********************************************
 skipping: [lci-head-01-1]
 
 TASK [Check if slurm database user exists] *************************************
-fatal: [lci-head-01-1]: FAILED! => {"changed": false, "cmd": "mysql -e \"SELECT 1 FROM mysql.user WHERE user='slurm' AND host='localhost';\" 2>/dev/null | grep -q 1\n", "delta": "0:00:00.013453", "end": "2026-02-21 12:22:44.961078", "msg": "non-zero return code", "rc": 1, "start": "2026-02-21 12:22:44.947625", "stderr": "", "stderr_lines": [], "stdout": "", "stdout_lines": []}
+fatal: [lci-head-01-1]: FAILED! => {"changed": false, "cmd": "mysql -e \"SELECT 1 FROM mysql.user WHERE user='slurm' AND host='localhost';\" 2>/dev/null | grep -q 1\n", "delta": "0:00:00.013033", "end": "2026-02-21 12:55:59.554868", "msg": "non-zero return code", "rc": 1, "start": "2026-02-21 12:55:59.541835", "stderr": "", "stderr_lines": [], "stdout": "", "stdout_lines": []}
 ...ignoring
 
 TASK [Create slurm_acct_db database and user] **********************************
@@ -138,12 +138,6 @@ changed: [lci-head-01-1]
 TASK [Copy slurmrestd.service] *************************************************
 changed: [lci-head-01-1]
 
-TASK [Copy slurmd.service for head node] ***************************************
-changed: [lci-head-01-1]
-
-TASK [Create slurmd defaults for head node] ************************************
-changed: [lci-head-01-1]
-
 TASK [Reload systemd] **********************************************************
 ok: [lci-head-01-1]
 
@@ -159,9 +153,104 @@ changed: [lci-head-01-1]
 TASK [Wait for slurmctld to be ready] ******************************************
 ok: [lci-head-01-1]
 
-TASK [Enable and start slurmd on head (head is also a compute node)] ***********
-fatal: [lci-head-01-1]: FAILED! => {"changed": false, "msg": "Unable to start service slurmd: Job for slurmd.service failed because the control process exited with error code.\nSee \"systemctl status slurmd.service\" and \"journalctl -xeu slurmd.service\" for details.\n"}
+PLAY [Slurm Deploy - Compute Nodes] ********************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [lci-compute-01-1]
+ok: [lci-compute-01-2]
+
+TASK [Create slurm group] ******************************************************
+changed: [lci-compute-01-1]
+changed: [lci-compute-01-2]
+
+TASK [Create slurm user] *******************************************************
+changed: [lci-compute-01-1]
+changed: [lci-compute-01-2]
+
+TASK [Create Slurm directories on compute nodes] *******************************
+changed: [lci-compute-01-1] => (item=/opt/slurm)
+changed: [lci-compute-01-2] => (item=/opt/slurm)
+changed: [lci-compute-01-1] => (item=/etc/slurm)
+changed: [lci-compute-01-2] => (item=/etc/slurm)
+changed: [lci-compute-01-1] => (item=/var/log/slurm)
+changed: [lci-compute-01-2] => (item=/var/log/slurm)
+changed: [lci-compute-01-1] => (item=/var/spool/slurmd.spool)
+changed: [lci-compute-01-2] => (item=/var/spool/slurmd.spool)
+
+TASK [Install munge] ***********************************************************
+ok: [lci-compute-01-1]
+ok: [lci-compute-01-2]
+
+TASK [Sync Slurm installation from head node] **********************************
+changed: [lci-compute-01-2 -> lci-head-01-1]
+changed: [lci-compute-01-1 -> lci-head-01-1]
+
+TASK [Create current symlink] **************************************************
+ok: [lci-compute-01-2]
+ok: [lci-compute-01-1]
+
+TASK [Add Slurm libraries to ldconfig] *****************************************
+changed: [lci-compute-01-2]
+changed: [lci-compute-01-1]
+
+TASK [Run ldconfig] ************************************************************
+changed: [lci-compute-01-2]
+changed: [lci-compute-01-1]
+
+TASK [Add Slurm to PATH] *******************************************************
+changed: [lci-compute-01-2]
+changed: [lci-compute-01-1]
+
+TASK [Create munge directories] ************************************************
+changed: [lci-compute-01-2] => (item=/etc/munge)
+changed: [lci-compute-01-1] => (item=/etc/munge)
+changed: [lci-compute-01-2] => (item=/var/lib/munge)
+changed: [lci-compute-01-1] => (item=/var/lib/munge)
+changed: [lci-compute-01-2] => (item=/var/log/munge)
+changed: [lci-compute-01-1] => (item=/var/log/munge)
+
+TASK [Copy munge key from head node] *******************************************
+changed: [lci-compute-01-2 -> lci-head-01-1]
+changed: [lci-compute-01-1 -> lci-head-01-1]
+
+TASK [Set munge key permissions] ***********************************************
+ok: [lci-compute-01-1]
+ok: [lci-compute-01-2]
+
+TASK [Start munge service] *****************************************************
+changed: [lci-compute-01-2]
+changed: [lci-compute-01-1]
+
+TASK [Deploy slurm.conf from template] *****************************************
+changed: [lci-compute-01-1]
+changed: [lci-compute-01-2]
+
+TASK [Create /etc/default directory] *******************************************
+ok: [lci-compute-01-1]
+ok: [lci-compute-01-2]
+
+TASK [Create slurmd defaults] **************************************************
+changed: [lci-compute-01-1]
+changed: [lci-compute-01-2]
+
+TASK [Copy slurmd.service] *****************************************************
+changed: [lci-compute-01-1]
+changed: [lci-compute-01-2]
+
+TASK [Reload systemd] **********************************************************
+ok: [lci-compute-01-2]
+ok: [lci-compute-01-1]
+
+TASK [Wait for slurmctld] ******************************************************
+ok: [lci-compute-01-2]
+ok: [lci-compute-01-1]
+
+TASK [Enable and start slurmd] *************************************************
+fatal: [lci-compute-01-2]: FAILED! => {"changed": false, "msg": "Unable to start service slurmd: Job for slurmd.service failed because the control process exited with error code.\nSee \"systemctl status slurmd.service\" and \"journalctl -xeu slurmd.service\" for details.\n"}
+fatal: [lci-compute-01-1]: FAILED! => {"changed": false, "msg": "Unable to start service slurmd: Job for slurmd.service failed because the control process exited with error code.\nSee \"systemctl status slurmd.service\" and \"journalctl -xeu slurmd.service\" for details.\n"}
 
 PLAY RECAP *********************************************************************
-lci-head-01-1              : ok=41   changed=31   unreachable=0    failed=1    skipped=8    rescued=0    ignored=1   
+lci-compute-01-1           : ok=20   changed=13   unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+lci-compute-01-2           : ok=20   changed=13   unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+lci-head-01-1              : ok=39   changed=29   unreachable=0    failed=0    skipped=8    rescued=0    ignored=1   
 
