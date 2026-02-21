@@ -1,0 +1,198 @@
+---
+# Destroy Slurm Installation (v2 cleanup)
+# This playbook removes all Slurm components installed by playbook-slurm-source-v2.yml
+#
+# Usage: ansible-playbook -i hosts.ini destroy-slurm-source-v2.yml
+
+- name: Destroy Slurm - Head Node
+  hosts: head
+  connection: local
+  become: yes
+  vars_files: group_vars/cluster_params.yml
+
+  tasks:
+    - name: Stop all Slurm services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+      loop:
+        - slurmctld
+        - slurmdbd
+        - slurmd
+        - slurmrestd
+        - munge
+
+    - name: Remove systemd service files
+      ansible.builtin.file:
+        path: "/etc/systemd/system/{{ item }}"
+        state: absent
+      loop:
+        - slurmctld.service
+        - slurmdbd.service
+        - slurmd.service
+        - slurmrestd.service
+      ignore_errors: yes
+
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: Remove Slurm configuration files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/slurm/slurm.conf
+        - /etc/slurm/slurmdbd.conf
+        - /etc/slurm/job_container.conf
+        - /etc/slurm/cgroup.conf
+        - /etc/slurm
+        - /etc/default/slurmd
+        - /etc/profile.d/slurm.sh
+        - /etc/ld.so.conf.d/slurm.conf
+      ignore_errors: yes
+
+    - name: Run ldconfig to remove Slurm libraries
+      ansible.builtin.command: ldconfig
+
+    - name: Remove Slurm installation directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "/opt/slurm/{{ slurm_vers }}-built"
+        - /opt/slurm/current
+        - /opt/slurm
+        - /var/log/slurm
+        - /var/run/slurm
+        - /var/spool/slurmd.spool
+        - /var/spool/slurm.state
+        - /var/spool/slurm
+        - /var/spool/slurmctld
+      ignore_errors: yes
+
+    - name: Remove Slurm source and build directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "/tmp/slurm-{{ slurm_vers }}"
+        - "/tmp/slurm-{{ slurm_vers }}.tar.bz2"
+      ignore_errors: yes
+
+    - name: Remove MUNGE key and directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/munge/munge.key
+        - /etc/munge
+        - /var/lib/munge
+        - /var/log/munge
+      ignore_errors: yes
+
+    - name: Remove slurm user
+      ansible.builtin.user:
+        name: slurm
+        state: absent
+        remove: yes
+      ignore_errors: yes
+
+    - name: Remove slurm group
+      ansible.builtin.group:
+        name: slurm
+        state: absent
+      ignore_errors: yes
+
+    - name: Drop slurm_acct_db database
+      ansible.builtin.shell: |
+        mysql -e "DROP DATABASE IF EXISTS slurm_acct_db;" 2>/dev/null || true
+      ignore_errors: yes
+
+    - name: Remove slurm database user
+      ansible.builtin.shell: |
+        mysql -e "DROP USER IF EXISTS 'slurm'@'localhost';" 2>/dev/null || true
+      ignore_errors: yes
+
+    - name: Clean dnf cache
+      ansible.builtin.command: dnf clean all
+      ignore_errors: yes
+
+
+- name: Destroy Slurm - Compute Nodes
+  hosts: all_nodes
+  become: yes
+  vars_files: group_vars/cluster_params.yml
+
+  tasks:
+    - name: Stop slurmd and munge services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+      loop:
+        - slurmd
+        - munge
+
+    - name: Remove systemd service file
+      ansible.builtin.file:
+        path: /etc/systemd/system/slurmd.service
+        state: absent
+      ignore_errors: yes
+
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: Remove Slurm configuration
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/slurm/slurm.conf
+        - /etc/slurm
+        - /etc/default/slurmd
+        - /etc/profile.d/slurm.sh
+        - /etc/ld.so.conf.d/slurm.conf
+      ignore_errors: yes
+
+    - name: Run ldconfig to remove Slurm libraries
+      ansible.builtin.command: ldconfig
+
+    - name: Remove Slurm directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /opt/slurm
+        - /var/log/slurm
+        - /var/spool/slurmd.spool
+        - /var/run/slurm
+      ignore_errors: yes
+
+    - name: Remove MUNGE key and directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/munge/munge.key
+        - /etc/munge
+        - /var/lib/munge
+        - /var/log/munge
+      ignore_errors: yes
+
+    - name: Remove slurm user
+      ansible.builtin.user:
+        name: slurm
+        state: absent
+        remove: yes
+      ignore_errors: yes
+
+    - name: Remove slurm group
+      ansible.builtin.group:
+        name: slurm
+        state: absent
+      ignore_errors: yes
