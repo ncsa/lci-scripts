@@ -1,0 +1,544 @@
+---
+# Build and Install Slurm from source (v2 - with fixes for Rocky Linux 9.7)
+# This playbook builds Slurm on head node and deploys to all compute nodes
+#
+# STUDENT SETUP:
+#   1. Edit hosts.ini       - set your cluster number (lci-head-XX-1, lci-compute-XX-[1-2])
+#   2. Edit group_vars/cluster_params.yml - set cluster_number to your assigned number
+#   3. Run:  ansible-playbook -i hosts.ini playbook-slurm-source-v2.yml
+#
+# Fixes applied vs v1:
+#   1. MariaDB auth: removed -u root / -S socket flags (unix_socket auth on Rocky 9)
+#   2. Pre-create slurmctld.log and slurmd.log with correct ownership
+#   3. PID file path alignment between slurm.conf and systemd RuntimeDirectory
+#   4. slurmdbd.conf StoragePass uses db_pwd variable instead of hardcoded value
+#   5. slurm.conf values driven by cluster_params.yml (cluster name, partition, mem)
+#   6. ldconfig for Slurm shared libraries under /opt/slurm/current/lib64
+#   7. SlurmctldHost derived from inventory [head] group (no hardcoded IP)
+#   8. slurmd.service copied + systemd reloaded BEFORE attempting to start slurmd
+#   9. Fully variable hostnames via cluster_number for multi-cluster student labs
+
+- name: Slurm Source Build - Head Node
+  hosts: head
+  connection: local
+  become: yes
+  vars_files: group_vars/cluster_params.yml
+
+  tasks:
+    # ------------------------------------------------------------------ #
+    # Step 01: Install build dependencies
+    # ------------------------------------------------------------------ #
+    - name: Install Slurm build dependencies
+      ansible.builtin.dnf:
+        name:
+          - munge
+          - munge-devel
+          - json-c-devel
+          - libjwt-devel
+          - numactl-devel
+          - http-parser-devel
+          - lz4-devel
+          - hdf5
+          - hdf5-devel
+          - hwloc
+          - hwloc-devel
+          - pmix-devel
+          - freeipmi-devel
+          - ucx
+          - ucx-devel
+          - glib2-devel
+          - lua
+          - lua-devel
+          - man2html
+          - libcurl-devel
+          - dbus
+          - dbus-devel
+          - libbpf
+          - libbpf-devel
+          - gcc
+          - gcc-c++
+          - make
+          - tar
+          - bzip2
+        state: present
+
+    # ------------------------------------------------------------------ #
+    # Step 02: Create slurm user and group (UID/GID 600)
+    # ------------------------------------------------------------------ #
+    - name: Create slurm group
+      ansible.builtin.group:
+        name: slurm
+        gid: 600
+        state: present
+
+    - name: Create slurm user
+      ansible.builtin.user:
+        name: slurm
+        uid: 600
+        group: slurm
+        home: /opt/slurm
+        shell: /bin/false
+        state: present
+
+    # ------------------------------------------------------------------ #
+    # Step 02b: Create directories
+    # ------------------------------------------------------------------ #
+    - name: Create Slurm directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: slurm
+        group: "{{ 'rocky' if item == '/opt/slurm' else 'slurm' }}"
+        mode: "{{ '0750' if item == '/opt/slurm' else '0755' }}"
+      loop:
+        - /opt/slurm
+        - /etc/slurm
+        - /var/log/slurm
+        - /var/run/slurm
+        - /var/spool/slurmd.spool
+        - /var/spool/slurm.state
+
+    # FIX 2: Pre-create ALL log files (v1 missed slurmctld.log and slurmd.log)
+    - name: Create log and pid files with proper ownership
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: touch
+        owner: slurm
+        group: slurm
+        mode: '0644'
+      loop:
+        - /var/log/slurm/slurmdbd.log
+        - /var/log/slurm/slurmctld.log
+        - /var/log/slurm/slurmd.log
+        - /var/run/slurm/slurmdbd.pid
+
+    # ------------------------------------------------------------------ #
+    # Step 02c: Initialize MUNGE
+    # ------------------------------------------------------------------ #
+    - name: Generate MUNGE key if not exists
+      ansible.builtin.command: create-munge-key
+      args:
+        creates: /etc/munge/munge.key
+
+    - name: Set MUNGE directory permissions
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: munge
+        group: munge
+        mode: '0700'
+      loop:
+        - /etc/munge
+        - /var/lib/munge
+        - /var/log/munge
+
+    - name: Set MUNGE key permissions
+      ansible.builtin.file:
+        path: /etc/munge/munge.key
+        owner: munge
+        group: munge
+        mode: '0400'
+
+    - name: Enable and start MUNGE service
+      ansible.builtin.systemd:
+        name: munge
+        state: started
+        enabled: yes
+
+    - name: Add Slurm to PATH
+      ansible.builtin.lineinfile:
+        path: /etc/profile.d/slurm.sh
+        line: 'export PATH=/opt/slurm/current/bin:$PATH'
+        create: yes
+        mode: '0644'
+
+    # ------------------------------------------------------------------ #
+    # Step 03: Install and configure MariaDB
+    # ------------------------------------------------------------------ #
+    - name: Install MariaDB server
+      ansible.builtin.dnf:
+        name: mariadb-server
+        state: present
+
+    - name: Enable and start MariaDB
+      ansible.builtin.systemd:
+        name: mariadb
+        state: started
+        enabled: yes
+
+    # FIX 1: Removed '-u root' and '-S /var/lib/mysql/mysql.sock'.
+    #         On Rocky 9 the unix_socket auth plugin authenticates by OS user.
+    #         With become: yes we are already root, so plain 'mysql' works.
+    - name: Check if slurm database user exists
+      ansible.builtin.shell: |
+        mysql -e "SELECT 1 FROM mysql.user WHERE user='slurm' AND host='localhost';" 2>/dev/null | grep -q 1
+      register: slurm_db_exists
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Create slurm_acct_db database and user
+      ansible.builtin.shell: |
+        mysql <<'EOF'
+        CREATE DATABASE IF NOT EXISTS slurm_acct_db;
+        CREATE USER IF NOT EXISTS 'slurm'@'localhost' IDENTIFIED BY '{{ db_pwd }}';
+        GRANT ALL PRIVILEGES ON slurm_acct_db.* TO 'slurm'@'localhost';
+        FLUSH PRIVILEGES;
+        EOF
+      when: slurm_db_exists.rc != 0
+
+    # ------------------------------------------------------------------ #
+    # Step 04: Download and build Slurm from source
+    # ------------------------------------------------------------------ #
+    - name: Check if Slurm already built
+      ansible.builtin.stat:
+        path: "/opt/slurm/{{ slurm_vers }}-built/sbin/slurmctld"
+      register: slurm_built
+
+    - name: Download Slurm source
+      ansible.builtin.get_url:
+        url: "https://download.schedmd.com/slurm/slurm-{{ slurm_vers }}.tar.bz2"
+        dest: "/tmp/slurm-{{ slurm_vers }}.tar.bz2"
+        mode: '0644'
+      when: not slurm_built.stat.exists
+      ignore_errors: yes
+
+    - name: Extract Slurm source
+      ansible.builtin.unarchive:
+        src: "/tmp/slurm-{{ slurm_vers }}.tar.bz2"
+        dest: /tmp/
+        remote_src: yes
+        creates: "/tmp/slurm-{{ slurm_vers }}/configure"
+      when: not slurm_built.stat.exists
+
+    - name: Create build directory
+      ansible.builtin.file:
+        path: "/tmp/slurm-{{ slurm_vers }}/build"
+        state: directory
+        mode: '0755'
+      when: not slurm_built.stat.exists
+
+    - name: Create PAM directory before configure (required for Slurm 25.x)
+      ansible.builtin.file:
+        path: "/opt/slurm/{{ slurm_vers }}-built/lib64/security"
+        state: directory
+        mode: '0755'
+      when: not slurm_built.stat.exists
+
+    - name: Configure Slurm
+      ansible.builtin.command:
+        cmd: >
+          ../configure --without-shared-libslurm
+          --with-munge
+          --with-hwloc
+          --with-pmix
+          --with-jwt
+          --with-json
+          --enable-slurmrestd
+          --prefix=/opt/slurm/{{ slurm_vers }}-built
+          --with-ucx
+          --with-lua
+          --enable-pam
+          --sysconfdir=/etc/slurm
+        chdir: "/tmp/slurm-{{ slurm_vers }}/build"
+      when: not slurm_built.stat.exists
+
+    - name: Build Slurm
+      ansible.builtin.command:
+        cmd: "make -j 2"
+        chdir: "/tmp/slurm-{{ slurm_vers }}/build"
+      when: not slurm_built.stat.exists
+
+    - name: Install Slurm
+      ansible.builtin.command:
+        cmd: "make install"
+        chdir: "/tmp/slurm-{{ slurm_vers }}/build"
+      when: not slurm_built.stat.exists
+
+    - name: Install contrib
+      ansible.builtin.command:
+        cmd: "make install-contrib"
+        chdir: "/tmp/slurm-{{ slurm_vers }}/build"
+      when: not slurm_built.stat.exists
+
+    # Create symlink /opt/slurm/current
+    - name: Create current symlink
+      ansible.builtin.file:
+        src: "/opt/slurm/{{ slurm_vers }}-built"
+        dest: /opt/slurm/current
+        state: link
+        force: yes
+
+    - name: Set ownership on installed Slurm
+      ansible.builtin.file:
+        path: "/opt/slurm/{{ slurm_vers }}-built"
+        owner: slurm
+        group: slurm
+        recurse: yes
+
+    # FIX 6: Register Slurm shared libraries with the dynamic linker
+    - name: Add Slurm libraries to ldconfig
+      ansible.builtin.copy:
+        content: "/opt/slurm/current/lib64\n"
+        dest: /etc/ld.so.conf.d/slurm.conf
+        mode: '0644'
+
+    - name: Run ldconfig
+      ansible.builtin.command: ldconfig
+
+    # ------------------------------------------------------------------ #
+    # Step 05: Deploy configuration files
+    # ------------------------------------------------------------------ #
+    # FIX 5 & 7: slurm.conf is now a Jinja2 template driven by cluster_params.yml
+    - name: Deploy slurm.conf from template
+      ansible.builtin.template:
+        src: roles/slurm-source/templates/slurm.conf.j2
+        dest: /etc/slurm/slurm.conf
+        owner: slurm
+        group: slurm
+        mode: '0644'
+
+    # ------------------------------------------------------------------ #
+    # Step 06: Configure slurmdbd
+    # ------------------------------------------------------------------ #
+    # FIX 4: slurmdbd.conf is now a template so StoragePass uses db_pwd directly
+    - name: Deploy slurmdbd.conf from template
+      ansible.builtin.template:
+        src: roles/slurm-source/templates/slurmdbd.conf.j2
+        dest: /etc/slurm/slurmdbd.conf
+        owner: slurm
+        group: slurm
+        mode: '0600'
+
+    - name: Copy slurmdbd.service
+      ansible.builtin.copy:
+        src: roles/slurm-source/files/slurmdbd.service
+        dest: /etc/systemd/system/slurmdbd.service
+        mode: '0644'
+
+    # ------------------------------------------------------------------ #
+    # Step 07: Configure slurmctld
+    # ------------------------------------------------------------------ #
+    - name: Ensure job_container.conf exists
+      ansible.builtin.file:
+        path: /etc/slurm/job_container.conf
+        state: touch
+        owner: slurm
+        group: slurm
+        mode: '0644'
+
+    - name: Copy slurmctld.service
+      ansible.builtin.copy:
+        src: roles/slurm-source/files/slurmctld.service
+        dest: /etc/systemd/system/slurmctld.service
+        mode: '0644'
+
+    - name: Copy slurmrestd.service
+      ansible.builtin.copy:
+        src: roles/slurm-source/files/slurmrestd.service
+        dest: /etc/systemd/system/slurmrestd.service
+        mode: '0644'
+
+    # FIX 8 (ordering): Copy slurmd.service BEFORE starting any services
+    - name: Copy slurmd.service for head node
+      ansible.builtin.copy:
+        src: roles/slurm-source/files/slurmd.service
+        dest: /etc/systemd/system/slurmd.service
+        mode: '0644'
+
+    - name: Create slurmd defaults for head node
+      ansible.builtin.copy:
+        content: "SLURMCTLD_HOST=127.0.0.1\n"
+        dest: /etc/default/slurmd
+        mode: '0644'
+
+    # ------------------------------------------------------------------ #
+    # Step 08: Start services (single daemon-reload, correct order)
+    # ------------------------------------------------------------------ #
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: Enable and start slurmdbd
+      ansible.builtin.systemd:
+        name: slurmdbd
+        state: started
+        enabled: yes
+
+    - name: Wait for slurmdbd to be ready
+      ansible.builtin.wait_for:
+        port: 6819
+        timeout: 30
+
+    - name: Enable and start slurmctld
+      ansible.builtin.systemd:
+        name: slurmctld
+        state: started
+        enabled: yes
+
+    - name: Wait for slurmctld to be ready
+      ansible.builtin.wait_for:
+        port: 6817
+        timeout: 30
+
+    - name: Enable and start slurmd on head (head is also a compute node)
+      ansible.builtin.systemd:
+        name: slurmd
+        state: started
+        enabled: yes
+
+
+- name: Slurm Deploy - Compute Nodes
+  hosts: all_nodes
+  become: yes
+  vars_files: group_vars/cluster_params.yml
+
+  tasks:
+    # Create users and directories on compute nodes
+    - name: Create slurm group
+      ansible.builtin.group:
+        name: slurm
+        gid: 600
+        state: present
+
+    - name: Create slurm user
+      ansible.builtin.user:
+        name: slurm
+        uid: 600
+        group: slurm
+        home: /opt/slurm
+        shell: /bin/false
+        state: present
+
+    - name: Create Slurm directories on compute nodes
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: slurm
+        group: slurm
+        mode: '0755'
+      loop:
+        - /opt/slurm
+        - /etc/slurm
+        - /var/log/slurm
+        - /var/spool/slurmd.spool
+
+    # Install munge on compute nodes
+    - name: Install munge
+      ansible.builtin.dnf:
+        name: munge
+        state: present
+
+    # Sync /opt/slurm from head node
+    - name: Sync Slurm installation from head node
+      ansible.posix.synchronize:
+        src: /opt/slurm/
+        dest: /opt/slurm/
+        archive: yes
+        delete: yes
+      delegate_to: "{{ groups['head'][0] }}"
+
+    # Create symlink on compute nodes
+    - name: Create current symlink
+      ansible.builtin.file:
+        src: "/opt/slurm/{{ slurm_vers }}-built"
+        dest: /opt/slurm/current
+        state: link
+        force: yes
+
+    # FIX 6: Register Slurm shared libraries with ldconfig on compute nodes too
+    - name: Add Slurm libraries to ldconfig
+      ansible.builtin.copy:
+        content: "/opt/slurm/current/lib64\n"
+        dest: /etc/ld.so.conf.d/slurm.conf
+        mode: '0644'
+
+    - name: Run ldconfig
+      ansible.builtin.command: ldconfig
+
+    - name: Add Slurm to PATH
+      ansible.builtin.lineinfile:
+        path: /etc/profile.d/slurm.sh
+        line: 'export PATH=/opt/slurm/current/bin:$PATH'
+        create: yes
+        mode: '0644'
+
+    # Copy munge key from head node
+    - name: Create munge directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: munge
+        group: munge
+        mode: '0700'
+      loop:
+        - /etc/munge
+        - /var/lib/munge
+        - /var/log/munge
+
+    - name: Copy munge key from head node
+      ansible.posix.synchronize:
+        src: /etc/munge/munge.key
+        dest: /etc/munge/munge.key
+        archive: yes
+      delegate_to: "{{ groups['head'][0] }}"
+
+    - name: Set munge key permissions
+      ansible.builtin.file:
+        path: /etc/munge/munge.key
+        owner: munge
+        group: munge
+        mode: '0400'
+
+    - name: Start munge service
+      ansible.builtin.systemd:
+        name: munge
+        state: started
+        enabled: yes
+
+    # FIX 5: Use templated slurm.conf instead of static copy
+    - name: Deploy slurm.conf from template
+      ansible.builtin.template:
+        src: roles/slurm-source/templates/slurm.conf.j2
+        dest: /etc/slurm/slurm.conf
+        owner: slurm
+        group: slurm
+        mode: '0644'
+
+    # Create slurmd defaults file
+    - name: Create /etc/default directory
+      ansible.builtin.file:
+        path: /etc/default
+        state: directory
+        mode: '0755'
+
+    - name: Create slurmd defaults
+      ansible.builtin.template:
+        src: roles/slurm-source/templates/slurmd_defaults.j2
+        dest: /etc/default/slurmd
+        owner: root
+        group: root
+        mode: '0644'
+
+    # Copy slurmd.service
+    - name: Copy slurmd.service
+      ansible.builtin.copy:
+        src: roles/slurm-source/files/slurmd.service
+        dest: /etc/systemd/system/slurmd.service
+        mode: '0644'
+
+    # Start slurmd
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: Wait for slurmctld
+      ansible.builtin.wait_for:
+        host: "{{ groups['head'][0] }}"
+        port: 6817
+        timeout: 60
+
+    - name: Enable and start slurmd
+      ansible.builtin.systemd:
+        name: slurmd
+        state: started
+        enabled: yes
