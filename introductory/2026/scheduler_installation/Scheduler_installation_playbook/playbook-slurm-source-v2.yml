@@ -43,7 +43,6 @@
           - hwloc
           - hwloc-devel
           - pmix-devel
-          - freeipmi-devel
           - ucx
           - ucx-devel
           - glib2-devel
@@ -457,10 +456,21 @@
         - /var/log/slurm
         - /var/spool/slurmd.spool
 
-    # Install munge on compute nodes
-    - name: Install munge
+    # Install munge and Slurm runtime dependencies on compute nodes
+    - name: Install munge and Slurm runtime dependencies
       ansible.builtin.dnf:
-        name: munge
+        name:
+          - munge
+          - hwloc
+          - pmix
+          - json-c
+          - libjwt
+          - ucx
+          - lua
+          - http-parser
+          - lz4
+          - numactl
+          - dbus
         state: present
 
     # Sync /opt/slurm from head node

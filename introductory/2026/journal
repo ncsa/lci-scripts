@@ -1,0 +1,200 @@
+lci-compute-01-1: Feb 21 13:01:38 lci-compute-01-1.novalocal systemd[1]: Starting Slurm node daemon...
+lci-compute-01-1: ░░ Subject: A start job for unit slurmd.service has begun execution
+lci-compute-01-1: ░░ Defined-By: systemd
+lci-compute-01-1: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ A start job for unit slurmd.service has begun execution.
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ The job identifier is 13888.
+lci-compute-01-1: Feb 21 13:01:38 lci-compute-01-1.novalocal slurmd[23921]: /opt/slurm/current/sbin/slurmd: error while loading shared libraries: libhwloc.so.15: cannot open shared object file: No such file or directory
+lci-compute-01-1: Feb 21 13:01:38 lci-compute-01-1.novalocal systemd[1]: slurmd.service: Main process exited, code=exited, status=127/n/a
+lci-compute-01-1: ░░ Subject: Unit process exited
+lci-compute-01-1: ░░ Defined-By: systemd
+lci-compute-01-1: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ An ExecStart= process belonging to unit slurmd.service has exited.
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ The process' exit code is 'exited' and its exit status is 127.
+lci-compute-01-1: Feb 21 13:01:38 lci-compute-01-1.novalocal systemd[1]: slurmd.service: Failed with result 'exit-code'.
+lci-compute-01-1: ░░ Subject: Unit failed
+lci-compute-01-1: ░░ Defined-By: systemd
+lci-compute-01-1: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ The unit slurmd.service has entered the 'failed' state with result 'exit-code'.
+lci-compute-01-1: Feb 21 13:01:38 lci-compute-01-1.novalocal systemd[1]: Failed to start Slurm node daemon.
+lci-compute-01-1: ░░ Subject: A start job for unit slurmd.service has failed
+lci-compute-01-1: ░░ Defined-By: systemd
+lci-compute-01-1: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ A start job for unit slurmd.service has finished with a failure.
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ The job identifier is 13888 and the job result is failed.
+lci-compute-01-1: Feb 21 13:30:17 lci-compute-01-1 systemd[1]: Starting Slurm node daemon...
+lci-compute-01-1: ░░ Subject: A start job for unit slurmd.service has begun execution
+lci-compute-01-1: ░░ Defined-By: systemd
+lci-compute-01-1: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ A start job for unit slurmd.service has begun execution.
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ The job identifier is 16010.
+lci-compute-01-1: Feb 21 13:30:17 lci-compute-01-1 slurmd[30726]: /opt/slurm/current/sbin/slurmd: error while loading shared libraries: libhwloc.so.15: cannot open shared object file: No such file or directory
+lci-compute-01-1: Feb 21 13:30:17 lci-compute-01-1 systemd[1]: slurmd.service: Main process exited, code=exited, status=127/n/a
+lci-compute-01-1: ░░ Subject: Unit process exited
+lci-compute-01-1: ░░ Defined-By: systemd
+lci-compute-01-1: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ An ExecStart= process belonging to unit slurmd.service has exited.
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ The process' exit code is 'exited' and its exit status is 127.
+lci-compute-01-1: Feb 21 13:30:17 lci-compute-01-1 systemd[1]: slurmd.service: Failed with result 'exit-code'.
+lci-compute-01-1: ░░ Subject: Unit failed
+lci-compute-01-1: ░░ Defined-By: systemd
+lci-compute-01-1: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ The unit slurmd.service has entered the 'failed' state with result 'exit-code'.
+lci-compute-01-1: Feb 21 13:30:17 lci-compute-01-1 systemd[1]: Failed to start Slurm node daemon.
+lci-compute-01-1: ░░ Subject: A start job for unit slurmd.service has failed
+lci-compute-01-1: ░░ Defined-By: systemd
+lci-compute-01-1: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ A start job for unit slurmd.service has finished with a failure.
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ The job identifier is 16010 and the job result is failed.
+lci-compute-01-1: Feb 21 13:47:02 lci-compute-01-1 systemd[1]: Starting Slurm node daemon...
+lci-compute-01-1: ░░ Subject: A start job for unit slurmd.service has begun execution
+lci-compute-01-1: ░░ Defined-By: systemd
+lci-compute-01-1: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ A start job for unit slurmd.service has begun execution.
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ The job identifier is 17675.
+lci-compute-01-1: Feb 21 13:47:02 lci-compute-01-1 slurmd[37786]: [2026-02-21T13:47:02.121] _read_slurm_cgroup_conf: No cgroup.conf file (/var/spool/slurmd.spool/conf-cache/cgroup.conf), using defaults
+lci-compute-01-1: Feb 21 13:47:02 lci-compute-01-1 slurmd[37786]: [2026-02-21T13:47:02.141] Can not stat gres.conf file (/var/spool/slurmd.spool/conf-cache/gres.conf), using slurm.conf data
+lci-compute-01-1: Feb 21 13:47:02 lci-compute-01-1 slurmd[37786]: [2026-02-21T13:47:02.141] CPU frequency setting not configured for this node
+lci-compute-01-1: Feb 21 13:47:02 lci-compute-01-1 slurmd[37786]: [2026-02-21T13:47:02.142] slurmd version 25.05.6 started
+lci-compute-01-1: Feb 21 13:47:02 lci-compute-01-1 slurmd[37786]: [2026-02-21T13:47:02.142] error: plugin_load_from_file: dlopen(/opt/slurm/25.05.6-built/lib/slurm/acct_gather_energy_ipmi.so): libipmimonitoring.so.6: cannot open shared object file: No such file or directory
+lci-compute-01-1: Feb 21 13:47:02 lci-compute-01-1 slurmd[37786]: [2026-02-21T13:47:02.142] error: Couldn't load specified plugin name for acct_gather_energy/ipmi: Dlopen of plugin file failed
+lci-compute-01-1: Feb 21 13:47:02 lci-compute-01-1 slurmd[37786]: [2026-02-21T13:47:02.142] error: cannot create acct_gather_energy context for acct_gather_energy/ipmi
+lci-compute-01-1: Feb 21 13:47:02 lci-compute-01-1 slurmd[37786]: [2026-02-21T13:47:02.142] fatal: can not open the (null) plugin
+lci-compute-01-1: Feb 21 13:47:02 lci-compute-01-1 systemd[1]: slurmd.service: Main process exited, code=exited, status=1/FAILURE
+lci-compute-01-1: ░░ Subject: Unit process exited
+lci-compute-01-1: ░░ Defined-By: systemd
+lci-compute-01-1: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ An ExecStart= process belonging to unit slurmd.service has exited.
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ The process' exit code is 'exited' and its exit status is 1.
+lci-compute-01-1: Feb 21 13:47:02 lci-compute-01-1 systemd[1]: slurmd.service: Failed with result 'exit-code'.
+lci-compute-01-1: ░░ Subject: Unit failed
+lci-compute-01-1: ░░ Defined-By: systemd
+lci-compute-01-1: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ The unit slurmd.service has entered the 'failed' state with result 'exit-code'.
+lci-compute-01-1: Feb 21 13:47:02 lci-compute-01-1 systemd[1]: Failed to start Slurm node daemon.
+lci-compute-01-1: ░░ Subject: A start job for unit slurmd.service has failed
+lci-compute-01-1: ░░ Defined-By: systemd
+lci-compute-01-1: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ A start job for unit slurmd.service has finished with a failure.
+lci-compute-01-1: ░░ 
+lci-compute-01-1: ░░ The job identifier is 17675 and the job result is failed.
+lci-compute-01-2: Feb 21 13:01:38 lci-compute-01-2.novalocal systemd[1]: Starting Slurm node daemon...
+lci-compute-01-2: ░░ Subject: A start job for unit slurmd.service has begun execution
+lci-compute-01-2: ░░ Defined-By: systemd
+lci-compute-01-2: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ A start job for unit slurmd.service has begun execution.
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ The job identifier is 14014.
+lci-compute-01-2: Feb 21 13:01:38 lci-compute-01-2.novalocal slurmd[23959]: /opt/slurm/current/sbin/slurmd: error while loading shared libraries: libhwloc.so.15: cannot open shared object file: No such file or directory
+lci-compute-01-2: Feb 21 13:01:38 lci-compute-01-2.novalocal systemd[1]: slurmd.service: Main process exited, code=exited, status=127/n/a
+lci-compute-01-2: ░░ Subject: Unit process exited
+lci-compute-01-2: ░░ Defined-By: systemd
+lci-compute-01-2: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ An ExecStart= process belonging to unit slurmd.service has exited.
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ The process' exit code is 'exited' and its exit status is 127.
+lci-compute-01-2: Feb 21 13:01:38 lci-compute-01-2.novalocal systemd[1]: slurmd.service: Failed with result 'exit-code'.
+lci-compute-01-2: ░░ Subject: Unit failed
+lci-compute-01-2: ░░ Defined-By: systemd
+lci-compute-01-2: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ The unit slurmd.service has entered the 'failed' state with result 'exit-code'.
+lci-compute-01-2: Feb 21 13:01:38 lci-compute-01-2.novalocal systemd[1]: Failed to start Slurm node daemon.
+lci-compute-01-2: ░░ Subject: A start job for unit slurmd.service has failed
+lci-compute-01-2: ░░ Defined-By: systemd
+lci-compute-01-2: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ A start job for unit slurmd.service has finished with a failure.
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ The job identifier is 14014 and the job result is failed.
+lci-compute-01-2: Feb 21 13:30:17 lci-compute-01-2 systemd[1]: Starting Slurm node daemon...
+lci-compute-01-2: ░░ Subject: A start job for unit slurmd.service has begun execution
+lci-compute-01-2: ░░ Defined-By: systemd
+lci-compute-01-2: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ A start job for unit slurmd.service has begun execution.
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ The job identifier is 15927.
+lci-compute-01-2: Feb 21 13:30:17 lci-compute-01-2 slurmd[30726]: /opt/slurm/current/sbin/slurmd: error while loading shared libraries: libhwloc.so.15: cannot open shared object file: No such file or directory
+lci-compute-01-2: Feb 21 13:30:17 lci-compute-01-2 systemd[1]: slurmd.service: Main process exited, code=exited, status=127/n/a
+lci-compute-01-2: ░░ Subject: Unit process exited
+lci-compute-01-2: ░░ Defined-By: systemd
+lci-compute-01-2: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ An ExecStart= process belonging to unit slurmd.service has exited.
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ The process' exit code is 'exited' and its exit status is 127.
+lci-compute-01-2: Feb 21 13:30:17 lci-compute-01-2 systemd[1]: slurmd.service: Failed with result 'exit-code'.
+lci-compute-01-2: ░░ Subject: Unit failed
+lci-compute-01-2: ░░ Defined-By: systemd
+lci-compute-01-2: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ The unit slurmd.service has entered the 'failed' state with result 'exit-code'.
+lci-compute-01-2: Feb 21 13:30:17 lci-compute-01-2 systemd[1]: Failed to start Slurm node daemon.
+lci-compute-01-2: ░░ Subject: A start job for unit slurmd.service has failed
+lci-compute-01-2: ░░ Defined-By: systemd
+lci-compute-01-2: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ A start job for unit slurmd.service has finished with a failure.
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ The job identifier is 15927 and the job result is failed.
+lci-compute-01-2: Feb 21 13:47:02 lci-compute-01-2 systemd[1]: Starting Slurm node daemon...
+lci-compute-01-2: ░░ Subject: A start job for unit slurmd.service has begun execution
+lci-compute-01-2: ░░ Defined-By: systemd
+lci-compute-01-2: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ A start job for unit slurmd.service has begun execution.
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ The job identifier is 17202.
+lci-compute-01-2: Feb 21 13:47:02 lci-compute-01-2 slurmd[37700]: [2026-02-21T13:47:02.142] _read_slurm_cgroup_conf: No cgroup.conf file (/var/spool/slurmd.spool/conf-cache/cgroup.conf), using defaults
+lci-compute-01-2: Feb 21 13:47:02 lci-compute-01-2 slurmd[37700]: [2026-02-21T13:47:02.161] Can not stat gres.conf file (/var/spool/slurmd.spool/conf-cache/gres.conf), using slurm.conf data
+lci-compute-01-2: Feb 21 13:47:02 lci-compute-01-2 slurmd[37700]: [2026-02-21T13:47:02.161] CPU frequency setting not configured for this node
+lci-compute-01-2: Feb 21 13:47:02 lci-compute-01-2 slurmd[37700]: [2026-02-21T13:47:02.162] slurmd version 25.05.6 started
+lci-compute-01-2: Feb 21 13:47:02 lci-compute-01-2 slurmd[37700]: [2026-02-21T13:47:02.162] error: plugin_load_from_file: dlopen(/opt/slurm/25.05.6-built/lib/slurm/acct_gather_energy_ipmi.so): libipmimonitoring.so.6: cannot open shared object file: No such file or directory
+lci-compute-01-2: Feb 21 13:47:02 lci-compute-01-2 slurmd[37700]: [2026-02-21T13:47:02.162] error: Couldn't load specified plugin name for acct_gather_energy/ipmi: Dlopen of plugin file failed
+lci-compute-01-2: Feb 21 13:47:02 lci-compute-01-2 slurmd[37700]: [2026-02-21T13:47:02.162] error: cannot create acct_gather_energy context for acct_gather_energy/ipmi
+lci-compute-01-2: Feb 21 13:47:02 lci-compute-01-2 slurmd[37700]: [2026-02-21T13:47:02.162] fatal: can not open the (null) plugin
+lci-compute-01-2: Feb 21 13:47:02 lci-compute-01-2 systemd[1]: slurmd.service: Main process exited, code=exited, status=1/FAILURE
+lci-compute-01-2: ░░ Subject: Unit process exited
+lci-compute-01-2: ░░ Defined-By: systemd
+lci-compute-01-2: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ An ExecStart= process belonging to unit slurmd.service has exited.
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ The process' exit code is 'exited' and its exit status is 1.
+lci-compute-01-2: Feb 21 13:47:02 lci-compute-01-2 systemd[1]: slurmd.service: Failed with result 'exit-code'.
+lci-compute-01-2: ░░ Subject: Unit failed
+lci-compute-01-2: ░░ Defined-By: systemd
+lci-compute-01-2: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ The unit slurmd.service has entered the 'failed' state with result 'exit-code'.
+lci-compute-01-2: Feb 21 13:47:02 lci-compute-01-2 systemd[1]: Failed to start Slurm node daemon.
+lci-compute-01-2: ░░ Subject: A start job for unit slurmd.service has failed
+lci-compute-01-2: ░░ Defined-By: systemd
+lci-compute-01-2: ░░ Support: https://wiki.rockylinux.org/rocky/support
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ A start job for unit slurmd.service has finished with a failure.
+lci-compute-01-2: ░░ 
+lci-compute-01-2: ░░ The job identifier is 17202 and the job result is failed.
