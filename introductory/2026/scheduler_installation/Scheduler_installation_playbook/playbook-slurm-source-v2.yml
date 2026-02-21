@@ -115,11 +115,6 @@
     # ------------------------------------------------------------------ #
     # Step 02c: Initialize MUNGE
     # ------------------------------------------------------------------ #
-    - name: Generate MUNGE key if not exists
-      ansible.builtin.command: create-munge-key
-      args:
-        creates: /etc/munge/munge.key
-
     - name: Set MUNGE directory permissions
       ansible.builtin.file:
         path: "{{ item }}"
@@ -132,12 +127,15 @@
         - /var/lib/munge
         - /var/log/munge
 
-    - name: Set MUNGE key permissions
-      ansible.builtin.file:
-        path: /etc/munge/munge.key
-        owner: munge
-        group: munge
-        mode: '0400'
+    - name: Generate MUNGE key if not exists
+      ansible.builtin.shell: |
+        if [ ! -f /etc/munge/munge.key ]; then
+          dd if=/dev/urandom bs=1 count=1024 of=/etc/munge/munge.key
+          chown munge:munge /etc/munge/munge.key
+          chmod 0400 /etc/munge/munge.key
+        fi
+      args:
+        creates: /etc/munge/munge.key
 
     - name: Enable and start MUNGE service
       ansible.builtin.systemd:
