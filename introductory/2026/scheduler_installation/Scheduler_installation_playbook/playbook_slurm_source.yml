@@ -139,14 +139,14 @@
 
     - name: Check if slurm database user exists
       ansible.builtin.shell: |
-        mysql -u root -S /var/lib/mysql/mysql.sock -e "SELECT 1 FROM mysql.user WHERE user='slurm' AND host='localhost';" 2>/dev/null | grep -q 1
+        mysql -e "SELECT 1 FROM mysql.user WHERE user='slurm' AND host='localhost';" 2>/dev/null | grep -q 1
       register: slurm_db_exists
       ignore_errors: yes
       changed_when: false
 
     - name: Create slurm_acct_db database and user
       ansible.builtin.shell: |
-        mysql -u root -S /var/lib/mysql/mysql.sock <<'EOF'
+        mysql <<'EOF'
         CREATE DATABASE IF NOT EXISTS slurm_acct_db;
         CREATE USER IF NOT EXISTS 'slurm'@'localhost' IDENTIFIED BY '{{ db_pwd }}';
         GRANT ALL PRIVILEGES ON slurm_acct_db.* TO 'slurm'@'localhost';
@@ -314,6 +314,22 @@
         name: slurmctld
         state: started
         enabled: yes
+
+    - name: Copy slurmd.service for head node
+      ansible.builtin.copy:
+        src: roles/slurm-source/files/slurmd.service
+        dest: /etc/systemd/system/slurmd.service
+        mode: '0644'
+
+    - name: Create slurmd defaults for head node
+      ansible.builtin.copy:
+        content: "SLURMCTLD_HOST=127.0.0.1\n"
+        dest: /etc/default/slurmd
+        mode: '0644'
+
+    - name: Reload systemd after adding slurmd service
+      ansible.builtin.systemd:
+        daemon_reload: yes
 
     - name: Enable and start slurmd on head (head is also a compute node)
       ansible.builtin.systemd:

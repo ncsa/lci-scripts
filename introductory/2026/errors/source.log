@@ -48,49 +48,49 @@ ok: [localhost]
 TASK [Enable and start MariaDB] ************************************************
 ok: [localhost]
 
-TASK [Check if slurm_acct_db database exists] **********************************
-fatal: [localhost]: FAILED! => {"changed": false, "cmd": "mysql -u root -e \"SELECT 1 FROM mysql.user WHERE user='slurm' AND host='localhost';\" 2>/dev/null | grep -q 1\n", "delta": "0:00:00.010787", "end": "2026-02-20 17:45:21.164266", "msg": "non-zero return code", "rc": 1, "start": "2026-02-20 17:45:21.153479", "stderr": "", "stderr_lines": [], "stdout": "", "stdout_lines": []}
+TASK [Check if slurm database user exists] *************************************
+fatal: [localhost]: FAILED! => {"changed": false, "cmd": "mysql -u root -S /var/lib/mysql/mysql.sock -e \"SELECT 1 FROM mysql.user WHERE user='slurm' AND host='localhost';\" 2>/dev/null | grep -q 1\n", "delta": "0:00:00.010317", "end": "2026-02-20 17:58:04.665593", "msg": "non-zero return code", "rc": 1, "start": "2026-02-20 17:58:04.655276", "stderr": "", "stderr_lines": [], "stdout": "", "stdout_lines": []}
 ...ignoring
 
 TASK [Create slurm_acct_db database and user] **********************************
-fatal: [localhost]: FAILED! => {"changed": true, "cmd": "mysql -u root <<'EOF'\nCREATE DATABASE IF NOT EXISTS slurm_acct_db;\nCREATE USER IF NOT EXISTS 'slurm'@'localhost' IDENTIFIED BY 'lcilab2026';\nGRANT ALL PRIVILEGES ON slurm_acct_db.* TO 'slurm'@'localhost';\nFLUSH PRIVILEGES;\nEOF\n", "delta": "0:00:00.009790", "end": "2026-02-20 17:45:21.395678", "msg": "non-zero return code", "rc": 1, "start": "2026-02-20 17:45:21.385888", "stderr": "ERROR 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)", "stderr_lines": ["ERROR 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)"], "stdout": "", "stdout_lines": []}
+fatal: [localhost]: FAILED! => {"changed": true, "cmd": "mysql -u root -S /var/lib/mysql/mysql.sock <<'EOF'\nCREATE DATABASE IF NOT EXISTS slurm_acct_db;\nCREATE USER IF NOT EXISTS 'slurm'@'localhost' IDENTIFIED BY 'lcilab2026';\nGRANT ALL PRIVILEGES ON slurm_acct_db.* TO 'slurm'@'localhost';\nFLUSH PRIVILEGES;\nEOF\n", "delta": "0:00:00.010023", "end": "2026-02-20 17:58:04.892063", "msg": "non-zero return code", "rc": 1, "start": "2026-02-20 17:58:04.882040", "stderr": "ERROR 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)", "stderr_lines": ["ERROR 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)"], "stdout": "", "stdout_lines": []}
 ...ignoring
 
 TASK [Check if Slurm already built] ********************************************
 ok: [localhost]
 
 TASK [Download Slurm source] ***************************************************
-ok: [localhost]
+skipping: [localhost]
 
 TASK [Extract Slurm source] ****************************************************
 skipping: [localhost]
 
 TASK [Create build directory] **************************************************
-ok: [localhost]
+skipping: [localhost]
 
 TASK [Create PAM directory before configure (required for Slurm 25.x)] *********
-ok: [localhost]
+skipping: [localhost]
 
 TASK [Configure Slurm] *********************************************************
-changed: [localhost]
+skipping: [localhost]
 
 TASK [Build Slurm] *************************************************************
-changed: [localhost]
+skipping: [localhost]
 
 TASK [Install Slurm] ***********************************************************
-changed: [localhost]
+skipping: [localhost]
 
 TASK [Install contrib] *********************************************************
-changed: [localhost]
+skipping: [localhost]
 
 TASK [Create current symlink] **************************************************
-changed: [localhost]
+ok: [localhost]
 
 TASK [Set ownership on installed Slurm] ****************************************
-changed: [localhost]
+ok: [localhost]
 
 TASK [Copy slurm.conf to /etc/slurm] *******************************************
-changed: [localhost]
+ok: [localhost]
 
 TASK [Copy slurmdbd.conf] ******************************************************
 changed: [localhost]
@@ -99,9 +99,32 @@ TASK [Update slurmdbd.conf with database password] *****************************
 changed: [localhost]
 
 TASK [Copy slurmdbd.service] ***************************************************
-An exception occurred during task execution. To see the full traceback, use -vvv. The error was: If you are using a module and expect the file to exist on the remote, see the remote_src option
-fatal: [localhost]: FAILED! => {"changed": false, "msg": "Could not find or access 'roles/slurm-source/files/slurmdbd.service'\nSearched in:\n\t/root/Scheduler_installation_playbook/files/roles/slurm-source/files/slurmdbd.service\n\t/root/Scheduler_installation_playbook/roles/slurm-source/files/slurmdbd.service\n\t/root/Scheduler_installation_playbook/files/roles/slurm-source/files/slurmdbd.service\n\t/root/Scheduler_installation_playbook/roles/slurm-source/files/slurmdbd.service on the Ansible Controller.\nIf you are using a module and expect the file to exist on the remote, see the remote_src option"}
+changed: [localhost]
+
+TASK [Ensure job_container.conf exists] ****************************************
+changed: [localhost]
+
+TASK [Copy slurmctld.service] **************************************************
+changed: [localhost]
+
+TASK [Copy slurmrestd.service] *************************************************
+changed: [localhost]
+
+TASK [Reload systemd] **********************************************************
+ok: [localhost]
+
+TASK [Enable and start slurmdbd] ***********************************************
+changed: [localhost]
+
+TASK [Wait for slurmdbd to be ready] *******************************************
+ok: [localhost]
+
+TASK [Enable and start slurmctld] **********************************************
+changed: [localhost]
+
+TASK [Enable and start slurmd on head (head is also a compute node)] ***********
+fatal: [localhost]: FAILED! => {"changed": false, "msg": "Could not find the requested service slurmd: host"}
 
 PLAY RECAP *********************************************************************
-localhost                  : ok=28   changed=11   unreachable=0    failed=1    skipped=1    rescued=0    ignored=2   
+localhost                  : ok=29   changed=10   unreachable=0    failed=1    skipped=8    rescued=0    ignored=2   
 
