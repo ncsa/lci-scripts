@@ -1,5 +1,5 @@
 # First: Replace XX with your cluster number (e.g., 01, 02, etc.)
-# Using vim: vim commands, :%s/01/<clusternumber>/g, :wq
+# Using vim - vim commands, :%s/01/<clusternumber>/g, :wq
 # Using nano: nano commands, Ctrl+\, Enter "01", Enter your cluster number, A, Ctrl+O, Enter, Ctrl+X
 
 # Run as root
