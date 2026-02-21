@@ -1,7 +1,0 @@
-- name: Setting SLURM user, group
-  include_tasks: slurm-user.yml
-  tags: slurm_user
-
-- name: Setting SLURM directories
-  include_tasks: slurm-logs.yml
-  tags: slurm_logs 

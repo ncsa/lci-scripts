@@ -1,0 +1,43 @@
+
+PLAY [Slurm Source Build - Head Node] ******************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [lci-head-01-1]
+
+TASK [Install Slurm build dependencies] ****************************************
+ok: [lci-head-01-1]
+
+TASK [Create slurm group] ******************************************************
+changed: [lci-head-01-1]
+
+TASK [Create slurm user] *******************************************************
+changed: [lci-head-01-1]
+
+TASK [Create Slurm directories] ************************************************
+changed: [lci-head-01-1] => (item=/opt/slurm)
+changed: [lci-head-01-1] => (item=/etc/slurm)
+changed: [lci-head-01-1] => (item=/var/log/slurm)
+changed: [lci-head-01-1] => (item=/var/run/slurm)
+changed: [lci-head-01-1] => (item=/var/spool/slurmd.spool)
+changed: [lci-head-01-1] => (item=/var/spool/slurm.state)
+
+TASK [Create log and pid files with proper ownership] **************************
+changed: [lci-head-01-1] => (item=/var/log/slurm/slurmdbd.log)
+changed: [lci-head-01-1] => (item=/var/log/slurm/slurmctld.log)
+changed: [lci-head-01-1] => (item=/var/log/slurm/slurmd.log)
+changed: [lci-head-01-1] => (item=/var/run/slurm/slurmdbd.pid)
+
+TASK [Generate MUNGE key if not exists] ****************************************
+changed: [lci-head-01-1]
+
+TASK [Set MUNGE directory permissions] *****************************************
+changed: [lci-head-01-1] => (item=/etc/munge)
+changed: [lci-head-01-1] => (item=/var/lib/munge)
+changed: [lci-head-01-1] => (item=/var/log/munge)
+
+TASK [Set MUNGE key permissions] ***********************************************
+fatal: [lci-head-01-1]: FAILED! => {"changed": false, "msg": "file (/etc/munge/munge.key) is absent, cannot continue", "path": "/etc/munge/munge.key", "state": "absent"}
+
+PLAY RECAP *********************************************************************
+lci-head-01-1              : ok=8    changed=6    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   
+
