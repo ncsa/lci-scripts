@@ -1,29 +1,26 @@
 # Scheduler Installation Commands
 # Replace XX with your cluster number (e.g., 01, 02, etc.) in all commands and configuration files.
 
-# Example of how to Update Files with Your Cluster Number
-# Update hosts.ini:
-cd Scheduler_installation_playbook
-vim hosts.ini
-:%s/01/<clusternumber>/g
-:wq
-
-# 1. Run Scheduler Installation Playbook
 cd ~
 cp -a lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook .
 cd Scheduler_installation_playbook
-# Edit hosts.ini and replace XX with your cluster number
+
+# Update hosts.ini with your cluster number
 vim hosts.ini
 :%s/01/<clusternumber>/g
 :wq
-ansible-playbook playbook_scheduler.yml
 
-# Or run specific parts using tags:
-# Configure only the head node
-ansible-playbook playbook_scheduler.yml --tags head_node_play
+# Update group_vars/cluster_params.yml with your cluster number
+vim group_vars/cluster_params.yml
+# Change: cluster_number: 01
+# To:     cluster_number: <your_cluster_number>
+:wq
 
-# Configure only compute nodes
-ansible-playbook playbook_scheduler.yml --tags compute_node_play
+# Run the playbook (builds Slurm from source on head node and deploys to compute nodes)
+ansible-playbook -i hosts.ini playbook-slurm-source-v2.yml
+
+# To remove Slurm and start fresh:
+ansible-playbook -i hosts.ini destroy-slurm-source-v2.yml
 
 # 2. Verify Slurm Installation
 

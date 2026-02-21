@@ -2,46 +2,63 @@
 
 Replace `01` with your cluster number (e.g., 02, 03, etc.) in all commands and configuration files.
 
-## Example of how to Update Files with Your Cluster Number
-
-### Update hosts.ini:
-
-```bash
-cd Scheduler_installation_playbook
-vim hosts.ini
-:%s/01/<clusternumber>/g
-:wq
-```
-
----
-
-## 1. Run Scheduler Installation Playbook
-
-The playbook configures Slurm scheduler on both head node and compute nodes.
+## 1. Copy Playbook and Update Configuration
 
 ```bash
 cd ~
 cp -a lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook .
 cd Scheduler_installation_playbook
-# Edit hosts.ini and replace XX with your cluster number
+```
+
+### Update hosts.ini:
+
+```bash
 vim hosts.ini
 :%s/01/<clusternumber>/g
 :wq
-ansible-playbook playbook_scheduler.yml
 ```
 
-Or run specific parts using tags:
-```bash
-# Configure only the head node
-ansible-playbook playbook_scheduler.yml --tags head_node_play
+### Update group_vars/cluster_params.yml:
 
-# Configure only compute nodes
-ansible-playbook playbook_scheduler.yml --tags compute_node_play
+```bash
+vim group_vars/cluster_params.yml
+```
+
+Change the cluster number:
+```yaml
+# From:
+cluster_number: 01
+# To:
+cluster_number: <your_cluster_number>
+```
+
+Save and exit: `:wq`
+
+---
+
+## 2. Run Scheduler Installation Playbook
+
+The playbook builds Slurm from source on the head node and deploys it to all compute nodes.
+
+```bash
+ansible-playbook -i hosts.ini playbook-slurm-source-v2.yml
+```
+
+**Note:** This playbook does not use tags. It always configures both head node and compute nodes.
+
+---
+
+## 3. Destroy / Cleanup (if needed)
+
+To completely remove Slurm and start fresh:
+
+```bash
+ansible-playbook -i hosts.ini destroy-slurm-source-v2.yml
 ```
 
 ---
 
-## 2. Verify Slurm Installation
+## 4. Verify Slurm Installation
 
 ### On head node:
 ```bash

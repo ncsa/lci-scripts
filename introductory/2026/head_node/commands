@@ -6,7 +6,7 @@
 sudo -i
 cd
 
-# Clone repository
+# If you are reading this in a browser - Clone repository to your lci-head-XX-1
 git clone https://github.com/ncsa/lci-scripts.git
 
 # 1. Fix Hostname
