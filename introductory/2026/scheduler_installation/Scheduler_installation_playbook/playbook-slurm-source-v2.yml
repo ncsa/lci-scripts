@@ -166,9 +166,60 @@
         state: started
         enabled: yes
 
-    # FIX 1: Removed '-u root' and '-S /var/lib/mysql/mysql.sock'.
-    #         On Rocky 9 the unix_socket auth plugin authenticates by OS user.
-    #         With become: yes we are already root, so plain 'mysql' works.
+    # FIX 1: Ensure MariaDB root uses unix_socket auth.
+    #         On a fresh Rocky 9 install this is the default, but if
+    #         mysql_secure_installation was run or a previous playbook
+    #         changed the auth plugin, root login without a password
+    #         will fail.  The block/rescue below detects and fixes this.
+    - name: Test MariaDB root connectivity
+      ansible.builtin.shell: mysql -e "SELECT 1;" 2>/dev/null
+      register: mariadb_root_test
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Reset MariaDB root to unix_socket auth (if root login failed)
+      when: mariadb_root_test.rc != 0
+      block:
+        - name: Stop MariaDB for auth reset
+          ansible.builtin.systemd:
+            name: mariadb
+            state: stopped
+
+        - name: Start MariaDB with skip-grant-tables
+          ansible.builtin.shell: |
+            mysqld_safe --skip-grant-tables --skip-networking &
+            sleep 3
+          async: 10
+          poll: 0
+
+        - name: Wait for MariaDB (skip-grant-tables) to accept connections
+          ansible.builtin.wait_for:
+            path: /var/lib/mysql/mysql.sock
+            timeout: 15
+
+        - name: Reset root auth to unix_socket
+          ansible.builtin.shell: |
+            mysql -e "FLUSH PRIVILEGES; ALTER USER 'root'@'localhost' IDENTIFIED VIA unix_socket; FLUSH PRIVILEGES;"
+
+        - name: Stop MariaDB (skip-grant-tables instance)
+          ansible.builtin.shell: mysqladmin shutdown
+          ignore_errors: yes
+
+        - name: Wait for MariaDB to fully stop
+          ansible.builtin.wait_for:
+            path: /var/lib/mysql/mysql.sock
+            state: absent
+            timeout: 15
+
+        - name: Start MariaDB normally
+          ansible.builtin.systemd:
+            name: mariadb
+            state: started
+            enabled: yes
+
+        - name: Verify root can now connect
+          ansible.builtin.shell: mysql -e "SELECT 1;"
+
     - name: Check if slurm database user exists
       ansible.builtin.shell: |
         mysql -e "SELECT 1 FROM mysql.user WHERE user='slurm' AND host='localhost';" 2>/dev/null | grep -q 1
