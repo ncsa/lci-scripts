@@ -387,22 +387,11 @@
         dest: /etc/systemd/system/slurmrestd.service
         mode: '0644'
 
-    # FIX 8 (ordering): Copy slurmd.service BEFORE starting any services
-    - name: Copy slurmd.service for head node
-      ansible.builtin.copy:
-        src: roles/slurm-source/files/slurmd.service
-        dest: /etc/systemd/system/slurmd.service
-        mode: '0644'
-
-    - name: Create slurmd defaults for head node
-      ansible.builtin.copy:
-        content: "SLURMCTLD_HOST=127.0.0.1\n"
-        dest: /etc/default/slurmd
-        mode: '0644'
-
     # ------------------------------------------------------------------ #
     # Step 08: Start services (single daemon-reload, correct order)
     # ------------------------------------------------------------------ #
+    # Note: Head node runs slurmctld and slurmdbd only
+    # slurmd runs on compute nodes only
     - name: Reload systemd
       ansible.builtin.systemd:
         daemon_reload: yes
@@ -429,11 +418,8 @@
         port: 6817
         timeout: 30
 
-    - name: Enable and start slurmd on head (head is also a compute node)
-      ansible.builtin.systemd:
-        name: slurmd
-        state: started
-        enabled: yes
+    # Note: Head node runs only slurmctld and slurmdbd, not slurmd
+    # Compute nodes run slurmd (configured in the next play)
 
 
 - name: Slurm Deploy - Compute Nodes
