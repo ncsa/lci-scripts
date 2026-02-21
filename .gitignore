@@ -45,3 +45,6 @@ Thumbs.db
 
 # Ansible retry files
 *.retry
+
+# Error tracking (local only)
+**/errors/
