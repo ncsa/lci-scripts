@@ -22,5 +22,5 @@ slurm_nodes: "lci-compute-{{ cluster_number }}-[1-2]"
 CPU_num: '2'
 Sockets: '2'
 Cores: '1'
-mem: '7684'
+mem: '7500'
 partition_name: 'lcilab'
