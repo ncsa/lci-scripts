@@ -3,10 +3,7 @@
 
 [Click on the link for the updated version of the Lab on gitlab](https://github.com/ncsa/lci-scripts/tree/main/introductory/run_apps_scheduler/Lab_Run_Application_via_Scheduler.md)
 
-> **Note:** This lab uses code from the OpenMP/MPI lab. If you haven't copied the code to your $HOME directory yet, you can do so with:
-> ```bash
-> cp -r lci-scripts/introductory/2026/openmp_mpi/Lab_MPI .
-> ```
+> **Note:** This lab includes its own code and batch scripts in the `code/` directory with fixes for Slurm+PMIx integration. Copy them to mpiuser's home directory as part of Step 1 below.
 
 ## Lab: Build a Cluster: Run Application via Scheduler
 
@@ -238,18 +235,17 @@ In directory MPI, check out submit script `mpi_batch.sh`:
 
 #SBATCH --job-name=MPI_test_case
 #SBATCH --ntasks-per-node=2
-#SBATCH --nodes=4
+#SBATCH --nodes=2
 #SBATCH --partition=lcilab
 
-mpirun  mpi_heat2D.x
+srun --mpi=pmix mpi_heat2D.x
 ```
 
-Notice, the `mpirun` is not using the number of processes, neither referencing the hosts file.
-The SLURM is taking care of the CPU and node allocation for mpirun through its environment variables.
+> **Note:** This script uses `srun --mpi=pmix` instead of `mpirun` to launch MPI processes. Under Slurm, `srun` is the recommended launcher because it gives Slurm full control over process placement, accounting, and signal delivery. Since `MpiDefault=pmix` is configured in `slurm.conf`, the `--mpi=pmix` flag is technically optional but included here for clarity.
 
 Submit the script to run with command `sbatch`:
 
-```bsash
+```bash
 sbatch mpi_batch.sh
 ```
 
@@ -258,25 +254,7 @@ Run command `squeue` to see the running job:
 squeue
 ```
 
-Copy the submit script, ```mpi_batch.sh```, into ```mpi_srun.sh```:
-```bash
-cp mpi_batch.sh  mpi_srun.sh
-```
-Edit the new submit script, and replace ```mpirun``` with ```srun```, and change ```--nodes=4``` for ```--nodes=2```.
-The modified submit script, mpi_srun.sh, should look as follows:
-
-```c
-#!/bin/bash
-
-#SBATCH --job-name=MPI_test_case
-#SBATCH --ntasks-per-node=2
-#SBATCH --nodes=2
-#SBATCH --partition=lcilab
-
-srun --mpi=pmix mpi_heat2D.x
-```
-
-Submit the job to run on the cluster:
+The `mpi_srun.sh` script is also provided and is identical to `mpi_batch.sh` (both use `srun`):
 
 ```bash
 sbatch mpi_srun.sh
