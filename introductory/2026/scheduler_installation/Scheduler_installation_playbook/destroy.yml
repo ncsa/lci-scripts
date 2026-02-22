@@ -1,8 +1,8 @@
 ---
 # Destroy Slurm Installation (v2 cleanup)
-# This playbook removes all Slurm components installed by playbook-slurm-source-v2.yml
+# This playbook removes all Slurm components installed by playbook.yml
 #
-# Usage: ansible-playbook -i hosts.ini destroy-slurm-source-v2.yml
+# Usage: ansible-playbook -i hosts.ini destroy.yml
 
 - name: Destroy Slurm - Head Node
   hosts: head

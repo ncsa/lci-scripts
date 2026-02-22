@@ -1,0 +1,109 @@
+# Lab: Run Application via Scheduler - Commands
+# Replace XX with your cluster number
+
+# Run as root
+sudo -i
+
+# 1. Create Linux user mpiuser on all nodes (must exist everywhere for Slurm jobs)
+useradd -u 2004 mpiuser
+clush -g compute "useradd -u 2004 mpiuser"
+
+# Copy Lab_MPI to mpiuser's home (compiled binaries from the OpenMP/MPI lab)
+cp -r /root/Lab_MPI /home/mpiuser/
+chown -R mpiuser:mpiuser /home/mpiuser/Lab_MPI
+
+# Create Slurm accounts and users
+sacctmgr -i add account lci2026 Description="LCI 2026 workshop"
+sacctmgr -i create user name=mpiuser cluster=cluster account=lci2026
+sacctmgr -i create user name=rocky cluster=cluster account=lci2026
+sacctmgr list associations format=user,account
+
+# 2. Check cluster resources
+sinfo
+sinfo -N -l
+squeue
+
+# 3. salloc - allocate resources for OpenMP run
+sudo su - mpiuser
+cd ~/Lab_MPI/OpenMP
+salloc -n 2
+
+# Check allocated resources
+sinfo
+squeue
+sinfo -N -l
+
+# Run OpenMP app
+export OMP_NUM_THREADS=2
+./heated_plate.x
+
+# Exit salloc, check resources and accounting
+exit
+sinfo
+sacct -u mpiuser
+
+# 4. srun - interactive runs
+
+# OpenMP interactive run
+srun -n 2 --pty bash
+export OMP_NUM_THREADS=2
+./heated_plate.x
+exit
+sacct -u mpiuser
+
+# Check MPI support
+srun --mpi=list
+
+# MPI interactive runs
+cd ~/Lab_MPI/MPI
+srun --mpi=pmix -n 4 mpi_heat2D.x
+sacct -u mpiuser
+
+# 5. sbatch - submit batch scripts
+
+# MPI batch with srun (mpi_srun.sh)
+cd ~/Lab_MPI/MPI
+cat mpi_srun.sh
+sbatch mpi_srun.sh
+squeue
+# Check output: cat slurm-<jobid>.out
+
+# OpenMP batch
+cd ~/Lab_MPI/OpenMP
+cat openmp_batch.sh
+sbatch openmp_batch.sh
+# Check output: cat run.out-<jobid> and cat slurm.out
+
+# 6. scancel - terminate a job
+sbatch -w lci-compute-XX-1 openmp_batch.sh
+squeue
+scancel -j <jobid>
+
+# 7. Concurrent jobs - observe resource contention
+cd ~/Lab_MPI/MPI
+srun -n 2 --pty bash
+# In another terminal:
+sbatch mpi_srun.sh
+squeue
+# Job should show PD (pending) due to resources
+# Exit srun, job should start
+exit
+squeue
+
+# 8. sstat - monitor running jobs
+mpicc -o poisson_mpi.x poisson_mpi.c
+sbatch poisson_batch.sh
+sstat -j <jobid>
+sstat -p --format=AveCPU,AvePages,AveRSS,AveVMSize,JobID -j <jobid>
+
+# 9. sacct - job accounting
+sacct --helpformat
+sacct -j <jobid> --format="JobID,JobName,State,Start,End"
+sacct -j <jobid> --format="JobID,JobName%15,State,NodeList%20,CPUTime"
+
+# 10. scontrol - cluster and job info
+scontrol show config
+scontrol show node lci-compute-XX-1
+scontrol show job <jobid>
+sbatch openmp_batch.sh
+scontrol show job <jobid>

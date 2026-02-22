@@ -41,7 +41,7 @@ Save and exit: `:wq`
 The playbook builds Slurm from source on the head node and deploys it to all compute nodes.
 
 ```bash
-ansible-playbook -i hosts.ini playbook-slurm-source-v2.yml
+ansible-playbook -i hosts.ini playbook.yml
 ```
 
 **Note:** This playbook does not use tags. It always configures both head node and compute nodes.
@@ -53,7 +53,7 @@ ansible-playbook -i hosts.ini playbook-slurm-source-v2.yml
 To completely remove Slurm and start fresh:
 
 ```bash
-ansible-playbook -i hosts.ini destroy-slurm-source-v2.yml
+ansible-playbook -i hosts.ini destroy.yml
 ```
 
 ---

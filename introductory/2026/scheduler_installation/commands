@@ -17,10 +17,10 @@ vim group_vars/cluster_params.yml
 :wq
 
 # Run the playbook (builds Slurm from source on head node and deploys to compute nodes)
-ansible-playbook -i hosts.ini playbook-slurm-source-v2.yml
+ansible-playbook -i hosts.ini playbook.yml
 
 # To remove Slurm and start fresh:
-ansible-playbook -i hosts.ini destroy-slurm-source-v2.yml
+ansible-playbook -i hosts.ini destroy.yml
 
 # 2. Verify Slurm Installation
 

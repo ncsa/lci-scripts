@@ -34,23 +34,63 @@
 
 - Command `scontrol show` exercises
 
-### 1. Create cluster account and users in SLURM
+### 1. Create Linux user and Slurm accounts
 
-For correct accounting, association, and resource assignments, users and accounts should be created in SLURM.
-
-Accounts in SLURM have the meaning like posix groups in Linux.
-
-We create account (group) lci2026:
+All commands in this section should be run as root on the head node:
 
 ```bash
-sudo sacctmgr -i add account lci2026 Description="LCI 2026 workshop"
+sudo -i
 ```
 
-We create users `mpiuser` and `rocky` and assign them to cluster "cluster" and account (group) lci2026:
+#### Create the `mpiuser` Linux account on all nodes
+
+When Slurm runs a job on a compute node, it executes the process as the submitting user. This means the Linux user must exist on **every node** where jobs may run (head node and all compute nodes), and the UID must be consistent across all nodes so NFS file permissions work correctly.
+
+Create `mpiuser` on the head node:
 
 ```bash
-sudo sacctmgr -i create user name=mpiuser cluster=cluster account=lci2026
-sudo sacctmgr -i create user name=rocky cluster=cluster account=lci2026
+useradd -u 2004 mpiuser
+```
+
+Create `mpiuser` on all compute nodes (using ClusterShell):
+
+```bash
+clush -g compute "useradd -u 2004 mpiuser"
+```
+
+> **Note:** The `rocky` user already exists on all nodes as the default OS user, so it does not need to be created.
+
+#### Copy the Lab_MPI files to mpiuser's home directory
+
+The compiled binaries from the OpenMP/MPI lab need to be available in mpiuser's home directory. Copy them from root's home:
+
+```bash
+cp -r /root/Lab_MPI /home/mpiuser/
+chown -R mpiuser:mpiuser /home/mpiuser/Lab_MPI
+```
+
+Verify the files are in place:
+
+```bash
+ls -la /home/mpiuser/Lab_MPI/OpenMP/heated_plate.x
+ls -la /home/mpiuser/Lab_MPI/MPI/mpi_heat2D.x
+```
+
+#### Create Slurm accounts and users
+
+For correct accounting, association, and resource assignments, users and accounts should be created in Slurm. Accounts in Slurm function like POSIX groups in Linux.
+
+Create the account (group) lci2026:
+
+```bash
+sacctmgr -i add account lci2026 Description="LCI 2026 workshop"
+```
+
+Create Slurm users `mpiuser` and `rocky` and assign them to cluster "cluster" and account lci2026:
+
+```bash
+sacctmgr -i create user name=mpiuser cluster=cluster account=lci2026
+sacctmgr -i create user name=rocky cluster=cluster account=lci2026
 ```
 
 Check the accounts and users:

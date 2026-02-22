@@ -5,7 +5,7 @@
 # STUDENT SETUP:
 #   1. Edit hosts.ini       - set your cluster number (lci-head-XX-1, lci-compute-XX-[1-2])
 #   2. Edit group_vars/cluster_params.yml - set cluster_number to your assigned number
-#   3. Run:  ansible-playbook -i hosts.ini playbook-slurm-source-v2.yml
+#   3. Run:  ansible-playbook -i hosts.ini playbook.yml
 #
 # Fixes applied vs v1:
 #   1. MariaDB auth: removed -u root / -S socket flags (unix_socket auth on Rocky 9)

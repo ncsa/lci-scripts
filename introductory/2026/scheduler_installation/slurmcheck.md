@@ -111,7 +111,7 @@ actually has available. Slurm is strict — even 1 MB less triggers `inval`.
 
 3. Redeploy slurm.conf and restart:
    ```bash
-   ansible-playbook -i hosts.ini playbook-slurm-source-v2.yml
+   ansible-playbook -i hosts.ini playbook.yml
    ```
    Or manually edit `/etc/slurm/slurm.conf` on all nodes (head + compute),
    then:
