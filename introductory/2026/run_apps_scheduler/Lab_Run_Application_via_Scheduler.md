@@ -3,7 +3,7 @@
 
 [Click on the link for the updated version of the Lab on gitlab](https://github.com/ncsa/lci-scripts/tree/main/introductory/run_apps_scheduler/Lab_Run_Application_via_Scheduler.md)
 
-> **Note:** This lab includes its own code and batch scripts in the `code/` directory with fixes for Slurm+PMIx integration. Copy them to mpiuser's home directory as part of Step 1 below.
+> **Note:** This lab follows the same workflow as the Head Node lab. First, clone the repository, then copy the `Run_apps_scheduler` directory to your home directory and work from there. The playbook includes code and batch scripts with fixes for Slurm+PMIx integration.
 
 ## Lab: Build a Cluster: Run Application via Scheduler
 
@@ -31,13 +31,30 @@
 
 - Command `scontrol show` exercises
 
-### 1. Create Linux user and Slurm accounts
+### 1. Setup and Create Linux user and Slurm accounts
 
 All commands in this section should be run as root on the head node:
 
 ```bash
 sudo -i
+cd
 ```
+
+#### Clone the repository and copy the Scheduler playbook
+
+Clone the lci-scripts repository to your head node, then copy the Run_apps_scheduler directory to your home directory (following the same pattern as the Head Node lab):
+
+```bash
+# Clone the repository if you haven't already
+git clone https://github.com/ncsa/lci-scripts.git
+
+# Copy the scheduler playbook to your home directory and work from there
+cd ~
+cp -a lci-scripts/introductory/2026/run_apps_scheduler/Run_apps_scheduler .
+cd Run_apps_scheduler
+```
+
+You will now be working from the `~/Run_apps_scheduler` directory, which contains the `MPI/` and `OpenMP/` subdirectories with all lab files.
 
 #### Create the `mpiuser` Linux account on all nodes
 
@@ -57,20 +74,20 @@ clush -g compute "useradd -u 2004 mpiuser"
 
 > **Note:** The `rocky` user already exists on all nodes as the default OS user, so it does not need to be created.
 
-#### Copy the Lab_MPI files to mpiuser's home directory
+#### Copy the lab code to mpiuser's home directory
 
-The compiled binaries from the OpenMP/MPI lab need to be available in mpiuser's home directory. Copy them from root's home:
+The source files and batch scripts are in the playbook directory. Copy them to mpiuser's home:
 
 ```bash
-cp -r /root/Lab_MPI /home/mpiuser/
-chown -R mpiuser:mpiuser /home/mpiuser/Lab_MPI
+# From within ~/Run_apps_scheduler:
+cp -r MPI OpenMP /home/mpiuser/Lab_MPI/
 ```
 
 Verify the files are in place:
 
 ```bash
-ls -la /home/mpiuser/Lab_MPI/OpenMP/heated_plate.x
-ls -la /home/mpiuser/Lab_MPI/MPI/mpi_heat2D.x
+ls -la /home/mpiuser/Lab_MPI/OpenMP/
+ls -la /home/mpiuser/Lab_MPI/MPI/
 ```
 
 #### Create Slurm accounts and users
@@ -148,7 +165,7 @@ squeue
 sinfo -N -l
 ```
 
-Step into directory OpenMP, setup 2 threads for a run, then run heated_plate_openmp.x:
+Step into directory OpenMP, setup 2 threads for a run, then run heated_plate.x:
 
 ```bash
 cd ~/Lab_MPI/OpenMP
@@ -281,7 +298,7 @@ I/O to the local to the node scratch directory runs faster than to the NFS share
 #SBATCH --job-name=OMP_run
 #SBATCH --output=slurm.out
 #SBATCH --error=slurm.err
-#SBATCH --partition=lci
+#SBATCH --partition=lcilab
 #SBATCH --ntasks-per-node=2
 
 
@@ -349,7 +366,7 @@ Run command `squeue`. It should show you that the last job is waiting in the que
  
 ```yaml
              JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
-                31    lcilab MPI_test  mpiuser PD       0:00      4 (Resources)
+                31    lcilab MPI_test  mpiuser PD       0:00      2 (Resources)
                 30    lcilab     bash  mpiuser  R       1:38      1 compute1
 ```
 
@@ -357,7 +374,14 @@ exit from `srun`, and run `squeue` again. The MPI job should begin running.
 
 ### 8.  Command sstat
 
-Compile  ```poisson_mpi.c```:
+First, ensure OpenMPI is in your PATH (required for `mpicc` to work):
+
+```bash
+export PATH=/opt/openmpi/5.0.1/bin:$PATH
+export LD_LIBRARY_PATH=/opt/openmpi/5.0.1/lib:$LD_LIBRARY_PATH
+```
+
+Compile `poisson_mpi.c`:
 ```bash
 mpicc -o poisson_mpi.x poisson_mpi.c
 ```
