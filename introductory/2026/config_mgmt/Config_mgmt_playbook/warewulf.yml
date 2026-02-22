@@ -1,0 +1,123 @@
+---
+- name: Install Warewulf on Head Node
+  hosts: head
+  become: yes
+  tasks:
+    - name: Add Warewulf repository
+      yum_repository:
+        name: warewulf
+        description: Warewulf Repository
+        baseurl: https://repo.warewulf.io/warewulf/rocky/9/x86_64/
+        gpgcheck: no
+        enabled: yes
+
+    - name: Install Warewulf
+      dnf:
+        name:
+          - warewulf
+        state: present
+
+    - name: Install required dependencies
+      dnf:
+        name:
+          - dhcp-server
+          - tftp-server
+          - nfs-utils
+          - firewalld
+        state: present
+
+    - name: Configure Warewulf
+      copy:
+        content: |
+          ipaddr: 10.0.2.0
+          netmask: 255.255.255.0
+          network: 10.0.2.0
+          warewulf:
+            port: 9873
+            secure: false
+            update interval: 60
+            auto build overlays: true
+          dhcp:
+            enabled: true
+            template: default
+            range start: 10.0.2.100
+            range end: 10.0.2.199
+          tftp:
+            enabled: true
+            ipxe:
+              00:00: iPXE
+          nfs:
+            enabled: true
+            export paths:
+              - path: /home
+                export options: rw,sync,no_root_squash
+              - path: /opt
+                export options: ro,sync,no_root_squash
+              - path: /var/lib/warewulf
+                export options: rw,sync,no_root_squash
+        dest: /etc/warewulf/warewulf.conf
+
+    - name: Enable and start firewalld
+      systemd:
+        name: firewalld
+        state: started
+        enabled: yes
+
+    - name: Open required ports in firewall
+      firewalld:
+        port: "{{ item }}"
+        permanent: yes
+        state: enabled
+        immediate: yes
+      loop:
+        - 67/udp      # DHCP
+        - 68/udp      # DHCP
+        - 69/udp      # TFTP
+        - 111/tcp     # NFS
+        - 111/udp     # NFS
+        - 2049/tcp    # NFS
+        - 2049/udp    # NFS
+        - 9873/tcp    # Warewulf
+
+    - name: Configure DHCP service
+      systemd:
+        name: dhcpd
+        state: started
+        enabled: yes
+
+    - name: Configure TFTP service
+      systemd:
+        name: tftp.socket
+        state: started
+        enabled: yes
+
+    - name: Configure NFS service
+      systemd:
+        name: nfs-server
+        state: started
+        enabled: yes
+
+    - name: Start Warewulf service
+      systemd:
+        name: warewulfd
+        state: started
+        enabled: yes
+
+    - name: Configure Warewulf services
+      command: wwctl configure --all
+      ignore_errors: yes
+
+- name: Configure Compute Nodes for Network Boot
+  hosts: compute
+  become: yes
+  tasks:
+    - name: Install required packages for PXE client
+      dnf:
+        name:
+          - ipxe-bootimgs
+        state: present
+      ignore_errors: yes
+
+    - name: Ensure compute nodes are ready for network boot
+      debug:
+        msg: "Compute node {{ inventory_hostname }} is configured for network boot via Warewulf"
