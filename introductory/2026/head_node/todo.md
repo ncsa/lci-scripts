@@ -51,6 +51,9 @@ cp -a lci-scripts/introductory/2026/head_node/Head_node_playbook .
 cd Head_node_playbook
 # Edit hosts.ini and replace XX with your cluster number in both [head] and [all_nodes] sections
 bash installansible.sh
+
+# edit /Head_node_playbook/roles/compute-node_autofs/files/auto.nfs and replace XX with your clusternumber
+# then run the playbook.
 ansible-playbook playbook.yml
 ```
 
