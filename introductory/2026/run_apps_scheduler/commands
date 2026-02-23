@@ -1,0 +1,142 @@
+# Lab: Run Application via Scheduler - Commands
+# Replace XX with your cluster number (e.g., 01, 02, etc.)
+# Using vim - vim commands, :%s/01/<clusternumber>/g, :wq
+# Using nano - nano commands, Ctrl+\, Enter "01", Enter your cluster number, A, Ctrl+O, Enter, Ctrl+X
+
+# Run as root
+sudo -i
+cd
+
+# If you are reading this in a browser - Clone repository to your lci-head-XX-1
+git clone https://github.com/ncsa/lci-scripts.git
+
+# Copy the scheduler playbook to your home directory and work from there
+cd ~
+cp -a lci-scripts/introductory/2026/run_apps_scheduler/Run_apps_scheduler .
+cd Run_apps_scheduler
+
+# 1. Create Linux user mpiuser on all nodes (must exist everywhere for Slurm jobs)
+useradd -u 2004 mpiuser
+clush -g compute "useradd -u 2004 mpiuser"
+
+# Copy the lab code to mpiuser's home
+# This creates /home/mpiuser/Lab_MPI/ with MPI/ and OpenMP/ subdirectories
+cp -r MPI OpenMP /home/mpiuser/Lab_MPI/
+chown -R mpiuser:mpiuser /home/mpiuser/Lab_MPI
+
+# Verify files are in place
+ls -la /home/mpiuser/Lab_MPI/OpenMP/
+ls -la /home/mpiuser/Lab_MPI/MPI/
+
+# Create Slurm accounts and users
+sacctmgr -i add account lci2026 Description="LCI 2026 workshop"
+sacctmgr -i create user name=mpiuser cluster=cluster account=lci2026
+sacctmgr -i create user name=rocky cluster=cluster account=lci2026
+sacctmgr list associations format=user,account
+
+# 2. Check cluster resources
+sinfo
+sinfo -N -l
+squeue
+
+# 3. salloc - allocate resources for OpenMP run
+sudo su - mpiuser
+cd ~/Lab_MPI/OpenMP
+salloc -n 2
+
+# Check allocated resources
+sinfo
+squeue
+sinfo -N -l
+
+# Compile and run OpenMP app (compile if not already done)
+gcc -fopenmp -o heated_plate.x heated_plate_openmp.c -lm
+export OMP_NUM_THREADS=2
+./heated_plate.x
+
+# Exit salloc, check resources and accounting
+exit
+sinfo
+sacct -u mpiuser
+
+# 4. srun - interactive runs
+
+# OpenMP interactive run
+srun -n 2 --pty bash
+cd ~/Lab_MPI/OpenMP
+export OMP_NUM_THREADS=2
+./heated_plate.x
+exit
+sacct -u mpiuser
+
+# Check MPI support
+srun --mpi=list
+
+# MPI interactive runs
+cd ~/Lab_MPI/MPI
+srun --mpi=pmix -n 4 mpi_heat2D.x
+srun --mpi=pmix_v4 -n 4 mpi_heat2D.x
+sacct -u mpiuser
+
+# 5. sbatch - submit batch scripts
+
+# MPI batch (uses srun --mpi=pmix, NOT mpirun)
+cd ~/Lab_MPI/MPI
+cat mpi_batch.sh
+sbatch mpi_batch.sh
+squeue
+# Check output: cat slurm-<jobid>.out
+
+# Also available: mpi_srun.sh (identical, both use srun)
+sbatch mpi_srun.sh
+
+# OpenMP batch
+cd ~/Lab_MPI/OpenMP
+cat openmp_batch.sh
+sbatch openmp_batch.sh
+# Check output: cat run.out-<jobid> and cat slurm.out
+
+# 6. scancel - terminate a job
+sbatch -w lci-compute-XX-1 openmp_batch.sh
+squeue
+scancel -j <jobid>
+
+# 7. Concurrent jobs - observe resource contention
+cd ~/Lab_MPI/MPI
+srun -n 2 --pty bash
+# In another terminal, submit a job that will pend:
+sbatch mpi_batch.sh
+squeue
+# Job shows NODES=2 with PD (Resources) - waiting for the 2 CPUs from your srun
+# Exit srun to free resources, then the pending job should start
+exit
+squeue
+
+# 8. sstat - monitor running jobs
+
+# First, set up OpenMPI environment (required for mpicc)
+export PATH=/opt/openmpi/5.0.1/bin:$PATH
+export LD_LIBRARY_PATH=/opt/openmpi/5.0.1/lib:$LD_LIBRARY_PATH
+
+# Compile and submit
+cd ~/Lab_MPI/MPI
+mpicc -o poisson_mpi.x poisson_mpi.c
+sbatch poisson_batch.sh
+
+# Monitor the job
+sstat -j <jobid>
+sstat -p --format=AveCPU,AvePages,AveRSS,AveVMSize,JobID -j <jobid>
+
+# 9. sacct - job accounting
+sacct --helpformat
+sacct -j <jobid> --format="JobID,JobName,State,Start,End"
+sacct -j <jobid> --format="JobID,JobName%15,State,NodeList%20,CPUTime"
+
+# 10. scontrol - cluster and job info
+scontrol show config
+scontrol show node lci-compute-XX-1
+scontrol show job <jobid>
+
+# Submit another job and check its info
+sbatch openmp_batch.sh
+scontrol show job <jobid>

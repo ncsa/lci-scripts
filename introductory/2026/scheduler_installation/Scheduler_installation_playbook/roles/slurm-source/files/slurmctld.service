@@ -1,0 +1,19 @@
+[Unit]
+Description=Slurm controller daemon
+After=network-online.target remote-fs.target munge.service slurmdbd.service
+Wants=network-online.target slurmdbd.service
+ConditionPathExists=/etc/slurm/slurm.conf
+
+[Service]
+Type=notify
+User=slurm
+Group=slurm
+RuntimeDirectory=slurm
+RuntimeDirectoryMode=0755
+ExecStart=/opt/slurm/current/sbin/slurmctld --systemd -f /etc/slurm/slurm.conf $SLURMCTLD_OPTIONS
+ExecReload=/bin/kill -HUP $MAINPID
+LimitNOFILE=65536
+TasksMax=infinity
+
+[Install]
+WantedBy=multi-user.target

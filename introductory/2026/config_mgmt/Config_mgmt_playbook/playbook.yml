@@ -1,0 +1,82 @@
+---
+- name: Install Salt on Head Node
+  hosts: head
+  become: yes
+  tasks:
+    - name: Install Salt Master
+      dnf:
+        name:
+          - salt-master
+          - salt-minion
+        state: present
+
+    - name: Configure Salt Master
+      copy:
+        content: |
+          auto_accept: True
+          file_roots:
+            base:
+              - /srv/salt
+          pillar_roots:
+            base:
+              - /srv/pillar
+        dest: /etc/salt/master.d/lci.conf
+
+    - name: Create Salt directories
+      file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - /srv/salt
+        - /srv/pillar
+
+    - name: Configure Salt Minion (head)
+      copy:
+        content: |
+          master: lci-head-XX-1
+          id: lci-head-XX-1
+        dest: /etc/salt/minion.d/master.conf
+
+    - name: Start Salt Master
+      systemd:
+        name: salt-master
+        state: started
+        enabled: yes
+
+    - name: Start Salt Minion (head)
+      systemd:
+        name: salt-minion
+        state: started
+        enabled: yes
+
+- name: Install Salt on Compute Nodes
+  hosts: compute
+  become: yes
+  tasks:
+    - name: Install Salt Minion
+      dnf:
+        name: salt-minion
+        state: present
+
+    - name: Configure Salt Minion Master
+      copy:
+        content: "master: lci-head-XX-1\n"
+        dest: /etc/salt/minion.d/master.conf
+
+    - name: Configure Salt Minion ID (compute-1)
+      copy:
+        content: "id: lci-compute-XX-1\n"
+        dest: /etc/salt/minion.d/id.conf
+      when: inventory_hostname == "lci-compute-XX-1"
+
+    - name: Configure Salt Minion ID (compute-2)
+      copy:
+        content: "id: lci-compute-XX-2\n"
+        dest: /etc/salt/minion.d/id.conf
+      when: inventory_hostname == "lci-compute-XX-2"
+
+    - name: Start Salt Minion
+      systemd:
+        name: salt-minion
+        state: started
+        enabled: yes

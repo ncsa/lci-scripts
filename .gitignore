@@ -1,1 +1,50 @@
 *.DS_Store
+AGENTS.md
+sess*
+fix.md
+
+# Ignore all backup directories at any level
+**/bak/
+**/*.backup*
+**/*.bak
+
+# Ignore all opencode directories
+**/.opencode/
+**/.opencode
+
+# Log files
+*.log
+logs/
+log/
+*.log.*
+
+# Git directories - exclude all .git folders at any level
+.git/
+**/.git/
+
+# Temporary files
+*.tmp
+*.temp
+.temp/
+tmp/
+temp/
+
+# OS generated files
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Ansible retry files
+*.retry
+
+# Error tracking (local only)
+**/errors/

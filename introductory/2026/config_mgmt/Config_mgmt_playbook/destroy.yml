@@ -1,0 +1,83 @@
+---
+- name: Remove Configuration Management Tools
+  hosts: all_nodes
+  become: yes
+  tasks:
+    # Remove Salt
+    - name: Stop and disable Salt services
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      loop:
+        - salt-master
+        - salt-minion
+      ignore_errors: yes
+
+    - name: Remove Salt packages
+      dnf:
+        name:
+          - salt-master
+          - salt-minion
+        state: absent
+      ignore_errors: yes
+
+    - name: Remove Salt directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/salt
+        - /srv/salt
+        - /srv/pillar
+      ignore_errors: yes
+
+    # Remove Warewulf
+    - name: Stop and disable Warewulf services
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      loop:
+        - warewulfd
+        - dhcpd
+        - tftp.socket
+      ignore_errors: yes
+
+    - name: Remove Warewulf packages
+      dnf:
+        name:
+          - warewulf
+          - dhcp-server
+        state: absent
+      ignore_errors: yes
+
+    - name: Remove Warewulf directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/warewulf
+        - /var/lib/warewulf
+        - /usr/share/warewulf
+      ignore_errors: yes
+
+    # Remove test users
+    - name: Remove workshop users
+      user:
+        name: "{{ item }}"
+        state: absent
+        remove: yes
+      loop:
+        - workshop
+        - workshop_salt
+      ignore_errors: yes
+
+    # Remove test packages
+    - name: Remove test packages
+      dnf:
+        name:
+          - htop
+          - tmux
+        state: absent
+      ignore_errors: yes
