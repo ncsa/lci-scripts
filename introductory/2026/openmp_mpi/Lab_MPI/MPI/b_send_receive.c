@@ -4,7 +4,7 @@
 
 int main(int argc, char *argv[]) { 
 int numRanks, rank, dest, source, rc, count, tag=222;  
-char inmsg[9], outmsg[9]="LCI_2022";
+char inmsg[9], outmsg[9]="LCI_2026";
 MPI_Status Stat;
 
 MPI_Init(&argc,&argv);

@@ -232,7 +232,7 @@ if (rank == 1) {
 ## Blocking MPI send/receive code example.
 
 Each process initializes the MPI environment, 
-then process with rank 0 sends “LCI_2022” string
+then process with rank 0 sends “LCI_2026” string
 to rank 1
 
 ```c
@@ -240,7 +240,7 @@ to rank 1
 #include <stdio.h>
 int main(int argc, char *argv[]) {
 int numRanks, rank, dest, source, rc, count, tag=222;
-char inmsg[9], outmsg[9]="LCI_2022";
+char inmsg[9], outmsg[9]="LCI_2026";
 MPI_Status Stat;
 MPI_Init(&argc,&argv);
 MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
@@ -268,7 +268,7 @@ mpirun -n 2  b_send_receive.x
 
 output:
 ```
-    Rank 1 Received LCI_2022 from Rank 0 
+    Rank 1 Received LCI_2026 from Rank 0 
     Task 1: Received 9 char(s) from task 0 with tag 222 
 ```
 
@@ -328,7 +328,7 @@ The `MPI_Isend` returns right away, and the rank 0 process continues running. Th
 ## Non-Blocking MPI send/receive code example.
 
 Each process initializes the MPI environment, 
-then process with rank 0 sends “LCI_2022” string to rank 1
+then process with rank 0 sends “LCI_2026” string to rank 1
 
 ```c
 #include "mpi.h"
@@ -336,7 +336,7 @@ then process with rank 0 sends “LCI_2022” string to rank 1
 
 int main(int argc, char *argv[]) {
 int numRanks, rank, dest, source, rc, count, tag=222;
-char inmsg[9], outmsg[9]="LCI_2022";
+char inmsg[9], outmsg[9]="LCI_2026";
 MPI_Status Stat;   MPI_Request request = MPI_REQUEST_NULL;
 
 MPI_Init(&argc,&argv);
