@@ -1,26 +1,11 @@
-# ============================================================
-# Cluster Parameters - UPDATE FOR YOUR CLUSTER
-# ============================================================
-# Each student must change 'cluster_number' to match their
-# assigned cluster (01-40).  The compute node hostnames and
-# head node reference are derived from this number.
-#
-# Naming convention:
-#   Head:    lci-head-XX-1       (set in hosts.ini)
-#   Compute: lci-compute-XX-[1-2]
-# ============================================================
-
-# >>> CHANGE THIS to your assigned cluster number (01-40) <<<
-cluster_number: '01'
-
-# --- Derived / common settings (no changes needed below) ---
-slurm_vers: '25.05.6'
+slurm_vers: '23.11.1'
 pmix_release: '4.2.8'
+slurm_controller: 'lci-head-01-1'
 cluster_name: 'cluster'
-db_pwd: 'lcilab2026'
-slurm_nodes: "lci-compute-{{ cluster_number }}-[1-2]"
+db_pwd: 'lcilab2024'
+slurm_nodes: 'lci-compute-01-[1-2]'
 CPU_num: '2'
 Sockets: '2'
 Cores: '1'
-mem: '7500'
-partition_name: 'lcilab'
+mem: '7684'
+partition_name: 'lcilab' 

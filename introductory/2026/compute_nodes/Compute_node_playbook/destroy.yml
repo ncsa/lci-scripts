@@ -1,0 +1,37 @@
+---
+####### The compute node play ############
+- name: Remove the lab related packages and directories 
+  become: yes
+  hosts: all_nodes 
+  tasks:
+    - name: stop services
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      with_items:
+        - autofs 
+
+    - name: unmount NFS file system
+      ansible.posix.mount:
+        path: /head/NFS
+        state: unmounted
+
+    - name: uninstall pkgs 
+      ansible.builtin.dnf:
+        name:  "{{ item }}"
+        state: absent
+      with_items:
+        - autofs 
+        - perl
+        - perl-DBI
+
+    - name: remove files
+      ansible.builtin.file:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - /etc/auto.master
+        - /etc/auto.nfs
+        - /head
+

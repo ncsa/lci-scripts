@@ -3,7 +3,6 @@
 
 [Click on the link for the updated version of the Lab on gitlab](https://github.com/ncsa/lci-scripts/tree/main/introductory/run_apps_scheduler/Lab_Run_Application_via_Scheduler.md)
 
-> **Note:** This lab follows the same workflow as the Head Node lab. First, clone the repository, then copy the `Run_apps_scheduler` directory to your home directory and work from there. The playbook includes code and batch scripts with fixes for Slurm+PMIx integration.
 
 ## Lab: Build a Cluster: Run Application via Scheduler
 
@@ -31,80 +30,23 @@
 
 - Command `scontrol show` exercises
 
-### 1. Setup and Create Linux user and Slurm accounts
+### 1. Create cluster account and users in SLURM
 
-All commands in this section should be run as root on the head node:
+For correct accounting, association, and resource assignments, users and accounts should be created in SLURM.
+
+Accounts in SLURM have the meaning like posix groups in Linux.
+
+We create account (group) lci2024:
 
 ```bash
-sudo -i
-cd
+sudo sacctmgr -i add account lci2024 Description="LCI 2024 workshop"
 ```
 
-#### Clone the repository and copy the Scheduler playbook
-
-Clone the lci-scripts repository to your head node, then copy the Run_apps_scheduler directory to your home directory (following the same pattern as the Head Node lab):
+We create users `mpiuser` and `rocky` and assign them to cluster "cluster" and account (group) lci2024:
 
 ```bash
-# Clone the repository if you haven't already
-git clone https://github.com/ncsa/lci-scripts.git
-
-# Copy the scheduler playbook to your home directory and work from there
-cd ~
-cp -a lci-scripts/introductory/2026/run_apps_scheduler/Run_apps_scheduler .
-cd Run_apps_scheduler
-```
-
-You will now be working from the `~/Run_apps_scheduler` directory, which contains the `MPI/` and `OpenMP/` subdirectories with all lab files.
-
-#### Create the `mpiuser` Linux account on all nodes
-
-When Slurm runs a job on a compute node, it executes the process as the submitting user. This means the Linux user must exist on **every node** where jobs may run (head node and all compute nodes), and the UID must be consistent across all nodes so NFS file permissions work correctly.
-
-Create `mpiuser` on the head node:
-
-```bash
-useradd -u 2004 mpiuser
-```
-
-Create `mpiuser` on all compute nodes (using ClusterShell):
-
-```bash
-clush -g compute "useradd -u 2004 mpiuser"
-```
-
-> **Note:** The `rocky` user already exists on all nodes as the default OS user, so it does not need to be created.
-
-#### Copy the lab code to mpiuser's home directory
-
-The source files and batch scripts are in the playbook directory. Copy them to mpiuser's home:
-
-```bash
-# From within ~/Run_apps_scheduler:
-cp -r MPI OpenMP /home/mpiuser/Lab_MPI/
-```
-
-Verify the files are in place:
-
-```bash
-ls -la /home/mpiuser/Lab_MPI/OpenMP/
-ls -la /home/mpiuser/Lab_MPI/MPI/
-```
-
-#### Create Slurm accounts and users
-
-For correct accounting, association, and resource assignments, users and accounts should be created in Slurm. Accounts in Slurm function like POSIX groups in Linux.
-
-Create the account (group) lci2026:
-
-```bash
-sacctmgr -i add account lci2026 Description="LCI 2026 workshop"
-```
-
-Create Slurm users `mpiuser` and `rocky` and assign them to cluster "cluster" and account lci2026:
-
-```bash
-sacctmgr -i create user name=mpiuser cluster=cluster account=lci2026
-sacctmgr -i create user name=rocky cluster=cluster account=lci2026
+sudo sacctmgr -i create user name=mpiuser cluster=cluster account=lci2024
+sudo sacctmgr -i create user name=rocky cluster=cluster account=lci2024
 ```
 
 Check the accounts and users:
@@ -147,7 +89,7 @@ sudo su - mpiuser
 
 Step into OpenMP directory:
 ```bash
-cd ~/Lab_MPI/OpenMP
+cd OpenMP
 ```
 
 
@@ -165,10 +107,10 @@ squeue
 sinfo -N -l
 ```
 
-Step into directory OpenMP, setup 2 threads for a run, then run heated_plate.x:
+Step into directory OpenMP, setup 2 threads for a run, then run heated_plate_openmp.x:
 
 ```bash
-cd ~/Lab_MPI/OpenMP
+cd OpenMP
 export OMP_NUM_THREADS=2
 ./heated_plate.x 
 ```
@@ -229,7 +171,8 @@ It should show pmi2, mpix, and pmix_4.
 Change directory to MPI, and run `mpi_heat2D.x` through `srun` with 4, 6, and 8 processes:
 
 ```bash
-cd ~/Lab_MPI/MPI
+cd 
+cd MPI
 srun --mpi=pmix -n 4  mpi_heat2D.x
 srun --mpi=pmix_v4 -n 4  mpi_heat2D.x
 ```
@@ -252,17 +195,18 @@ In directory MPI, check out submit script `mpi_batch.sh`:
 
 #SBATCH --job-name=MPI_test_case
 #SBATCH --ntasks-per-node=2
-#SBATCH --nodes=2
+#SBATCH --nodes=4
 #SBATCH --partition=lcilab
 
-srun --mpi=pmix mpi_heat2D.x
+mpirun  mpi_heat2D.x
 ```
 
-> **Note:** This script uses `srun --mpi=pmix` instead of `mpirun` to launch MPI processes. Under Slurm, `srun` is the recommended launcher because it gives Slurm full control over process placement, accounting, and signal delivery. Since `MpiDefault=pmix` is configured in `slurm.conf`, the `--mpi=pmix` flag is technically optional but included here for clarity.
+Notice, the `mpirun` is not using the number of processes, neither referencing the hosts file.
+The SLURM is taking care of the CPU and node allocation for mpirun through its environment variables.
 
 Submit the script to run with command `sbatch`:
 
-```bash
+```bsash
 sbatch mpi_batch.sh
 ```
 
@@ -271,7 +215,25 @@ Run command `squeue` to see the running job:
 squeue
 ```
 
-The `mpi_srun.sh` script is also provided and is identical to `mpi_batch.sh` (both use `srun`):
+Copy the submit script, ```mpi_batch.sh```, into ```mpi_srun.sh```:
+```bash
+cp mpi_batch.sh  mpi_srun.sh
+```
+Edit the new submit script, and replace ```mpirun``` with ```srun```, and change ```--nodes=4``` for ```--nodes=2```.
+The modified submit script, mpi_srun.sh, should look as follows:
+
+```c
+#!/bin/bash
+
+#SBATCH --job-name=MPI_test_case
+#SBATCH --ntasks-per-node=2
+#SBATCH --nodes=2
+#SBATCH --partition=lcilab
+
+srun --mpi=pmix mpi_heat2D.x
+```
+
+Submit the job to run on the cluster:
 
 ```bash
 sbatch mpi_srun.sh
@@ -285,7 +247,8 @@ Check out the stdo output file, slurm-\<job_id\>.out
 Step into directory OpenMP:
 
 ```bash
-cd ~/Lab_MPI/OpenMP
+cd 
+cd OpenMP
 ```
 
 Check out submit script `openmp_batch.sh`. It is using the SLURM environment variables and a scratch directory.
@@ -298,7 +261,7 @@ I/O to the local to the node scratch directory runs faster than to the NFS share
 #SBATCH --job-name=OMP_run
 #SBATCH --output=slurm.out
 #SBATCH --error=slurm.err
-#SBATCH --partition=lcilab
+#SBATCH --partition=lci
 #SBATCH --ntasks-per-node=2
 
 
@@ -346,7 +309,8 @@ If resources are unavailable, jobs will stay in the queue.
 Go to the MPI directory:
 
 ```bash
-cd ~/Lab_MPI/MPI
+cd 
+cd MPI
 ```
 
 Launch `srun` with bash, and requesting 2 tasks:
@@ -366,7 +330,7 @@ Run command `squeue`. It should show you that the last job is waiting in the que
  
 ```yaml
              JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
-                31    lcilab MPI_test  mpiuser PD       0:00      2 (Resources)
+                31    lcilab MPI_test  mpiuser PD       0:00      4 (Resources)
                 30    lcilab     bash  mpiuser  R       1:38      1 compute1
 ```
 
@@ -374,14 +338,7 @@ exit from `srun`, and run `squeue` again. The MPI job should begin running.
 
 ### 8.  Command sstat
 
-First, ensure OpenMPI is in your PATH (required for `mpicc` to work):
-
-```bash
-export PATH=/opt/openmpi/5.0.1/bin:$PATH
-export LD_LIBRARY_PATH=/opt/openmpi/5.0.1/lib:$LD_LIBRARY_PATH
-```
-
-Compile `poisson_mpi.c`:
+Compile  ```poisson_mpi.c```:
 ```bash
 mpicc -o poisson_mpi.x poisson_mpi.c
 ```
@@ -462,7 +419,7 @@ If one of the firelds don't fit in the output, expand the number of positions in
 61.batch               batch  COMPLETED     lci-compute-01-1   00:16:16
 61.0                   prted  COMPLETED     lci-compute-01-2   00:32:36
 
-  ```
+ ```
 
 ### 10. Command `scontrol`
 

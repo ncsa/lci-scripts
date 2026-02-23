@@ -10,7 +10,7 @@
 
 - name: Checking to see if the slurm rpms have already been created
   ansible.builtin.stat:
-    path: /tmp/rpmbuild/RPMS/x86_64/slurm-example-configs-{{ slurm_vers }}-1.el9.x86_64.rpm
+    path: /tmp/rpmbuild/RPMS/x86_64/slurm-example-configs-{{ slurm_vers }}-1.el8.x86_64.rpm
   register: file_rpm
 
 - name: Building slurm rpms, this will skip if they are already built
