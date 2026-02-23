@@ -88,13 +88,52 @@ Test:
 clush -g compute "uptime"
 ```
 
+### Fix hostnames on compute and storage nodes (remove .novalocal suffix):
+```bash
+# Fix hostnames on compute nodes
+clush -g compute 'correct_hostname=$(grep $(hostname -s) /etc/hosts | grep lci-compute | head -1 | awk "{print \$2}"); sudo hostnamectl set-hostname $correct_hostname'
+
+# Fix hostname on storage node
+clush -g storage 'correct_hostname=$(grep $(hostname -s) /etc/hosts | grep lci-storage | head -1 | awk "{print \$2}"); sudo hostnamectl set-hostname $correct_hostname'
+
+# Verify hostnames are fixed
+clush -g compute,storage "hostname"
+```
+
 ---
 
-## 5. Create User Accounts
+## 5. Create Groups and User Accounts Across All Nodes
 
+### Create groups on head node:
 ```bash
-useradd -u 2002 justin
-useradd -u 2003 katie
+groupadd -g 3001 lci-bio
+groupadd -g 3002 lci-eng
+```
+
+### Create users on head node (justin in lci-bio, katie in lci-eng):
+```bash
+useradd -u 2002 -g lci-bio justin
+useradd -u 2003 -g lci-eng katie
+```
+
+### Propagate groups to compute nodes:
+```bash
+clush -g compute "groupadd -g 3001 lci-bio"
+clush -g compute "groupadd -g 3002 lci-eng"
+```
+
+### Propagate users to compute nodes:
+```bash
+clush -g compute "useradd -u 2002 -g lci-bio justin"
+clush -g compute "useradd -u 2003 -g lci-eng katie"
+```
+
+### Verify across all nodes:
+```bash
+clush -g all "getent group lci-bio"
+clush -g all "getent group lci-eng"
+clush -g all "id justin"
+clush -g all "id katie"
 ```
 
 ---

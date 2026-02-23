@@ -1,65 +1,105 @@
-## SSH keys for passwordless SSH
+# First: Replace XX with your cluster number (e.g., 01, 02, etc.)
+# Using vim - vim commands, :%s/01/<clusternumber>/g, :wq
+# Using nano: nano commands, Ctrl+\, Enter "01", Enter your cluster number, A, Ctrl+O, Enter, Ctrl+X
 
-# As root on login node
-mkdir -p /root/.ssh
-chmod 700 /root/.ssh
-touch /root/.ssh/authorized_keys
-chmod 600 /root/.ssh/authorized_keys
-ssh-keygen -t rsa
+# Run as root
+sudo -i
+cd
 
-# As root on each compute node/storage node
-mkdir -p /root/.ssh
-chmod 700 /root/.ssh
+# If you are reading this in a browser - Clone repository to your lci-head-XX-1
+git clone https://github.com/ncsa/lci-scripts.git
 
-# As root on the login node
-cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
-scp /root/.ssh/authorized_keys lci-compute-XX-1:/root/.ssh
-scp /root/.ssh/authorized_keys lci-compute-XX-2:/root/.ssh
-scp /root/.ssh/authorized_keys lci-storage-XX-1:/root/.ssh
+# 1. Fix Hostname
+correct_hostname=$(grep lci-head-[0-9][0-9]-1$ /etc/hosts | cut -f 2)
+hostnamectl set-hostname $correct_hostname
 
-## Parallel Shell
-# On your head node for this section
-dnf install clustershell
+# 2. Install Ansible
+dnf install -y ansible-core
 
-# Add the following to the /etc/clustershell/groups.d/local.cfg file (replace the example stuff)
+# 3. Install Ansible on Compute Nodes and Run Playbook
+cd ~
+cp -a lci-scripts/introductory/2026/head_node/Head_node_playbook .
+cd Head_node_playbook
+# Edit hosts.ini: replace XX with cluster number in [head] and [all_nodes] sections
+bash installansible.sh
+ansible-playbook playbook.yml
+
+# Verify services on head node
+systemctl status mariadb
+timedatectl status
+showmount -e
+
+# Test NFS
+touch /head/NFS/testfile
+ssh lci-compute-XX-1 ls /head/NFS
+ssh lci-compute-XX-2 ls /head/NFS
+
+# 4. Install ClusterShell
+dnf install -y clustershell
+
+# Edit /etc/clustershell/groups.d/local.cfg, remove existing uncommented content, add:
 head: lci-head-XX-1
 compute: lci-compute-XX-[1-2]
 login: lci-head-XX-1
 storage: lci-storage-XX-1
 
-# Test it out
+# Test ClusterShell
 clush -g compute "uptime"
 
-## Time Sync
-dnf install chrony
-#confirm config file meets expectation
-systemctl start chronyd && systemctl enable chronyd
+# Fix hostnames on compute nodes (remove .novalocal suffix)
+# Get short hostname from /etc/hosts and set it properly
+clush -g compute 'correct_hostname=$(grep $(hostname -s) /etc/hosts | grep lci-compute | head -1 | awk "{print \$2}"); sudo hostnamectl set-hostname $correct_hostname'
 
-# Creatre morest users
-useradd -u 2002 justin
-useradd -u 2003 katie
+# Fix hostname on storage node
+clush -g storage 'correct_hostname=$(grep $(hostname -s) /etc/hosts | grep lci-storage | head -1 | awk "{print \$2}"); sudo hostnamectl set-hostname $correct_hostname'
 
-## Central Logging
+# Verify hostnames are fixed
+clush -g compute,storage "hostname"
 
-# Remove comments for following lines in /etc/rsyslog.conf on lci-head-XX-1
-module(load="imudp") # needs to be done just once
+# 5. Create Groups and User Accounts Across All Nodes
+
+# Create groups on head node (lci-bio for biology, lci-eng for engineering)
+groupadd -g 3001 lci-bio
+groupadd -g 3002 lci-eng
+
+# Create users on head node (justin in lci-bio, katie in lci-eng)
+useradd -u 2002 -g lci-bio justin
+useradd -u 2003 -g lci-eng katie
+
+# Propagate groups to compute nodes
+clush -g compute "groupadd -g 3001 lci-bio"
+clush -g compute "groupadd -g 3002 lci-eng"
+
+# Propagate users to compute nodes
+clush -g compute "useradd -u 2002 -g lci-bio justin"
+clush -g compute "useradd -u 2003 -g lci-eng katie"
+
+# Verify across all nodes
+clush -g all "getent group lci-bio"
+clush -g all "getent group lci-eng"
+clush -g all "id justin"
+clush -g all "id katie"
+
+# 6. Configure Central Logging on Head Node
+# Edit /etc/rsyslog.conf, uncomment:
+module(load="imudp")
 input(type="imudp" port="514")
-
-module(load="imtcp") # needs to be done just once
+module(load="imtcp")
 input(type="imtcp" port="514")
 
-# Add these two lines in the Modules section:
+# Add to end of '### Modules ###' section:
 $template DynamicFile,"/var/log/%HOSTNAME%/forwarded-logs.log"
 *.* -?DynamicFile
 
 # Restart rsyslog on head node
 systemctl restart rsyslog
 
-# Add following to the very bottom of /etc/rsyslog.conf on both compute nodes/storage node and restart rsyslog service on those nodes
+# On compute and storage nodes, add to bottom of /etc/rsyslog.conf:
 *.* @lci-head-XX-1
+
+# Restart rsyslog on compute/storage nodes
 systemctl restart rsyslog
 
-# After a few minutes you should see new log directories in /var/log/ on lci-head-XX-1, a directory for each host forarding logs
-ls /var/log/messaegs/lci-[computes/storage]-XX-Y/
-
-
+# Verify on head node
+ls /var/log/lci-compute-XX-*/
+ls /var/log/lci-storage-XX-*/

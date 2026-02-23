@@ -1,4 +1,0 @@
-  - name: Compute node packages
-    ansible.builtin.dnf:
-      name: perl, perl-DBI, autofs
-      state: latest

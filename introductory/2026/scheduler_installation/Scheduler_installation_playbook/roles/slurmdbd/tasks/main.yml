@@ -1,12 +1,24 @@
+  - name: Ensure hostname is set correctly without domain suffix
+    ansible.builtin.hostname:
+      name: "{{ slurm_controller }}"
+    ignore_errors: yes
+
   - name: Restart mariadb service
     ansible.builtin.service:
       name: mariadb
       state: restarted
 
+  - name: Set MySQL root password
+    ansible.builtin.shell: |
+      mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ db_pwd }}'; FLUSH PRIVILEGES;"
+    ignore_errors: yes
+
   - name: Create a new database named slurm_acct_db
     community.mysql.mysql_db:
       name: slurm_acct_db
       state: present
+      login_user: root
+      login_password: "{{ db_pwd }}"
 
   - name: Create database user slurm with slurm_acct_db privileges
     community.mysql.mysql_user:
@@ -14,6 +26,8 @@
       password: "{{ db_pwd }}"
       priv: 'slurm_acct_db.*:all,GRANT'
       state: present
+      login_user: root
+      login_password: "{{ db_pwd }}"
 
   - name: Restart slurmdbd service
     ansible.builtin.service:
