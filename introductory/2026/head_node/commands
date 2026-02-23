@@ -11,7 +11,7 @@ git clone https://github.com/ncsa/lci-scripts.git
 
 # 1. Fix Hostname
 correct_hostname=$(grep lci-head-[0-9][0-9]-1$ /etc/hosts | cut -f 2)
-sudo hostnamectl set-hostname $correct_hostname
+hostnamectl set-hostname $correct_hostname
 
 # 2. Install Ansible
 dnf install -y ansible-core

@@ -4,13 +4,13 @@
       disable_gpg_check: yes
       state: present
     with_items:
-      - slurm-{{ slurm_vers }}-1.el8.x86_64.rpm
-      - slurm-example-configs-{{ slurm_vers }}-1.el8.x86_64.rpm
-      - slurm-slurmctld-{{ slurm_vers }}-1.el8.x86_64.rpm
-      - slurm-slurmdbd-{{ slurm_vers }}-1.el8.x86_64.rpm
-      - slurm-perlapi-{{ slurm_vers }}-1.el8.x86_64.rpm
-      - slurm-libpmi-{{ slurm_vers }}-1.el8.x86_64.rpm
-      - slurm-devel-{{ slurm_vers }}-1.el8.x86_64.rpm
+      - slurm-{{ slurm_vers }}-1.el9.x86_64.rpm
+      - slurm-example-configs-{{ slurm_vers }}-1.el9.x86_64.rpm
+      - slurm-slurmctld-{{ slurm_vers }}-1.el9.x86_64.rpm
+      - slurm-slurmdbd-{{ slurm_vers }}-1.el9.x86_64.rpm
+      - slurm-perlapi-{{ slurm_vers }}-1.el9.x86_64.rpm
+      - slurm-libpmi-{{ slurm_vers }}-1.el9.x86_64.rpm
+      - slurm-devel-{{ slurm_vers }}-1.el9.x86_64.rpm
 
   - name: Copying slurm.conf into place with correct permissions
     ansible.builtin.template:

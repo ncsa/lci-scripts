@@ -1,3 +1,11 @@
+- name: Install PMIx build dependencies
+  ansible.builtin.dnf:
+    name:
+      - hwloc-devel
+      - libevent-devel
+      - python3-devel
+    state: present
+
 - name: Checking to see if the pmix SRC RPM exists 
   ansible.builtin.stat:
     path: roles/pmix-rpm-build/files/pmix-{{ pmix_release }}.src.rpm
@@ -10,7 +18,7 @@
 
 - name: Checking to see if the pmix rpm have already been created
   ansible.builtin.stat:
-    path: /tmp/rpmbuild/RPMS/x86_64/pmix-{{ pmix_release }}-1.el8.x86_64.rpm
+    path: /tmp/rpmbuild/RPMS/x86_64/pmix-{{ pmix_release }}-1.el9.x86_64.rpm
   register: file_rpm
 
 - name: Building pmix rpms, this will skip if they are already built
@@ -21,5 +29,5 @@
 - name: Install RPM on the head node
   ansible.builtin.dnf:
     disable_gpg_check: yes
-    name: "/tmp/rpmbuild/RPMS/x86_64/pmix-{{ pmix_release }}-1.el8.x86_64.rpm"
+    name: "/tmp/rpmbuild/RPMS/x86_64/pmix-{{ pmix_release }}-1.el9.x86_64.rpm"
     state: present
