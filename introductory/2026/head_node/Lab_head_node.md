@@ -17,6 +17,8 @@
 - How to use Ansible playbooks for automated system configuration
 - How to set up NFS server for shared filesystems
 - How to install and configure ClusterShell for managing multiple nodes
+- How to create and propagate user groups across cluster nodes
+- How to create and propagate user accounts with consistent UIDs across the cluster
 - How to configure centralized logging with rsyslog
 
 ---
@@ -385,42 +387,201 @@ Run commands on specific nodes:
 clush -w lci-compute-01-1 "hostname"
 ```
 
----
+### Fix Hostnames on Compute and Storage Nodes
 
-## Section 5: Create User Accounts
-
-### Why Create These Accounts?
-
-For the workshop exercises, we need user accounts that:
-- Are consistent across all cluster nodes
-- Have specific UIDs for demonstration purposes
-- Allow running MPI and Slurm jobs
-
-The accounts `justin` (UID 2002) and `katie` (UID 2003) will be used in later labs for running parallel applications and demonstrating Slurm job scheduling.
-
-### Create the Accounts
+Just as the head node may have a `.novalocal` suffix, the compute and storage nodes likely do as well. Use ClusterShell to fix all of them at once:
 
 ```bash
-useradd -u 2002 justin
-useradd -u 2003 katie
+# Fix hostnames on compute nodes
+clush -g compute 'correct_hostname=$(grep $(hostname -s) /etc/hosts | grep lci-compute | head -1 | awk "{print \$2}"); sudo hostnamectl set-hostname $correct_hostname'
 ```
 
 **What this does:**
-- Creates user accounts with specific UIDs
-- Creates home directories in `/home/`
-- Sets up default shell (bash) and environment
-- The accounts are created locally on the head node
-
-**Note:** In a production environment, user accounts would be managed through LDAP or Active Directory for consistency across all nodes. For this workshop, we'll create them manually on each node.
-
-### Verify Account Creation
+- Gets the short hostname from the current hostname
+- Searches `/etc/hosts` for a matching entry with `lci-compute` in it
+- Extracts the correct hostname from the second column
+- Uses `hostnamectl` to set the hostname without the `.novalocal` suffix
+- Runs in parallel on all compute nodes
 
 ```bash
-id justin
-id katie
+# Fix hostname on storage node
+clush -g storage 'correct_hostname=$(grep $(hostname -s) /etc/hosts | grep lci-storage | head -1 | awk "{print \$2}"); sudo hostnamectl set-hostname $correct_hostname'
 ```
 
-Should show the UID and GID for each user.
+**What this does:**
+- Same process as above, but for the storage node
+- Ensures storage node hostname is also cleaned up
+
+```bash
+# Verify hostnames are fixed on all nodes
+clush -g compute,storage "hostname"
+```
+
+**Expected Output:**
+```text
+---------------
+lci-compute-01-1 (1)
+---------------
+lci-compute-01-1
+---------------
+lci-compute-01-2 (1)
+---------------
+lci-compute-01-2
+---------------
+lci-storage-01-1 (1)
+---------------
+lci-storage-01-1
+```
+
+All hostnames should now be clean without any `.novalocal` suffix.
+
+---
+
+## Section 5: Create Groups and User Accounts Across All Nodes
+
+### Why Create These Groups and Accounts?
+
+For the workshop exercises, we need:
+- **Two groups** (`lci-bio` and `lci-eng`) representing different research groups
+- **Two user accounts** (`justin` and `katie`) that:
+  - Are consistent across all cluster nodes with matching UIDs/GIDs
+  - Allow running MPI and Slurm jobs across multiple nodes
+  - Demonstrate proper user/group management in HPC environments
+  - `justin` is assigned to the `lci-bio` group (biology researchers)
+  - `katie` is assigned to the `lci-eng` group (engineering researchers)
+
+Without consistent UIDs/GIDs across the cluster, jobs running on multiple nodes would encounter permission errors and file ownership issues.
+
+### Step 1: Create Groups on Head Node
+
+First, create two groups representing different research departments:
+
+```bash
+groupadd -g 3001 lci-bio
+groupadd -g 3002 lci-eng
+```
+
+**What this does:**
+- Creates `lci-bio` group with GID 3001 (for biology researchers)
+- Creates `lci-eng` group with GID 3002 (for engineering researchers)
+- Establishes consistent group identifiers for cluster-wide use
+
+### Step 2: Create Users on Head Node
+
+Create the two user accounts, each assigned to a different research group:
+
+```bash
+useradd -u 2002 -g lci-bio justin
+useradd -u 2003 -g lci-eng katie
+```
+
+**What this does:**
+- Creates `justin` with UID 2002 and primary group `lci-bio` (biology research group)
+- Creates `katie` with UID 2003 and primary group `lci-eng` (engineering research group)
+- Creates home directories in `/home/`
+- Sets up default shell (bash) and environment
+
+### Step 3: Propagate Groups to All Compute Nodes
+
+Use ClusterShell to create the same groups on all compute nodes:
+
+```bash
+clush -g compute "groupadd -g 3001 lci-bio"
+clush -g compute "groupadd -g 3002 lci-eng"
+```
+
+**What this does:**
+- Executes `groupadd` commands in parallel on all compute nodes
+- Ensures consistent GIDs (3001 and 3002) across the cluster
+- Required for proper file permissions when users run jobs on compute nodes
+
+### Step 4: Propagate Users to All Compute Nodes
+
+Use ClusterShell to create the same users on all compute nodes:
+
+```bash
+clush -g compute "useradd -u 2002 -g lci-bio justin"
+clush -g compute "useradd -u 2003 -g lci-eng katie"
+```
+
+**What this does:**
+- Creates `justin` (UID 2002) with `lci-bio` group and `katie` (UID 2003) with `lci-eng` group on all compute nodes
+- Ensures users have identical UIDs and primary groups across the cluster
+- Enables seamless job execution across multiple nodes
+
+### Step 5: Verify Groups and Users Across the Cluster
+
+Verify groups exist on all nodes:
+
+```bash
+clush -g all "getent group lci-bio"
+clush -g all "getent group lci-eng"
+```
+
+**Expected Output:**
+```text
+---------------
+lci-head-01-1 (1)
+---------------
+lci-bio:x:3001:justin
+---------------
+lci-compute-01-1 (1)
+---------------
+lci-bio:x:3001:justin
+---------------
+lci-compute-01-2 (1)
+---------------
+lci-bio:x:3001:justin
+---------------
+lci-head-01-1 (1)
+---------------
+lci-eng:x:3002:katie
+---------------
+lci-compute-01-1 (1)
+---------------
+lci-eng:x:3002:katie
+---------------
+lci-compute-01-2 (1)
+---------------
+lci-eng:x:3002:katie
+```
+
+Verify users exist on all nodes:
+
+```bash
+clush -g all "id justin"
+clush -g all "id katie"
+```
+
+**Expected Output:**
+```text
+---------------
+lci-head-01-1 (1)
+---------------
+uid=2002(justin) gid=3001(lci-bio) groups=3001(lci-bio)
+---------------
+lci-compute-01-1 (1)
+---------------
+uid=2002(justin) gid=3001(lci-bio) groups=3001(lci-bio)
+---------------
+lci-compute-01-2 (1)
+---------------
+uid=2002(justin) gid=3001(lci-bio) groups=3001(lci-bio)
+---------------
+lci-head-01-1 (1)
+---------------
+uid=2003(katie) gid=3002(lci-eng) groups=3002(lci-eng)
+---------------
+lci-compute-01-1 (1)
+---------------
+uid=2003(katie) gid=3002(lci-eng) groups=3002(lci-eng)
+---------------
+lci-compute-01-2 (1)
+---------------
+uid=2003(katie) gid=3002(lci-eng) groups=3002(lci-eng)
+```
+
+**Note:** In a production environment, user accounts would be managed through LDAP or Active Directory for consistency across all nodes. For this workshop, we're using ClusterShell to propagate them manually.
 
 ---
 
@@ -541,7 +702,8 @@ Congratulations! You have successfully:
 ✅ Used Ansible playbooks to configure head and compute nodes  
 ✅ Set up NFS server for shared storage  
 ✅ Installed ClusterShell for cluster management  
-✅ Created user accounts for workshop exercises  
+✅ Created user groups (`lci-bio`, `lci-eng`) representing research departments across all nodes  
+✅ Created user accounts (`justin` in lci-bio, `katie` in lci-eng) with consistent UIDs across all nodes  
 ✅ Configured centralized logging across the cluster  
 
 ### Next Steps

@@ -1,9 +1,4 @@
 
-<br><br><br><br>
-
-[Click on the link for the updated version of the Lab on gitlab](https://github.com/ncsa/lci-scripts/tree/main/introductory/run_apps_scheduler/Lab_Run_Application_via_Scheduler.md)
-
-
 ## Lab: Build a Cluster: Run Application via Scheduler
 
 **Objective:** learn SLURM commands to submit, monitor, terminate computational jobs, and check completed job accounting info.
