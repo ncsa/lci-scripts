@@ -29,9 +29,9 @@
     - name: Configure Warewulf
       copy:
         content: |
-          ipaddr: 10.0.2.0
-          netmask: 255.255.255.0
-          network: 10.0.2.0
+          ipaddr: {{ subnet }}
+          netmask: {{ netmask }}
+          network: {{ subnet }}
           warewulf:
             port: 9873
             secure: false
@@ -40,8 +40,8 @@
           dhcp:
             enabled: true
             template: default
-            range start: 10.0.2.100
-            range end: 10.0.2.199
+            range start: {{ dhcp_start }}
+            range end: {{ dhcp_end }}
           tftp:
             enabled: true
             ipxe:
