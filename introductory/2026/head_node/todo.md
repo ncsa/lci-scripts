@@ -47,8 +47,8 @@ The combined playbook configures both the head node and compute nodes.
 
 ```bash
 cd ~
-cp -a lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook .
-cd Scheduler_installation_playbook
+cp -a lci-scripts/introductory/2026/head_node/Head_node_playbook .
+cd Head_node_playbook
 # Edit hosts.ini and replace XX with your cluster number in both [head] and [all_nodes] sections
 bash installansible.sh
 ansible-playbook playbook.yml

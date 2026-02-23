@@ -179,7 +179,7 @@ The playbook uses SSH to connect to compute nodes and apply configurations autom
 
 ```bash
 cd ~
-cp -a lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook .
+cp -a lci-scripts/introductory/2026/head_node/Head_node_playbook .
 ```
 
 The `cp -a` command preserves permissions and directory structure.
@@ -187,7 +187,7 @@ The `cp -a` command preserves permissions and directory structure.
 #### 2. Navigate to the Playbook Directory
 
 ```bash
-cd Scheduler_installation_playbook
+cd Head_node_playbook
 ```
 
 #### 3. Edit the Inventory File

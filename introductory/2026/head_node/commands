@@ -17,8 +17,9 @@ hostnamectl set-hostname $correct_hostname
 dnf install -y ansible-core
 
 # 3. Install Ansible on Compute Nodes and Run Playbook
-cp -a lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook .
-cd Scheduler_installation_playbook
+cp -a lci-scripts/introductory/2026/head_node/Head_node_playbook .
+cd Head_node_playbook
+# Edit hosts.ini: replace XX with cluster number in [head] and [all_nodes] sections
 bash installansible.sh
 ansible-playbook playbook.yml
 
