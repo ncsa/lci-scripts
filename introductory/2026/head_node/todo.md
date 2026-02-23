@@ -47,8 +47,8 @@ The combined playbook configures both the head node and compute nodes.
 
 ```bash
 cd ~
-cp -a lci-scripts/introductory/2026/head_node/Head_node_playbook .
-cd Head_node_playbook
+cp -a lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook .
+cd Scheduler_installation_playbook
 # Edit hosts.ini and replace XX with your cluster number in both [head] and [all_nodes] sections
 bash installansible.sh
 ansible-playbook playbook.yml
@@ -116,24 +116,24 @@ useradd -u 2002 -g lci-bio justin
 useradd -u 2003 -g lci-eng katie
 ```
 
-### Propagate groups to compute nodes:
+### Propagate groups to compute and storage nodes:
 ```bash
-clush -g compute "groupadd -g 3001 lci-bio"
-clush -g compute "groupadd -g 3002 lci-eng"
+clush -g compute,storage "groupadd -g 3001 lci-bio"
+clush -g compute,storage "groupadd -g 3002 lci-eng"
 ```
 
-### Propagate users to compute nodes:
+### Propagate users to compute and storage nodes:
 ```bash
-clush -g compute "useradd -u 2002 -g lci-bio justin"
-clush -g compute "useradd -u 2003 -g lci-eng katie"
+clush -g compute,storage "useradd -u 2002 -g lci-bio justin"
+clush -g compute,storage "useradd -u 2003 -g lci-eng katie"
 ```
 
-### Verify across all nodes:
+### Verify across compute and storage nodes:
 ```bash
-clush -g all "getent group lci-bio"
-clush -g all "getent group lci-eng"
-clush -g all "id justin"
-clush -g all "id katie"
+clush -g compute,storage "getent group lci-bio"
+clush -g compute,storage "getent group lci-eng"
+clush -g compute,storage "id justin"
+clush -g compute,storage "id katie"
 ```
 
 ---

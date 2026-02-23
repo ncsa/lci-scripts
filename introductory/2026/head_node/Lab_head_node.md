@@ -179,7 +179,7 @@ The playbook uses SSH to connect to compute nodes and apply configurations autom
 
 ```bash
 cd ~
-cp -a lci-scripts/introductory/2026/head_node/Head_node_playbook .
+cp -a lci-scripts/introductory/2026/scheduler_installation/Scheduler_installation_playbook .
 ```
 
 The `cp -a` command preserves permissions and directory structure.
@@ -187,7 +187,7 @@ The `cp -a` command preserves permissions and directory structure.
 #### 2. Navigate to the Playbook Directory
 
 ```bash
-cd Head_node_playbook
+cd Scheduler_installation_playbook
 ```
 
 #### 3. Edit the Inventory File
@@ -481,85 +481,81 @@ useradd -u 2003 -g lci-eng katie
 - Creates home directories in `/home/`
 - Sets up default shell (bash) and environment
 
-### Step 3: Propagate Groups to All Compute Nodes
+### Step 3: Propagate Groups to Compute and Storage Nodes
 
-Use ClusterShell to create the same groups on all compute nodes:
+Use ClusterShell to create the same groups on all compute and storage nodes:
 
 ```bash
-clush -g compute "groupadd -g 3001 lci-bio"
-clush -g compute "groupadd -g 3002 lci-eng"
+clush -g compute,storage "groupadd -g 3001 lci-bio"
+clush -g compute,storage "groupadd -g 3002 lci-eng"
 ```
 
 **What this does:**
-- Executes `groupadd` commands in parallel on all compute nodes
+- Executes `groupadd` commands in parallel on all compute and storage nodes
 - Ensures consistent GIDs (3001 and 3002) across the cluster
 - Required for proper file permissions when users run jobs on compute nodes
 
-### Step 4: Propagate Users to All Compute Nodes
+### Step 4: Propagate Users to Compute and Storage Nodes
 
-Use ClusterShell to create the same users on all compute nodes:
+Use ClusterShell to create the same users on all compute and storage nodes:
 
 ```bash
-clush -g compute "useradd -u 2002 -g lci-bio justin"
-clush -g compute "useradd -u 2003 -g lci-eng katie"
+clush -g compute,storage "useradd -u 2002 -g lci-bio justin"
+clush -g compute,storage "useradd -u 2003 -g lci-eng katie"
 ```
 
 **What this does:**
-- Creates `justin` (UID 2002) with `lci-bio` group and `katie` (UID 2003) with `lci-eng` group on all compute nodes
+- Creates `justin` (UID 2002) with `lci-bio` group and `katie` (UID 2003) with `lci-eng` group on all compute and storage nodes
 - Ensures users have identical UIDs and primary groups across the cluster
 - Enables seamless job execution across multiple nodes
 
-### Step 5: Verify Groups and Users Across the Cluster
+### Step 5: Verify Groups and Users Across Compute and Storage Nodes
 
-Verify groups exist on all nodes:
+Verify groups exist on compute and storage nodes:
 
 ```bash
-clush -g all "getent group lci-bio"
-clush -g all "getent group lci-eng"
+clush -g compute,storage "getent group lci-bio"
+clush -g compute,storage "getent group lci-eng"
 ```
 
 **Expected Output:**
 ```text
 ---------------
-lci-head-01-1 (1)
----------------
-lci-bio:x:3001:justin
----------------
 lci-compute-01-1 (1)
 ---------------
-lci-bio:x:3001:justin
+lci-bio:x:3001:
 ---------------
 lci-compute-01-2 (1)
 ---------------
-lci-bio:x:3001:justin
+lci-bio:x:3001:
 ---------------
-lci-head-01-1 (1)
+lci-storage-01-1 (1)
 ---------------
-lci-eng:x:3002:katie
+lci-bio:x:3001:
 ---------------
 lci-compute-01-1 (1)
 ---------------
-lci-eng:x:3002:katie
+lci-eng:x:3002:
 ---------------
 lci-compute-01-2 (1)
 ---------------
-lci-eng:x:3002:katie
+lci-eng:x:3002:
+---------------
+lci-storage-01-1 (1)
+---------------
+lci-eng:x:3002:
 ```
 
-Verify users exist on all nodes:
+Verify users exist on compute and storage nodes:
 
 ```bash
-clush -g all "id justin"
-clush -g all "id katie"
+clush -g compute,storage "id justin"
+clush -g compute,storage "id katie"
 ```
 
 **Expected Output:**
 ```text
 ---------------
-lci-head-01-1 (1)
----------------
-uid=2002(justin) gid=3001(lci-bio) groups=3001(lci-bio)
----------------
 lci-compute-01-1 (1)
 ---------------
 uid=2002(justin) gid=3001(lci-bio) groups=3001(lci-bio)
@@ -568,15 +564,19 @@ lci-compute-01-2 (1)
 ---------------
 uid=2002(justin) gid=3001(lci-bio) groups=3001(lci-bio)
 ---------------
-lci-head-01-1 (1)
+lci-storage-01-1 (1)
 ---------------
-uid=2003(katie) gid=3002(lci-eng) groups=3002(lci-eng)
+uid=2002(justin) gid=3001(lci-bio) groups=3001(lci-bio)
 ---------------
 lci-compute-01-1 (1)
 ---------------
 uid=2003(katie) gid=3002(lci-eng) groups=3002(lci-eng)
 ---------------
 lci-compute-01-2 (1)
+---------------
+uid=2003(katie) gid=3002(lci-eng) groups=3002(lci-eng)
+---------------
+lci-storage-01-1 (1)
 ---------------
 uid=2003(katie) gid=3002(lci-eng) groups=3002(lci-eng)
 ```
