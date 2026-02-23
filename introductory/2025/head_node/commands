@@ -26,6 +26,7 @@ head: lci-head-XX-1
 compute: lci-compute-XX-[1-2]
 login: lci-head-XX-1
 storage: lci-storage-XX-1
+all: lci-storage-XX-1 lci-compute-XX-[1-2]
 
 # Test it out
 clush -g compute "uptime"
@@ -34,6 +35,15 @@ clush -g compute "uptime"
 dnf install chrony
 #confirm config file meets expectation
 systemctl start chronyd && systemctl enable chronyd
+
+# Point compute and storage nodes to head node chrony server using clush. 
+# Replace $head_node_ip with the ip of the head node. Find using 'ip a' on head node
+clush -ab "dnf install -y chrony"
+clush -ab "echo 'server $head_node_ip iburst' | sudo tee -a /etc/chrony.conf"
+clush -ab "systemctl restart chronyd"
+
+# Verify nodes have lci-head-xx-1 in chrony sources list
+clush -ab chronyc sources
 
 # Creatre morest users
 useradd -u 2002 justin
