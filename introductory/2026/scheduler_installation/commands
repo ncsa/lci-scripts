@@ -34,4 +34,4 @@ ssh lci-compute-XX-1 systemctl status slurmd
 ssh lci-compute-XX-2 systemctl status slurmd
 
 # Test Slurm:
-srun hostname
+clush -g compute "sinfo"
