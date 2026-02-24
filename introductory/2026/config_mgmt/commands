@@ -22,10 +22,23 @@ cd Config_mgmt_playbook
 # Test connectivity
 ansible all_nodes -i hosts.ini -m ping
 
-# Ad-hoc commands
+# Ad-hoc commands - gather info
 ansible all_nodes -i hosts.ini -a "uptime"
 ansible all_nodes -i hosts.ini -a "df -h"
+ansible all_nodes -i hosts.ini -a "hostname"
+ansible all_nodes -i hosts.ini -m shell -a "cat /etc/os-release | head -2"
+
+# Ad-hoc commands - use modules
+ansible all_nodes -i hosts.ini -m setup -a "filter=ansible_memory_mb"
 ansible compute -i hosts.ini -m dnf -a "name=htop state=present" --become
+ansible compute -i hosts.ini -m dnf -a "name=tmux state=present" --become
+
+# Verify packages installed
+ansible compute -i hosts.ini -m shell -a "rpm -q htop tmux"
+
+# Copy a file to all nodes
+ansible all_nodes -i hosts.ini -m copy -a "content='Hello from LCI 2026\n' dest=/tmp/lci_test.txt" --become
+ansible all_nodes -i hosts.ini -a "cat /tmp/lci_test.txt"
 
 # Create user playbook called "create_user.yml" with the following content:
 ---
@@ -51,6 +64,9 @@ ansible compute -i hosts.ini -m dnf -a "name=htop state=present" --become
 
 ansible-playbook -i hosts.ini create_user.yml
 ansible all_nodes -i hosts.ini -a "id workshop"
+
+# Run the included playbook.yml to install Salt via Ansible (used in Part 2)
+ansible-playbook -i hosts.ini playbook.yml
 
 # ============================================================
 # Part 2: Salt
@@ -126,134 +142,179 @@ salt '*' pkg.install htop
 salt '*' disk.usage
 
 # ============================================================
-# Part 3: Warewulf
+# Part 3: Warewulf (Reference Only - requires bare-metal or properly networked cluster)
 # ============================================================
 
-# Install Warewulf
-ansible-playbook -i hosts.ini warewulf.yml
+## Install Warewulf
+#ansible-playbook -i hosts.ini warewulf.yml
+#
+## Basic wwctl commands
+#wwctl version
+#wwctl --help
+#
+## Working with Images
+#wwctl image import docker://ghcr.io/warewulf/warewulf-rockylinux:9 rockylinux-9
+#wwctl image list
+#wwctl image list --long
+#
+## Modify image interactively
+#wwctl image shell rockylinux-9
+#dnf -y install htop vim
+#exit
+#
+## Execute command in image
+#wwctl image exec rockylinux-9 -- /usr/bin/dnf -y install tmux
+#
+## Build image manually
+#wwctl image build rockylinux-9
+#
+## Show image details
+#wwctl image show rockylinux-9
+#
+## Working with Overlays
+#wwctl overlay list
+#wwctl overlay list --all wwinit
+#
+## Create custom overlay
+#wwctl overlay create site-custom
+#wwctl overlay import site-custom /etc/motd --parents
+#
+## Edit overlay file (add template content)
+#cat > /var/lib/warewulf/overlays/site-custom/rootfs/etc/motd << 'EOF'
+#Welcome to {{.Id}}
+#This node is part of the LCI 2026 workshop cluster.
+#Managed by Warewulf v4
+#EOF
+#
+#wwctl overlay show site-custom /etc/motd
+#wwctl overlay build
+#
+## Working with Nodes
+#wwctl node add lci-compute-XX-1 --ipaddr=10.0.1XX.1 --discoverable=true --image=rockylinux-9
+#wwctl node add lci-compute-XX-2 --ipaddr=10.0.1XX.2 --discoverable=true --image=rockylinux-9
+#
+#wwctl node list
+#wwctl node list --all
+#
+## Set node properties
+#wwctl node set lci-compute-XX-1 --image=rockylinux-9
+#wwctl node set lci-compute-XX-1 \
+#  --system-overlays="wwinit,wwclient,fstab,hostname,ssh.host_keys,site-custom"
+#
+## Configure services
+#wwctl configure dhcp
+#wwctl configure nfs
+#
+## Working with Profiles
+#wwctl profile list
+#wwctl profile add lci-compute --image=rockylinux-9
 
-# Basic wwctl commands
-wwctl version
-wwctl --help
+# ============================================================
+# Part 4: Combined Exercises - Using Ansible and Salt Together
+# ============================================================
 
-# Working with Images
-wwctl image import docker://ghcr.io/warewulf/warewulf-rockylinux:9 rockylinux-9
-wwctl image list
-wwctl image list --long
+# --- Exercise 1: Ansible installs packages, Salt configures them ---
+# Use Ansible to install a package across all nodes
+ansible all_nodes -i hosts.ini -m dnf -a "name=tree state=present" --become
 
-# Modify image interactively
-wwctl image shell rockylinux-9
-dnf -y install htop vim
-exit
+# Use Salt to verify the install and gather info
+salt '*' pkg.version tree
+salt '*' cmd.run "tree --version"
 
-# Execute command in image
-wwctl image exec rockylinux-9 -- /usr/bin/dnf -y install tmux
+# --- Exercise 2: Ansible playbook deploys config, Salt enforces state ---
+# Create a playbook that sets up an MOTD on all nodes
+cat > deploy_motd.yml << 'EOF'
+---
+- name: Deploy MOTD to all nodes
+  hosts: all_nodes
+  become: yes
+  tasks:
+    - name: Set MOTD
+      copy:
+        content: |
+          ==========================================
+          Welcome to {{ inventory_hostname }}
+          LCI 2026 Workshop Cluster
+          Managed by Ansible and Salt
+          ==========================================
+        dest: /etc/motd
 
-# Build image manually
-wwctl image build rockylinux-9
-
-# Show image details
-wwctl image show rockylinux-9
-
-# Working with Overlays
-wwctl overlay list
-wwctl overlay list --all wwinit
-
-# Create custom overlay
-wwctl overlay create site-custom
-wwctl overlay import site-custom /etc/motd --parents
-
-# Edit overlay file (add template content)
-cat > /var/lib/warewulf/overlays/site-custom/rootfs/etc/motd << 'EOF'
-Welcome to {{.Id}}
-This node is part of the LCI 2026 workshop cluster.
-Managed by Warewulf v4
+    - name: Set login banner
+      copy:
+        content: "Authorized users only.\n"
+        dest: /etc/issue
 EOF
 
-wwctl overlay show site-custom /etc/motd
-wwctl overlay build
+ansible-playbook -i hosts.ini deploy_motd.yml
 
-# Working with Nodes
-wwctl node add lci-compute-XX-1 --ipaddr=10.0.1XX.1 --discoverable=true --image=rockylinux-9
-wwctl node add lci-compute-XX-2 --ipaddr=10.0.1XX.2 --discoverable=true --image=rockylinux-9
+# Verify with Salt
+salt '*' cmd.run "cat /etc/motd"
 
-wwctl node list
-wwctl node list --all
+# Use Salt to create a state that enforces the MOTD content going forward
+cat > /srv/salt/motd.sls << 'EOF'
+motd_file:
+  file.managed:
+    - name: /etc/motd
+    - contents: |
+        ==========================================
+        This system is managed by Salt
+        LCI 2026 Workshop Cluster
+        ==========================================
+EOF
 
-# Set node properties
-wwctl node set lci-compute-XX-1 --image=rockylinux-9
-wwctl node set lci-compute-XX-1 \
-  --system-overlays="wwinit,wwclient,fstab,hostname,ssh.host_keys,site-custom"
+salt '*' state.apply motd
 
-# Configure services
-wwctl configure dhcp
-wwctl configure nfs
+# Notice Salt overwrote the Ansible-deployed MOTD - this demonstrates
+# why choosing one tool as the source of truth matters!
+salt '*' cmd.run "cat /etc/motd"
 
-# Working with Profiles
-wwctl profile list
-wwctl profile add lci-compute --image=rockylinux-9
-
-# ============================================================
-# Part 4: Combined Exercise
-# ============================================================
-
-# Create Ansible playbook for Warewulf setup
-cat > setup_nodes.yml << 'EOF'
+# --- Exercise 3: Ansible orchestrates, Salt manages state ---
+# Use Ansible to trigger Salt state runs across targeted nodes
+cat > salt_orchestrate.yml << 'EOF'
 ---
-- name: Configure Warewulf nodes
+- name: Use Ansible to orchestrate Salt
   hosts: head
   become: yes
   tasks:
-    - name: Add compute nodes to Warewulf
-      command: |
-        wwctl node add {{ item.name }} \
-          --ipaddr={{ item.ip }} \
-          --image=rockylinux-9 \
-          --discoverable=true
-      loop:
-        - { name: 'lci-compute-XX-1', ip: '10.0.1XX.1' }
-        - { name: 'lci-compute-XX-2', ip: '10.0.1XX.2' }
-      ignore_errors: yes
+    - name: Sync Salt modules
+      command: salt '*' saltutil.sync_all
 
-    - name: Configure DHCP
-      command: wwctl configure dhcp
+    - name: Apply user state on all minions
+      command: salt '*' state.apply create_user
 
-    - name: Build overlays
-      command: wwctl overlay build
+    - name: Check node health via Salt grains
+      command: salt '*' grains.get os
+      register: os_info
+
+    - name: Display OS info
+      debug:
+        var: os_info.stdout_lines
+
+    - name: Install packages via Salt on compute nodes only
+      command: salt -G 'id:lci-compute-*' pkg.install vim-enhanced
 EOF
 
-ansible-playbook -i hosts.ini setup_nodes.yml
-
-# Create Salt state for Slurm client
-cat > /srv/salt/slurm_client.sls << 'EOF'
-slurm_packages:
-  pkg.installed:
-    - pkgs:
-      - slurm
-      - slurm-slurmd
-
-slurmd_service:
-  service.running:
-    - name: slurmd
-    - enable: True
-EOF
-
-salt 'lci-compute-*' state.apply slurm_client
+ansible-playbook -i hosts.ini salt_orchestrate.yml
 
 # ============================================================
 # Cleanup
 # ============================================================
 
-# NOTE: Run the Salt cleanup command BEFORE running destroy.yml,
+# NOTE: Run the Salt cleanup commands BEFORE running destroy.yml,
 # since destroy.yml stops Salt services and the salt command will not work after.
 
-# Remove users
-ansible all_nodes -i hosts.ini -m user -a "name=workshop state=absent remove=yes" --become
+# Remove Salt-managed users and files
 salt '*' user.absent workshop_salt remove=True
+salt '*' file.remove /etc/motd
 
-# Remove Warewulf nodes
-wwctl node delete lci-compute-XX-1
-wwctl node delete lci-compute-XX-2
+# Remove Ansible-managed users and files
+ansible all_nodes -i hosts.ini -m user -a "name=workshop state=absent remove=yes" --become
+ansible all_nodes -i hosts.ini -m file -a "path=/tmp/lci_test.txt state=absent" --become
+ansible all_nodes -i hosts.ini -m file -a "path=/etc/issue state=absent" --become
 
-# Run destroy playbook (removes Salt, Warewulf, firewall rules, NFS, and test packages)
+# Remove packages installed during exercises
+ansible all_nodes -i hosts.ini -m dnf -a "name=tree state=absent" --become
+salt '*' pkg.remove vim-enhanced
+
+# Run destroy playbook (removes Salt, test packages, etc.)
 ansible-playbook -i hosts.ini destroy.yml
