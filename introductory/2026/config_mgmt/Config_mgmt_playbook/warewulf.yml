@@ -3,19 +3,11 @@
   hosts: head
   become: yes
   tasks:
-    - name: Add Warewulf repository
-      yum_repository:
-        name: warewulf
-        description: Warewulf Repository
-        baseurl: https://repo.warewulf.io/warewulf/rocky/9/x86_64/
-        gpgcheck: no
-        enabled: yes
-
-    - name: Install Warewulf
+    - name: Install Warewulf from GitHub release
       dnf:
-        name:
-          - warewulf
+        name: https://github.com/warewulf/warewulf/releases/download/v4.5.7/warewulf-4.5.7-1.el9.x86_64.rpm
         state: present
+        disable_gpg_check: yes
 
     - name: Install required dependencies
       dnf:

@@ -74,17 +74,20 @@ systemctl enable --now salt-master
 
 # Install Salt Minion (head node)
 dnf install -y salt-minion
-cat > /etc/salt/minion.d/master.conf << 'EOF'
-master: lci-head-XX-1
-id: lci-head-XX-1
-EOF
+
+# Using your preferred editor (vim or nano), create /etc/salt/minion.d/master.conf
+# The file should contain the following two lines:
+#   master: lci-head-XX-1
+#   id: lci-head-XX-1
+vim /etc/salt/minion.d/master.conf
+
 systemctl enable --now salt-minion
 
 # Install Salt Minion (compute nodes)
 clush -g compute "dnf install -y salt-minion"
 clush -g compute "echo 'master: lci-head-XX-1' > /etc/salt/minion.d/master.conf"
-clush -g compute "echo 'id: lci-compute-XX-1' > /etc/salt/minion.d/id.conf" --host lci-compute-XX-1
-clush -g compute "echo 'id: lci-compute-XX-2' > /etc/salt/minion.d/id.conf" --host lci-compute-XX-2
+clush -w lci-compute-XX-1 "echo 'id: lci-compute-XX-1' > /etc/salt/minion.d/id.conf"
+clush -w lci-compute-XX-2 "echo 'id: lci-compute-XX-2' > /etc/salt/minion.d/id.conf"
 clush -g compute "systemctl enable --now salt-minion"
 
 # Verify minions
@@ -171,8 +174,8 @@ wwctl overlay show site-custom /etc/motd
 wwctl overlay build
 
 # Working with Nodes
-wwctl node add lci-compute-XX-1 --ipaddr=10.0.2.1 --discoverable=true --image=rockylinux-9
-wwctl node add lci-compute-XX-2 --ipaddr=10.0.2.2 --discoverable=true --image=rockylinux-9
+wwctl node add lci-compute-XX-1 --ipaddr=10.0.1XX.1 --discoverable=true --image=rockylinux-9
+wwctl node add lci-compute-XX-2 --ipaddr=10.0.1XX.2 --discoverable=true --image=rockylinux-9
 
 wwctl node list
 wwctl node list --all
@@ -208,8 +211,8 @@ cat > setup_nodes.yml << 'EOF'
           --image=rockylinux-9 \
           --discoverable=true
       loop:
-        - { name: 'lci-compute-XX-1', ip: '10.0.2.1' }
-        - { name: 'lci-compute-XX-2', ip: '10.0.2.2' }
+        - { name: 'lci-compute-XX-1', ip: '10.0.1XX.1' }
+        - { name: 'lci-compute-XX-2', ip: '10.0.1XX.2' }
       ignore_errors: yes
 
     - name: Configure DHCP
@@ -241,6 +244,9 @@ salt 'lci-compute-*' state.apply slurm_client
 # Cleanup
 # ============================================================
 
+# NOTE: Run the Salt cleanup command BEFORE running destroy.yml,
+# since destroy.yml stops Salt services and the salt command will not work after.
+
 # Remove users
 ansible all_nodes -i hosts.ini -m user -a "name=workshop state=absent remove=yes" --become
 salt '*' user.absent workshop_salt remove=True
@@ -248,3 +254,6 @@ salt '*' user.absent workshop_salt remove=True
 # Remove Warewulf nodes
 wwctl node delete lci-compute-XX-1
 wwctl node delete lci-compute-XX-2
+
+# Run destroy playbook (removes Salt, Warewulf, firewall rules, NFS, and test packages)
+ansible-playbook -i hosts.ini destroy.yml
