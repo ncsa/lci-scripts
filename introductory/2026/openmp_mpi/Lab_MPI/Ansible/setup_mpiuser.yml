@@ -1,23 +1,23 @@
 ---
-- name: create MPI user on the head 
+- name: create MPI user on the head
   hosts: head
   connection: local
   gather_facts: no
   tasks:
 
     - name: Create MPI user
-      ansible.builtin.user: 
+      ansible.builtin.user:
         name: mpiuser
         password: '*'
-        uid: 5000
-        state: present
-        shell: /bin/bash
-        createhome: yes
-        home: /head/NFS/mpiuser
-        generate_ssh_key: yes
-        ssh_key_bits: 2048
-        ssh_key_file: .ssh/id_rsa
-        ssh_key_passphrase: 
+
+- name: Disable SELINUX on compute nodes
+  hosts: all_nodes
+  gather_facts: no
+  tasks:
+    - name: Disable SELINUX
+      ansible.posix.selinux:
+        update_kernel_param: true
+        state: disabled
 
 - name: create MPI user on the nodes
   hosts: all_nodes
@@ -35,3 +35,13 @@
         home: /head/NFS/mpiuser
         generate_ssh_key: no
 
+- name: create authorized_keys
+  hosts: head
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Copy pubkey to authorized_keys
+      ansible.posix.authorized_key:
+        user: mpiuser
+        state: present
+        key: "{{ lookup('file', '/head/NFS/mpiuser/.ssh/id_ed25519.pub') }}"
