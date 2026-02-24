@@ -27,8 +27,7 @@ ansible all_nodes -i hosts.ini -a "uptime"
 ansible all_nodes -i hosts.ini -a "df -h"
 ansible compute -i hosts.ini -m dnf -a "name=htop state=present" --become
 
-# Create user playbook
-cat > create_user.yml << 'EOF'
+# Create user playbook called "create_user.yml" with the following content:
 ---
 - name: Create workshop user on all nodes
   hosts: all_nodes
@@ -47,7 +46,8 @@ cat > create_user.yml << 'EOF'
         owner: workshop
         group: workshop
         mode: '0700'
-EOF
+
+
 
 ansible-playbook -i hosts.ini create_user.yml
 ansible all_nodes -i hosts.ini -a "id workshop"
