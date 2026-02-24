@@ -142,75 +142,7 @@ salt '*' pkg.install htop
 salt '*' disk.usage
 
 # ============================================================
-# Part 3: Warewulf (Reference Only - requires bare-metal or properly networked cluster)
-# ============================================================
-
-## Install Warewulf
-#ansible-playbook -i hosts.ini warewulf.yml
-#
-## Basic wwctl commands
-#wwctl version
-#wwctl --help
-#
-## Working with Images
-#wwctl image import docker://ghcr.io/warewulf/warewulf-rockylinux:9 rockylinux-9
-#wwctl image list
-#wwctl image list --long
-#
-## Modify image interactively
-#wwctl image shell rockylinux-9
-#dnf -y install htop vim
-#exit
-#
-## Execute command in image
-#wwctl image exec rockylinux-9 -- /usr/bin/dnf -y install tmux
-#
-## Build image manually
-#wwctl image build rockylinux-9
-#
-## Show image details
-#wwctl image show rockylinux-9
-#
-## Working with Overlays
-#wwctl overlay list
-#wwctl overlay list --all wwinit
-#
-## Create custom overlay
-#wwctl overlay create site-custom
-#wwctl overlay import site-custom /etc/motd --parents
-#
-## Edit overlay file (add template content)
-#cat > /var/lib/warewulf/overlays/site-custom/rootfs/etc/motd << 'EOF'
-#Welcome to {{.Id}}
-#This node is part of the LCI 2026 workshop cluster.
-#Managed by Warewulf v4
-#EOF
-#
-#wwctl overlay show site-custom /etc/motd
-#wwctl overlay build
-#
-## Working with Nodes
-#wwctl node add lci-compute-XX-1 --ipaddr=10.0.1XX.1 --discoverable=true --image=rockylinux-9
-#wwctl node add lci-compute-XX-2 --ipaddr=10.0.1XX.2 --discoverable=true --image=rockylinux-9
-#
-#wwctl node list
-#wwctl node list --all
-#
-## Set node properties
-#wwctl node set lci-compute-XX-1 --image=rockylinux-9
-#wwctl node set lci-compute-XX-1 \
-#  --system-overlays="wwinit,wwclient,fstab,hostname,ssh.host_keys,site-custom"
-#
-## Configure services
-#wwctl configure dhcp
-#wwctl configure nfs
-#
-## Working with Profiles
-#wwctl profile list
-#wwctl profile add lci-compute --image=rockylinux-9
-
-# ============================================================
-# Part 4: Combined Exercises - Using Ansible and Salt Together
+# Part 3: Combined Exercises - Using Ansible and Salt Together
 # ============================================================
 
 # --- Exercise 1: Ansible installs packages, Salt configures them ---
@@ -318,3 +250,71 @@ salt '*' pkg.remove vim-enhanced
 
 # Run destroy playbook (removes Salt, test packages, etc.)
 ansible-playbook -i hosts.ini destroy.yml
+
+# ============================================================
+# Reference: Warewulf (requires bare-metal or properly networked cluster)
+# ============================================================
+
+## Install Warewulf
+#ansible-playbook -i hosts.ini warewulf.yml
+#
+## Basic wwctl commands
+#wwctl version
+#wwctl --help
+#
+## Working with Images
+#wwctl image import docker://ghcr.io/warewulf/warewulf-rockylinux:9 rockylinux-9
+#wwctl image list
+#wwctl image list --long
+#
+## Modify image interactively
+#wwctl image shell rockylinux-9
+#dnf -y install htop vim
+#exit
+#
+## Execute command in image
+#wwctl image exec rockylinux-9 -- /usr/bin/dnf -y install tmux
+#
+## Build image manually
+#wwctl image build rockylinux-9
+#
+## Show image details
+#wwctl image show rockylinux-9
+#
+## Working with Overlays
+#wwctl overlay list
+#wwctl overlay list --all wwinit
+#
+## Create custom overlay
+#wwctl overlay create site-custom
+#wwctl overlay import site-custom /etc/motd --parents
+#
+## Edit overlay file (add template content)
+#cat > /var/lib/warewulf/overlays/site-custom/rootfs/etc/motd << 'EOF'
+#Welcome to {{.Id}}
+#This node is part of the LCI 2026 workshop cluster.
+#Managed by Warewulf v4
+#EOF
+#
+#wwctl overlay show site-custom /etc/motd
+#wwctl overlay build
+#
+## Working with Nodes
+#wwctl node add lci-compute-XX-1 --ipaddr=10.0.1XX.1 --discoverable=true --image=rockylinux-9
+#wwctl node add lci-compute-XX-2 --ipaddr=10.0.1XX.2 --discoverable=true --image=rockylinux-9
+#
+#wwctl node list
+#wwctl node list --all
+#
+## Set node properties
+#wwctl node set lci-compute-XX-1 --image=rockylinux-9
+#wwctl node set lci-compute-XX-1 \
+#  --system-overlays="wwinit,wwclient,fstab,hostname,ssh.host_keys,site-custom"
+#
+## Configure services
+#wwctl configure dhcp
+#wwctl configure nfs
+#
+## Working with Profiles
+#wwctl profile list
+#wwctl profile add lci-compute --image=rockylinux-9

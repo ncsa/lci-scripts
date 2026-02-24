@@ -403,75 +403,7 @@ salt '*' disk.usage
 
 ---
 
-## Part 3: Warewulf - HPC Cluster Provisioning (Reference Only)
-
-> **Note:** This section is provided as reference material. Warewulf requires bare-metal or properly networked clusters and cannot be run on the virtual workshop clusters.
-
-Warewulf is an HPC cluster provisioning system that deploys operating system images to bare-metal compute nodes via network boot (PXE/iPXE).
-
-### Key Concepts
-
-- **Image (Container)**: A bootable operating system image deployed to compute nodes
-- **Overlay**: Files and templates rendered per-node and applied over the image
-- **Node**: A compute node provisioned by Warewulf
-- **Profile**: Default settings applied to multiple nodes
-- **wwctl**: The Warewulf control command-line tool
-
-### Why Warewulf?
-
-While Ansible and Salt manage configuration on **running** systems, Warewulf:
-- Provisions **bare-metal** compute nodes from scratch
-- Deploys complete operating system images over the network
-- Scales to thousands of nodes
-- Integrates with HPC schedulers like Slurm
-
-### Comparison: Ansible/Salt vs Warewulf
-
-| Feature | Ansible/Salt | Warewulf |
-|---------|--------------|----------|
-| **When to use** | Managing running systems | Provisioning bare-metal nodes |
-| **Target** | Existing OS | Empty/blank machines |
-| **Deployment** | SSH/Agent | Network boot (PXE/iPXE) |
-| **Image** | None (incremental changes) | Complete OS image |
-| **Persistence** | Configuration on disk | Stateless or persistent |
-
-**Typical HPC workflow:**
-1. **Warewulf**: Provision bare-metal nodes with base OS
-2. **Ansible/Salt**: Post-provisioning configuration (Slurm, apps, etc.)
-
-### Reference Commands
-
-The following commands are what you would use on a properly configured Warewulf cluster:
-
-```bash
-# Install Warewulf
-# ansible-playbook -i hosts.ini warewulf.yml
-
-# Basic wwctl commands
-# wwctl version
-# wwctl --help
-
-# Working with Images
-# wwctl image import docker://ghcr.io/warewulf/warewulf-rockylinux:9 rockylinux-9
-# wwctl image list
-# wwctl image shell rockylinux-9
-
-# Working with Overlays
-# wwctl overlay list
-# wwctl overlay create site-custom
-
-# Working with Nodes
-# wwctl node add lci-compute-XX-1 --ipaddr=10.0.1XX.1 --discoverable=true --image=rockylinux-9
-# wwctl node list
-
-# Configure services
-# wwctl configure dhcp
-# wwctl configure nfs
-```
-
----
-
-## Part 4: Combined Exercises - Using Ansible and Salt Together (10-15 minutes)
+## Part 3: Combined Exercises - Using Ansible and Salt Together (10-15 minutes)
 
 Now that you've used both tools, let's see how they can complement each other.
 
@@ -705,6 +637,74 @@ salt '*' state.apply state_name -l debug
 ```bash
 salt-key -L
 salt-key -A
+```
+
+---
+
+## Reference: Warewulf - HPC Cluster Provisioning
+
+> **Note:** This section is provided as reference material. Warewulf requires bare-metal or properly networked clusters and cannot be run on the virtual workshop clusters.
+
+Warewulf is an HPC cluster provisioning system that deploys operating system images to bare-metal compute nodes via network boot (PXE/iPXE).
+
+### Key Concepts
+
+- **Image (Container)**: A bootable operating system image deployed to compute nodes
+- **Overlay**: Files and templates rendered per-node and applied over the image
+- **Node**: A compute node provisioned by Warewulf
+- **Profile**: Default settings applied to multiple nodes
+- **wwctl**: The Warewulf control command-line tool
+
+### Why Warewulf?
+
+While Ansible and Salt manage configuration on **running** systems, Warewulf:
+- Provisions **bare-metal** compute nodes from scratch
+- Deploys complete operating system images over the network
+- Scales to thousands of nodes
+- Integrates with HPC schedulers like Slurm
+
+### Comparison: Ansible/Salt vs Warewulf
+
+| Feature | Ansible/Salt | Warewulf |
+|---------|--------------|----------|
+| **When to use** | Managing running systems | Provisioning bare-metal nodes |
+| **Target** | Existing OS | Empty/blank machines |
+| **Deployment** | SSH/Agent | Network boot (PXE/iPXE) |
+| **Image** | None (incremental changes) | Complete OS image |
+| **Persistence** | Configuration on disk | Stateless or persistent |
+
+**Typical HPC workflow:**
+1. **Warewulf**: Provision bare-metal nodes with base OS
+2. **Ansible/Salt**: Post-provisioning configuration (Slurm, apps, etc.)
+
+### Reference Commands
+
+The following commands are what you would use on a properly configured Warewulf cluster:
+
+```bash
+# Install Warewulf
+# ansible-playbook -i hosts.ini warewulf.yml
+
+# Basic wwctl commands
+# wwctl version
+# wwctl --help
+
+# Working with Images
+# wwctl image import docker://ghcr.io/warewulf/warewulf-rockylinux:9 rockylinux-9
+# wwctl image list
+# wwctl image shell rockylinux-9
+
+# Working with Overlays
+# wwctl overlay list
+# wwctl overlay create site-custom
+
+# Working with Nodes
+# wwctl node add lci-compute-XX-1 --ipaddr=10.0.1XX.1 --discoverable=true --image=rockylinux-9
+# wwctl node list
+
+# Configure services
+# wwctl configure dhcp
+# wwctl configure nfs
 ```
 
 ---
