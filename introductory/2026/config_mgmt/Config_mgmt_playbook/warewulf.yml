@@ -71,6 +71,15 @@
         - 2049/udp    # NFS
         - 9873/tcp    # Warewulf
 
+    - name: Start Warewulf service
+      systemd:
+        name: warewulfd
+        state: started
+        enabled: yes
+
+    - name: Configure Warewulf services (generates dhcpd.conf, etc.)
+      command: wwctl configure --all
+
     - name: Configure DHCP service
       systemd:
         name: dhcpd
@@ -88,16 +97,6 @@
         name: nfs-server
         state: started
         enabled: yes
-
-    - name: Start Warewulf service
-      systemd:
-        name: warewulfd
-        state: started
-        enabled: yes
-
-    - name: Configure Warewulf services
-      command: wwctl configure --all
-      ignore_errors: yes
 
 - name: Configure Compute Nodes for Network Boot
   hosts: compute
