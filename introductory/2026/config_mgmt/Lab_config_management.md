@@ -1,8 +1,8 @@
-# Lab: Configuration Management Tools - Ansible, Salt, and Warewulf
+# Lab: Configuration Management Tools - Ansible and Salt
 
 ## Lab Overview
 
-**Objective:** Learn the basics of Ansible (configuration management), Salt (event-driven automation), and Warewulf (HPC cluster provisioning). Understand their different approaches, use cases, and how they work together.
+**Objective:** Learn the basics of Ansible (configuration management) and Salt (event-driven automation). Understand their different approaches, use cases, and how they can work together to manage an HPC cluster.
 
 **Duration:** 45-60 minutes
 
@@ -14,7 +14,7 @@
 **What You Will Learn:**
 - **Ansible**: Agentless, YAML-based configuration using SSH
 - **Salt**: Master-minion architecture with event-driven automation
-- **Warewulf**: HPC cluster provisioning system for bare-metal compute nodes
+- How to use Ansible and Salt together effectively
 - How to choose the right tool for different scenarios
 
 ---
@@ -38,17 +38,26 @@ cd Config_mgmt_playbook
 
 ### Update Configuration
 
-Replace `XX` with your cluster number in all files:
+Replace `XX` with your cluster number in `hosts.ini`:
 
+**Using vim:**
 ```bash
 vim hosts.ini
+# In vim, type:  :%s/XX/<clusternumber>/g
+# Then save:     :wq
+```
+
+**Using nano:**
+```bash
+nano hosts.ini
+# Press Ctrl+\, Enter "XX", Enter your cluster number, A, Ctrl+O, Enter, Ctrl+X
 ```
 
 ---
 
-## Part 1: Ansible Recap (10 minutes)
+## Part 1: Ansible Recap (15 minutes)
 
-You've already used Ansible in the Head Node lab. Let's review the key concepts.
+You've already used Ansible in the Head Node lab. Let's review the key concepts and explore more features.
 
 ### Key Concepts
 
@@ -57,7 +66,7 @@ You've already used Ansible in the Head Node lab. Let's review the key concepts.
 - **YAML syntax**: Human-readable configuration files
 - **Inventory**: Defines which nodes to manage (`hosts.ini`)
 - **Playbooks**: Define the desired state in YAML
-- **Roles**: Reusable, modular configuration components
+- **Modules**: Pre-built tools for common tasks (dnf, copy, user, etc.)
 
 ### Quick Review Exercise
 
@@ -70,18 +79,20 @@ cat hosts.ini
 **Output:**
 ```ini
 [head]
-lci-head-01-1
+lci-head-XX-1 ansible_connection=local
 
 [compute]
-lci-compute-01-1
-lci-compute-01-2
+lci-compute-XX-1
+lci-compute-XX-2
 
 [all_nodes:children]
 head
 compute
 ```
 
-Test connectivity:
+Note: `ansible_connection=local` tells Ansible to run commands locally on the head node instead of SSHing to itself.
+
+### Test Connectivity
 
 ```bash
 ansible all_nodes -i hosts.ini -m ping
@@ -89,7 +100,7 @@ ansible all_nodes -i hosts.ini -m ping
 
 This uses the `ping` module to verify all nodes are reachable.
 
-### Ansible Ad-Hoc Commands
+### Ansible Ad-Hoc Commands - Gathering Information
 
 Ad-hoc commands are one-off commands you can run without writing a playbook.
 
@@ -105,18 +116,55 @@ Check disk space:
 ansible all_nodes -i hosts.ini -a "df -h"
 ```
 
-Install a package on compute nodes:
+Check hostnames:
+
+```bash
+ansible all_nodes -i hosts.ini -a "hostname"
+```
+
+Get OS information:
+
+```bash
+ansible all_nodes -i hosts.ini -m shell -a "cat /etc/os-release | head -2"
+```
+
+### Ansible Ad-Hoc Commands - Using Modules
+
+Query system memory using the `setup` module:
+
+```bash
+ansible all_nodes -i hosts.ini -m setup -a "filter=ansible_memory_mb"
+```
+
+Install packages on compute nodes:
 
 ```bash
 ansible compute -i hosts.ini -m dnf -a "name=htop state=present" --become
+ansible compute -i hosts.ini -m dnf -a "name=tmux state=present" --become
+```
+### essentially "Go to my compute nodes and make sure the tmux/htop program is installed."
+
+
+Verify packages installed:
+
+```bash
+ansible compute -i hosts.ini -m shell -a "rpm -q htop tmux"
+```
+
+### Copy a File to All Nodes
+
+Use the `copy` module to distribute a file:
+
+```bash
+ansible all_nodes -i hosts.ini -m copy -a "content='Hello from LCI 2026\n' dest=/tmp/lci_test.txt" --become
+ansible all_nodes -i hosts.ini -a "cat /tmp/lci_test.txt"
 ```
 
 ### Create Your First Ansible Playbook
 
-Create a simple playbook that creates a user on all nodes:
+Using your preferred editor (vim or nano), create a file called `create_user.yml` with the following content:
 
-```bash
-cat > create_user.yml << 'EOF'
+```yaml
 ---
 - name: Create workshop user on all nodes
   hosts: all_nodes
@@ -136,7 +184,6 @@ cat > create_user.yml << 'EOF'
         owner: workshop
         group: workshop
         mode: '0700'
-EOF
 ```
 
 Run the playbook:
@@ -153,15 +200,25 @@ ansible all_nodes -i hosts.ini -a "id workshop"
 
 **Expected output:**
 ```
-lci-head-01-1 | CHANGED | rc=0 >>
+lci-head-XX-1 | CHANGED | rc=0 >>
 uid=3000(workshop) gid=3000(workshop) groups=3000(workshop)
 
-lci-compute-01-1 | CHANGED | rc=0 >>
+lci-compute-XX-1 | CHANGED | rc=0 >>
 uid=3000(workshop) gid=3000(workshop) groups=3000(workshop)
 
-lci-compute-01-2 | CHANGED | rc=0 >>
+lci-compute-XX-2 | CHANGED | rc=0 >>
 uid=3000(workshop) gid=3000(workshop) groups=3000(workshop)
 ```
+
+### Install Salt via Ansible
+
+Run the included playbook to install Salt on all nodes (used in Part 2):
+
+```bash
+ansible-playbook -i hosts.ini playbook.yml
+```
+
+This demonstrates Ansible's strength as a deployment tool - using it to bootstrap another configuration management system.
 
 ---
 
@@ -189,50 +246,43 @@ Edit the master configuration:
 
 ```bash
 cat > /etc/salt/master.d/lci.conf << 'EOF'
-# Accept all minion keys automatically (for lab only, not production)
 auto_accept: True
-
-# Set file roots for state files
 file_roots:
   base:
     - /srv/salt
-
-# Set pillar roots
 pillar_roots:
   base:
     - /srv/pillar
 EOF
 ```
 
-Create the state file directory:
+Create the state file directories:
 
 ```bash
-mkdir -p /srv/salt
-mkdir -p /srv/pillar
+mkdir -p /srv/salt /srv/pillar
 ```
 
 Start and enable the Salt master:
 
 ```bash
 systemctl enable --now salt-master
-systemctl status salt-master
 ```
 
-### Install Salt Minion on Compute Nodes
-
-Install on head node (master is also a minion):
+### Install Salt Minion on Head Node
 
 ```bash
 dnf install -y salt-minion
 ```
 
-Configure the minion to point to the master:
+Using your preferred editor (vim or nano), create `/etc/salt/minion.d/master.conf`. The file should contain the following two lines:
+
+```
+master: lci-head-XX-1
+id: lci-head-XX-1
+```
 
 ```bash
-cat > /etc/salt/minion.d/master.conf << 'EOF'
-master: lci-head-01-1
-id: lci-head-01-1
-EOF
+vim /etc/salt/minion.d/master.conf
 ```
 
 Start the minion:
@@ -241,13 +291,13 @@ Start the minion:
 systemctl enable --now salt-minion
 ```
 
-Now install and configure minions on compute nodes:
+### Install Salt Minion on Compute Nodes
 
 ```bash
 clush -g compute "dnf install -y salt-minion"
-clush -g compute "echo 'master: lci-head-01-1' > /etc/salt/minion.d/master.conf"
-clush -g compute "echo 'id: lci-compute-01-1' > /etc/salt/minion.d/id.conf" --host lci-compute-01-1
-clush -g compute "echo 'id: lci-compute-01-2' > /etc/salt/minion.d/id.conf" --host lci-compute-01-2
+clush -g compute "echo 'master: lci-head-XX-1' > /etc/salt/minion.d/master.conf"
+clush -w lci-compute-XX-1 "echo 'id: lci-compute-XX-1' > /etc/salt/minion.d/id.conf"
+clush -w lci-compute-XX-2 "echo 'id: lci-compute-XX-2' > /etc/salt/minion.d/id.conf"
 clush -g compute "systemctl enable --now salt-minion"
 ```
 
@@ -262,9 +312,9 @@ salt-key -L
 **Expected output:**
 ```
 Accepted Keys:
-lci-head-01-1
-lci-compute-01-1
-lci-compute-01-2
+lci-head-XX-1
+lci-compute-XX-1
+lci-compute-XX-2
 Denied Keys:
 Unaccepted Keys:
 Rejected Keys:
@@ -278,7 +328,7 @@ salt '*' test.ping
 
 ### Salt States - Create a User
 
-Create a Salt state file to create the same user we made with Ansible:
+Create a Salt state file to create a user (similar to what we did with Ansible):
 
 ```bash
 cat > /srv/salt/create_user.sls << 'EOF'
@@ -353,537 +403,205 @@ salt '*' disk.usage
 
 ---
 
-## Part 3: Warewulf - HPC Cluster Provisioning (15 minutes)
+## Part 3: Combined Exercises - Using Ansible and Salt Together (10-15 minutes)
 
-Warewulf is an HPC cluster provisioning system that deploys operating system images to bare-metal compute nodes via network boot (PXE/iPXE).
-
-### Key Concepts
-
-- **Image (Container)**: A bootable operating system image that will be deployed to compute nodes
-- **Overlay**: A collection of files and templates that are rendered per-node and applied over the image
-- **Node**: A compute node in the cluster that will be provisioned by Warewulf
-- **Profile**: A collection of default settings that can be applied to multiple nodes
-- **wwctl**: The Warewulf control command-line tool
-
-### Why Warewulf?
-
-While Ansible and Salt manage configuration on **running** systems, Warewulf:
-- Provisions **bare-metal** compute nodes from scratch
-- Deploys complete operating system images over the network
-- Scales to thousands of nodes
-- Integrates with HPC schedulers like Slurm
-
-### Install Warewulf
-
-For this lab, we'll use Ansible to install Warewulf. Run the provided playbook:
-
-```bash
-ansible-playbook -i hosts.ini warewulf.yml
-```
-
-This playbook will:
-1. Install Warewulf server on the head node
-2. Configure DHCP, TFTP, and NFS services
-3. Set up the Warewulf daemon
-
-### Basic wwctl Commands
-
-Warewulf uses the `wwctl` command for all operations. Let's explore the basics.
-
-#### Check Warewulf Version
-
-```bash
-wwctl version
-```
-
-#### View Server Configuration
-
-```bash
-wwctl server status
-```
-
-#### List Available Commands
-
-```bash
-wwctl --help
-```
-
-**Key wwctl subcommands:**
-- `wwctl image` - Manage container images
-- `wwctl overlay` - Manage overlays
-- `wwctl node` - Manage cluster nodes
-- `wwctl profile` - Manage node profiles
-- `wwctl configure` - Configure services (DHCP, NFS, etc.)
-
-### Working with Images (Containers)
-
-Warewulf uses container images (similar to Docker/Podman) as the base operating system for compute nodes.
-
-#### Import a Base Image
-
-Import a Rocky Linux 9 image from the Warewulf registry:
-
-```bash
-wwctl image import docker://ghcr.io/warewulf/warewulf-rockylinux:9 rockylinux-9
-```
-
-**What this does:**
-- Downloads the container image from the OCI registry
-- Creates a chroot directory at `/var/lib/warewulf/chroots/rockylinux-9/`
-- Prepares the image for network boot
-
-#### List Imported Images
-
-```bash
-wwctl image list
-```
-
-**Expected output:**
-```
-IMAGE NAME    NODES  KERNEL VERSION      CREATION TIME        MODIFICATION TIME    SIZE
-----------    -----  --------------      -------------        -----------------    ----
-rockylinux-9  0      5.14.0-362...       Feb 21 10:00 MST     Feb 21 10:00 MST     1.2 GiB
-```
-
-See more details:
-
-```bash
-wwctl image list --long
-```
-
-#### Modify an Image Interactively
-
-Enter the image chroot to make changes:
-
-```bash
-wwctl image shell rockylinux-9
-```
-
-You'll see a prompt like:
-```
-[warewulf:rockylinux-9] /#
-```
-
-Now you can install packages inside the image:
-
-```bash
-[warewulf:rockylinux-9] /# dnf -y install htop vim
-```
-
-Exit when done:
-
-```bash
-[warewulf:rockylinux-9] /# exit
-```
-
-Warewulf will automatically rebuild the image when you exit.
-
-#### Run Commands in an Image (Non-Interactive)
-
-Execute a single command without entering the shell:
-
-```bash
-wwctl image exec rockylinux-9 -- /usr/bin/dnf -y install tmux
-```
-
-#### Build an Image Manually
-
-If you make changes outside of `wwctl image shell`, rebuild the image:
-
-```bash
-wwctl image build rockylinux-9
-```
-
-This creates:
-- `/var/lib/warewulf/provision/images/rockylinux-9.img` - The uncompressed image
-- `/var/lib/warewulf/provision/images/rockylinux-9.img.gz` - The compressed image for network transfer
-
-#### Show Image Details
-
-```bash
-wwctl image show rockylinux-9
-```
-
-This shows the chroot directory path:
-```
-/var/lib/warewulf/chroots/rockylinux-9
-```
-
-### Working with Overlays
-
-Overlays are collections of files and templates that are rendered per-node and applied over the base image during provisioning. They're used for node-specific configuration.
-
-#### List Available Overlays
-
-```bash
-wwctl overlay list
-```
-
-**Expected output:**
-```
-OVERLAY NAME     FILES/DIRS  SITE
-------------     ----------  ----
-wwinit           10          false
-wwclient         2           false
-fstab            2           false
-hostname         1           false
-ssh.host_keys    2           false
-ssh.authorized_keys  1       false
-hosts            1           false
-issue            1           false
-...
-```
-
-**Key distribution overlays:**
-- **wwinit**: Initial configuration during boot
-- **wwclient**: Periodically updates runtime configuration
-- **fstab**: Configures /etc/fstab for NFS mounts
-- **hostname**: Sets the node hostname
-- **ssh.host_keys**: Distributes SSH host keys
-- **hosts**: Configures /etc/hosts with all nodes
-
-#### List Files in an Overlay
-
-```bash
-wwctl overlay list --all wwinit
-```
-
-#### Create a Custom Overlay
-
-Create a new overlay for site-specific configuration:
-
-```bash
-wwctl overlay create site-custom
-```
-
-Add a file to the overlay:
-
-```bash
-wwctl overlay import site-custom /etc/motd --parents
-```
-
-Edit the file (make it a template):
-
-```bash
-wwctl overlay edit site-custom /etc/motd
-```
-
-Add some content:
-```
-Welcome to {{.Id}}
-This node is part of the LCI 2026 workshop cluster.
-Managed by Warewulf v4
-```
-
-#### Show Overlay Content
-
-```bash
-wwctl overlay show site-custom /etc/motd
-```
-
-#### Render an Overlay Template for a Specific Node
-
-```bash
-wwctl overlay show site-custom /etc/motd --render n1
-```
-
-This shows how the template will be rendered with actual node values.
-
-#### Build Overlays
-
-Build all overlays for all nodes:
-
-```bash
-wwctl overlay build
-```
-
-Build for a specific node:
-
-```bash
-wwctl overlay build n1
-```
-
-### Working with Nodes
-
-#### Add a Cluster Node
-
-Add a compute node to Warewulf:
-
-```bash
-wwctl node add lci-compute-01-1 \
-  --ipaddr=10.0.2.1 \
-  --hwaddr=00:00:00:00:00:01 \
-  --image=rockylinux-9
-```
-
-Add the second compute node:
-
-```bash
-wwctl node add lci-compute-01-2 \
-  --ipaddr=10.0.2.2 \
-  --hwaddr=00:00:00:00:00:02 \
-  --image=rockylinux-9
-```
-
-**Note:** Replace the hardware addresses (MAC addresses) with the actual MAC addresses of your compute nodes.
-
-#### List Nodes
-
-```bash
-wwctl node list
-```
-
-See all details:
-
-```bash
-wwctl node list --all
-```
-
-#### Set Node Properties
-
-Configure a node's image:
-
-```bash
-wwctl node set lci-compute-01-1 --image=rockylinux-9
-```
-
-Add overlays to a node:
-
-```bash
-wwctl node set lci-compute-01-1 \
-  --system-overlays="wwinit,wwclient,fstab,hostname,ssh.host_keys,site-custom" \
-  --runtime-overlays="hosts,ssh.authorized_keys"
-```
-
-#### Enable Node Discovery
-
-If you don't know the MAC address yet, enable discovery:
-
-```bash
-wwctl node set lci-compute-01-1 --discoverable=true
-```
-
-When the node first boots and requests an image, Warewulf will capture its MAC address.
-
-### Working with Profiles
-
-Profiles are collections of default settings applied to multiple nodes.
-
-#### List Profiles
-
-```bash
-wwctl profile list
-```
-
-#### Create a Profile
-
-```bash
-wwctl profile add lci-compute \
-  --image=rockylinux-9 \
-  --system-overlays="wwinit,wwclient,fstab,hostname,ssh.host_keys,site-custom"
-```
-
-#### Set Profile Properties
-
-Configure NFS mounts for all nodes in the profile:
-
-```bash
-wwctl profile set lci-compute \
-  --resource=fstab='[{"spec":"lci-head-01-1:/home","file":"/home","vfstype":"nfs","mntops":"defaults"}]'
-```
-
-### Configure Supporting Services
-
-Warewulf can configure DHCP, NFS, and other services:
-
-#### Configure DHCP
-
-```bash
-wwctl configure dhcp
-```
-
-This updates `/etc/dhcp/dhcpd.conf` with node entries.
-
-#### Configure NFS
-
-```bash
-wwctl configure nfs
-```
-
-This updates `/etc/exports` with Warewulf directories.
-
-#### Configure SSH
-
-```bash
-wwctl configure ssh
-```
-
-This sets up SSH keys for root access to nodes.
-
-### Comparison: Ansible/Salt vs Warewulf
-
-| Feature | Ansible/Salt | Warewulf |
-|---------|--------------|----------|
-| **When to use** | Managing running systems | Provisioning bare-metal nodes |
-| **Target** | Existing OS | Empty/blank machines |
-| **Deployment** | SSH/Agent | Network boot (PXE/iPXE) |
-| **Image** | None (incremental changes) | Complete OS image |
-| **Persistence** | Configuration on disk | Stateless or persistent |
-
-**Typical HPC workflow:**
-1. **Warewulf**: Provision bare-metal nodes with base OS
-2. **Ansible/Salt**: Post-provisioning configuration (Slurm, apps, etc.)
-
----
-
-## Part 4: Comparison and Best Practices (10-15 minutes)
-
-Now that you've used all three tools, let's compare them.
+Now that you've used both tools, let's see how they can complement each other.
 
 ### Side-by-Side Comparison
 
-| Feature | Ansible | Salt | Warewulf |
-|---------|---------|------|----------|
-| **Architecture** | Agentless (SSH) | Master-Minion | Server-Client (PXE) |
-| **Syntax** | YAML | YAML | CLI commands |
-| **Learning Curve** | Low | Medium | Low-Medium |
-| **Scalability** | Good (10K+ nodes) | Excellent (50K+ nodes) | Excellent (10K+ nodes) |
-| **Push vs Pull** | Push (on-demand) | Both | Pull (at boot) |
-| **Target State** | Running systems | Running systems | Bare-metal nodes |
-| **Use Case** | Configuration, deployment | Event-driven, real-time | OS provisioning |
+| Feature | Ansible | Salt |
+|---------|---------|------|
+| **Architecture** | Agentless (SSH) | Master-Minion |
+| **Syntax** | YAML | YAML |
+| **Learning Curve** | Low | Medium |
+| **Scalability** | Good (10K+ nodes) | Excellent (50K+ nodes) |
+| **Push vs Pull** | Push (on-demand) | Both |
+| **Best For** | Deployment, ad-hoc tasks | Event-driven, real-time |
 
-### When to Use Each Tool
+### Exercise 1: Ansible Installs, Salt Verifies
 
-**Ansible:**
-- Great for: Provisioning, application deployment, ad-hoc tasks
-- Best when: You need to get started quickly, have existing SSH infrastructure
-- Example use cases: Bootstrapping new servers, deploying applications, running maintenance tasks
-
-**Salt:**
-- Great for: Event-driven automation, real-time orchestration, large-scale cloud
-- Best when: You need speed and real-time responses
-- Example use cases: Auto-scaling cloud instances, continuous configuration, complex orchestration
-
-**Warewulf:**
-- Great for: HPC cluster provisioning, bare-metal deployment
-- Best when: You need to provision many identical compute nodes
-- Example use cases: HPC clusters, compute farms, stateless compute nodes
-
-### Practical Exercise: Configure All Tools Together
-
-Let's use all three tools together to configure a complete environment:
-
-**Step 1: Use Warewulf to import a base image**
+Use Ansible to install a package across all nodes:
 
 ```bash
-wwctl image import docker://ghcr.io/warewulf/warewulf-rockylinux:9 rockylinux-9
+ansible all_nodes -i hosts.ini -m dnf -a "name=tree state=present" --become
 ```
 
-**Step 2: Use Ansible to add nodes to Warewulf**
-
-Create a playbook:
+Use Salt to verify the install and gather info:
 
 ```bash
-cat > setup_nodes.yml << 'EOF'
+salt '*' pkg.version tree
+salt '*' cmd.run "tree --version"
+```
+
+This shows a common pattern: Ansible handles deployment, Salt provides visibility.
+
+### Exercise 2: Ansible Deploys Config, Salt Enforces State
+
+Create a playbook that sets up an MOTD on all nodes:
+
+```bash
+cat > deploy_motd.yml << 'EOF'
 ---
-- name: Configure Warewulf nodes
+- name: Deploy MOTD to all nodes
+  hosts: all_nodes
+  become: yes
+  tasks:
+    - name: Set MOTD
+      copy:
+        content: |
+          ==========================================
+          Welcome to {{ inventory_hostname }}
+          LCI 2026 Workshop Cluster
+          Managed by Ansible and Salt
+          ==========================================
+        dest: /etc/motd
+
+    - name: Set login banner
+      copy:
+        content: "Authorized users only.\n"
+        dest: /etc/issue
+EOF
+
+ansible-playbook -i hosts.ini deploy_motd.yml
+```
+
+Verify with Salt:
+
+```bash
+salt '*' cmd.run "cat /etc/motd"
+```
+
+Now use Salt to create a state that enforces the MOTD content going forward:
+
+```bash
+cat > /srv/salt/motd.sls << 'EOF'
+motd_file:
+  file.managed:
+    - name: /etc/motd
+    - contents: |
+        ==========================================
+        This system is managed by Salt
+        LCI 2026 Workshop Cluster
+        ==========================================
+EOF
+
+salt '*' state.apply motd
+```
+
+Check the MOTD again:
+
+```bash
+salt '*' cmd.run "cat /etc/motd"
+```
+
+**Notice:** Salt overwrote the Ansible-deployed MOTD. This demonstrates why choosing **one tool as the source of truth** for each resource matters. If both tools manage the same file, they will conflict.
+
+### Exercise 3: Ansible Orchestrates, Salt Manages State
+
+Use Ansible to trigger Salt state runs across targeted nodes. Create a playbook:
+
+```bash
+cat > salt_orchestrate.yml << 'EOF'
+---
+- name: Use Ansible to orchestrate Salt
   hosts: head
   become: yes
   tasks:
-    - name: Add compute nodes to Warewulf
-      command: |
-        wwctl node add {{ item.name }} \
-          --ipaddr={{ item.ip }} \
-          --image=rockylinux-9 \
-          --discoverable=true
-      loop:
-        - { name: 'lci-compute-01-1', ip: '10.0.2.1' }
-        - { name: 'lci-compute-01-2', ip: '10.0.2.2' }
-      ignore_errors: yes
+    - name: Sync Salt modules
+      command: salt '*' saltutil.sync_all
 
-    - name: Configure DHCP
-      command: wwctl configure dhcp
+    - name: Apply user state on all minions
+      command: salt '*' state.apply create_user
 
-    - name: Build overlays
-      command: wwctl overlay build
+    - name: Check node health via Salt grains
+      command: salt '*' grains.get os
+      register: os_info
+
+    - name: Display OS info
+      debug:
+        var: os_info.stdout_lines
+
+    - name: Install packages via Salt on compute nodes only
+      command: salt -G 'id:lci-compute-*' pkg.install vim-enhanced
 EOF
 
-ansible-playbook -i hosts.ini setup_nodes.yml
+ansible-playbook -i hosts.ini salt_orchestrate.yml
 ```
 
-**Step 3: Use Salt to manage post-provisioning configuration**
+This pattern is powerful: Ansible provides the workflow orchestration (ordering, error handling, logging), while Salt handles the actual state management on nodes.
 
-Create a Salt state for Slurm client configuration:
+---
 
-```bash
-cat > /srv/salt/slurm_client.sls << 'EOF'
-slurm_packages:
-  pkg.installed:
-    - pkgs:
-      - slurm
-      - slurm-slurmd
+## Cleanup
 
-slurmd_service:
-  service.running:
-    - name: slurmd
-    - enable: True
-    - require:
-      - pkg: slurm_packages
+> **Important:** Run the Salt cleanup commands **BEFORE** running `destroy.yml`, since `destroy.yml` stops Salt services and the `salt` command will not work after.
 
-slurm_config:
-  file.managed:
-    - name: /etc/slurm/slurm.conf
-    - source: salt://files/slurm.conf
-    - require:
-      - pkg: slurm_packages
-EOF
-```
-
-Apply to compute nodes:
+### Remove Salt-managed users and files
 
 ```bash
-salt 'lci-compute-*' state.apply slurm_client
-```
-
-### Cleanup
-
-Remove the test users:
-
-```bash
-# Remove with Ansible
-ansible all_nodes -i hosts.ini -m user -a "name=workshop state=absent remove=yes" --become
-
-# Remove with Salt
 salt '*' user.absent workshop_salt remove=True
-
-# Remove Warewulf nodes
-wwctl node delete lci-compute-01-1
-wwctl node delete lci-compute-01-2
+salt '*' file.remove /etc/motd
 ```
+
+### Remove Ansible-managed users and files
+
+```bash
+ansible all_nodes -i hosts.ini -m user -a "name=workshop state=absent remove=yes" --become
+ansible all_nodes -i hosts.ini -m file -a "path=/tmp/lci_test.txt state=absent" --become
+ansible all_nodes -i hosts.ini -m file -a "path=/etc/issue state=absent" --become
+```
+
+### Remove packages installed during exercises
+
+```bash
+ansible all_nodes -i hosts.ini -m dnf -a "name=tree state=absent" --become
+salt '*' pkg.remove vim-enhanced
+```
+
+### Run destroy playbook
+
+```bash
+ansible-playbook -i hosts.ini destroy.yml
+```
+
+This removes Salt, test packages, and cleans up the environment.
 
 ---
 
 ## Summary
 
-You've now used three important HPC infrastructure tools:
+You've now used two important HPC infrastructure tools:
 
-1. **Ansible**: Agentless, simple YAML, great for configuration management
-2. **Salt**: Master-minion, event-driven, excellent for real-time orchestration  
-3. **Warewulf**: HPC provisioning system for bare-metal compute nodes
+1. **Ansible**: Agentless, simple YAML, great for configuration management and deployment
+2. **Salt**: Master-minion, event-driven, excellent for real-time orchestration and state enforcement
 
 ### Key Takeaways
 
-- **Ansible** is the easiest to learn and requires no agents - perfect for general configuration
-- **Salt** offers the best performance and real-time capabilities - great for dynamic environments
-- **Warewulf** provisions bare-metal HPC nodes efficiently - essential for HPC clusters
-- All three can work together: Warewulf for provisioning, Ansible/Salt for post-boot configuration
-- Choose based on your specific needs: deployment speed, real-time requirements, infrastructure type
+- **Ansible** is the easiest to learn and requires no agents - perfect for deployment and ad-hoc tasks
+- **Salt** offers the best performance and real-time capabilities - great for ongoing state management
+- Both tools can work together: Ansible for orchestration and deployment, Salt for state enforcement
+- Avoid managing the same resource with both tools to prevent conflicts
+- In production HPC environments, **Warewulf** handles bare-metal provisioning, while Ansible/Salt handle post-boot configuration
+
+### When to Use Each Tool
+
+**Ansible:**
+- Bootstrapping and initial deployment
+- Ad-hoc tasks and one-off commands
+- Environments without persistent agents
+- Orchestrating workflows across multiple tools
+
+**Salt:**
+- Continuous state enforcement
+- Event-driven automation and real-time responses
+- Large-scale environments (50K+ nodes)
+- Complex targeting (by OS, role, custom grains)
 
 ### Further Learning
 
 - **Ansible**: Read about Ansible Galaxy (sharing roles), Ansible Tower/AWX (enterprise features)
-- **Salt**: Explore Salt Cloud (provisioning), Salt Beacons (monitoring)
-- **Warewulf**: Learn about image templates, custom overlays, and integration with Slurm
+- **Salt**: Explore Salt Cloud (provisioning), Salt Beacons (monitoring), Salt Reactor (event-driven)
+- **Warewulf**: Learn about image templates, custom overlays, and integration with Slurm at [warewulf.org](https://warewulf.org)
 
 ---
 
@@ -896,6 +614,9 @@ You've now used three important HPC infrastructure tools:
 
 **Problem**: SSH connection failures
 **Solution**: Verify SSH keys are distributed: `ansible all_nodes -i hosts.ini -m ping`
+
+**Problem**: Head node fails with SSH error
+**Solution**: Ensure `ansible_connection=local` is set for the head node in `hosts.ini`
 
 ### Salt Issues
 
@@ -911,34 +632,79 @@ salt-minion -l debug
 salt '*' state.apply state_name -l debug
 ```
 
-### Warewulf Issues
-
-**Problem**: Image import fails
-**Solution**: Check internet connectivity and Docker registry access:
+**Problem**: Minion key not accepted
+**Solution**: Check key status and accept manually if needed:
 ```bash
-wwctl image import docker://ghcr.io/warewulf/warewulf-rockylinux:9 rockylinux-9 --debug
+salt-key -L
+salt-key -A
 ```
 
-**Problem**: Nodes won't boot
-**Solution**: Check DHCP and TFTP configuration:
-```bash
-wwctl configure dhcp
-wwctl configure tftp
-systemctl status dhcpd
-systemctl status tftp
-```
+---
 
-**Problem**: Overlays not applying
-**Solution**: Rebuild overlays:
-```bash
-wwctl overlay build
-```
+## Reference: Warewulf - HPC Cluster Provisioning
 
-**Problem**: Can't shell into image
-**Solution**: Check that the image exists and is not corrupted:
+> **Note:** This section is provided as reference material. Warewulf requires bare-metal or properly networked clusters and cannot be run on the virtual workshop clusters.
+
+Warewulf is an HPC cluster provisioning system that deploys operating system images to bare-metal compute nodes via network boot (PXE/iPXE).
+
+### Key Concepts
+
+- **Image (Container)**: A bootable operating system image deployed to compute nodes
+- **Overlay**: Files and templates rendered per-node and applied over the image
+- **Node**: A compute node provisioned by Warewulf
+- **Profile**: Default settings applied to multiple nodes
+- **wwctl**: The Warewulf control command-line tool
+
+### Why Warewulf?
+
+While Ansible and Salt manage configuration on **running** systems, Warewulf:
+- Provisions **bare-metal** compute nodes from scratch
+- Deploys complete operating system images over the network
+- Scales to thousands of nodes
+- Integrates with HPC schedulers like Slurm
+
+### Comparison: Ansible/Salt vs Warewulf
+
+| Feature | Ansible/Salt | Warewulf |
+|---------|--------------|----------|
+| **When to use** | Managing running systems | Provisioning bare-metal nodes |
+| **Target** | Existing OS | Empty/blank machines |
+| **Deployment** | SSH/Agent | Network boot (PXE/iPXE) |
+| **Image** | None (incremental changes) | Complete OS image |
+| **Persistence** | Configuration on disk | Stateless or persistent |
+
+**Typical HPC workflow:**
+1. **Warewulf**: Provision bare-metal nodes with base OS
+2. **Ansible/Salt**: Post-provisioning configuration (Slurm, apps, etc.)
+
+### Reference Commands
+
+The following commands are what you would use on a properly configured Warewulf cluster:
+
 ```bash
-wwctl image list
-wwctl image build rockylinux-9
+# Install Warewulf
+# ansible-playbook -i hosts.ini warewulf.yml
+
+# Basic wwctl commands
+# wwctl version
+# wwctl --help
+
+# Working with Images
+# wwctl image import docker://ghcr.io/warewulf/warewulf-rockylinux:9 rockylinux-9
+# wwctl image list
+# wwctl image shell rockylinux-9
+
+# Working with Overlays
+# wwctl overlay list
+# wwctl overlay create site-custom
+
+# Working with Nodes
+# wwctl node add lci-compute-XX-1 --ipaddr=10.0.1XX.1 --discoverable=true --image=rockylinux-9
+# wwctl node list
+
+# Configure services
+# wwctl configure dhcp
+# wwctl configure nfs
 ```
 
 ---

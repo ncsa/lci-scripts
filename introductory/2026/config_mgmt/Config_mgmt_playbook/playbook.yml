@@ -2,6 +2,8 @@
 - name: Install Salt on Head Node
   hosts: head
   become: yes
+  vars:
+    head_node: "{{ groups['head'][0] }}"
   tasks:
     - name: Install Salt Master
       dnf:
@@ -33,8 +35,8 @@
     - name: Configure Salt Minion (head)
       copy:
         content: |
-          master: lci-head-XX-1
-          id: lci-head-XX-1
+          master: {{ head_node }}
+          id: {{ inventory_hostname }}
         dest: /etc/salt/minion.d/master.conf
 
     - name: Start Salt Master
@@ -52,6 +54,8 @@
 - name: Install Salt on Compute Nodes
   hosts: compute
   become: yes
+  vars:
+    head_node: "{{ groups['head'][0] }}"
   tasks:
     - name: Install Salt Minion
       dnf:
@@ -60,20 +64,13 @@
 
     - name: Configure Salt Minion Master
       copy:
-        content: "master: lci-head-XX-1\n"
+        content: "master: {{ head_node }}\n"
         dest: /etc/salt/minion.d/master.conf
 
-    - name: Configure Salt Minion ID (compute-1)
+    - name: Configure Salt Minion ID
       copy:
-        content: "id: lci-compute-XX-1\n"
+        content: "id: {{ inventory_hostname }}\n"
         dest: /etc/salt/minion.d/id.conf
-      when: inventory_hostname == "lci-compute-XX-1"
-
-    - name: Configure Salt Minion ID (compute-2)
-      copy:
-        content: "id: lci-compute-XX-2\n"
-        dest: /etc/salt/minion.d/id.conf
-      when: inventory_hostname == "lci-compute-XX-2"
 
     - name: Start Salt Minion
       systemd:

@@ -3,19 +3,11 @@
   hosts: head
   become: yes
   tasks:
-    - name: Add Warewulf repository
-      yum_repository:
-        name: warewulf
-        description: Warewulf Repository
-        baseurl: https://repo.warewulf.io/warewulf/rocky/9/x86_64/
-        gpgcheck: no
-        enabled: yes
-
-    - name: Install Warewulf
+    - name: Install Warewulf from GitHub release
       dnf:
-        name:
-          - warewulf
+        name: https://github.com/warewulf/warewulf/releases/download/v4.5.7/warewulf-4.5.7-1.el9.x86_64.rpm
         state: present
+        disable_gpg_check: yes
 
     - name: Install required dependencies
       dnf:
@@ -29,9 +21,9 @@
     - name: Configure Warewulf
       copy:
         content: |
-          ipaddr: 10.0.2.0
-          netmask: 255.255.255.0
-          network: 10.0.2.0
+          ipaddr: {{ subnet }}
+          netmask: {{ netmask }}
+          network: {{ subnet }}
           warewulf:
             port: 9873
             secure: false
@@ -40,8 +32,8 @@
           dhcp:
             enabled: true
             template: default
-            range start: 10.0.2.100
-            range end: 10.0.2.199
+            range start: {{ dhcp_start }}
+            range end: {{ dhcp_end }}
           tftp:
             enabled: true
             ipxe:
@@ -79,6 +71,15 @@
         - 2049/udp    # NFS
         - 9873/tcp    # Warewulf
 
+    - name: Start Warewulf service
+      systemd:
+        name: warewulfd
+        state: started
+        enabled: yes
+
+    - name: Configure Warewulf services (generates dhcpd.conf, etc.)
+      command: wwctl configure --all
+
     - name: Configure DHCP service
       systemd:
         name: dhcpd
@@ -96,16 +97,6 @@
         name: nfs-server
         state: started
         enabled: yes
-
-    - name: Start Warewulf service
-      systemd:
-        name: warewulfd
-        state: started
-        enabled: yes
-
-    - name: Configure Warewulf services
-      command: wwctl configure --all
-      ignore_errors: yes
 
 - name: Configure Compute Nodes for Network Boot
   hosts: compute
