@@ -23,11 +23,11 @@
 ### Clone and prepare the repo
 
 ```bash
-git clone https://github.com/ncsa/lci-scripts
+git clone https://github.com/ncsa/lci-scripts.git
 cd lci-scripts/introductory/2026/openmp_mpi/Lab_MPI/Ansible
 ```
 
-edit `hosts.ini' and replace the XX with your cluster number
+edit `hosts.ini` and replace the XX with your cluster number
 
 ### Compile and install MPI on the cluster
 
@@ -121,7 +121,7 @@ Now run executable `hello.x` and see what happens:
 The output comes with two threads. 
 By default, when you run an executable compiled with the openmp support, the number of threads becomes equal to the number of the CPU cores available on the system.
 
-Define environment variable OMP_NUM_THREADS=4, then run the executable again:
+Define environment variable OMP_NUM_THREADS=16, then run the executable again:
 
 ```bash
 export OMP_NUM_THREADS=16
