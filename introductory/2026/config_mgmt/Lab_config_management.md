@@ -141,7 +141,8 @@ Install packages on compute nodes:
 ```bash
 ansible compute -i hosts.ini -m dnf -a "name=htop state=present" --become
 ansible compute -i hosts.ini -m dnf -a "name=tmux state=present" --become
-### ***"Go to my compute nodes and make sure the tmux program is installed."***
+
+### essentially "Go to my compute nodes and make sure the tmux/htop program is installed."
 ```
 
 Verify packages installed:
