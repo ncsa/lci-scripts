@@ -20,43 +20,33 @@
 
 
 ***
+### Clone and prepare the repo
+
+```bash
+git clone https://github.com/ncsa/lci-scripts
+cd lci-scripts/introductory/2026/openmp_mpi/Lab_MPI/Ansible
+```
+
+edit `hosts.ini' and replace the XX with your cluster number
+
 ### Compile and install MPI on the cluster
 
-Copy folder Lab_MPI from lci-scripts into home directory of user rocky:
 ```bash
-cp -a lci-scripts/introductory/openmp_mpi/Lab_MPI .
-```
-Step into the Ansible directory and run MPI installation playbook:
-```bash
-cd Lab_MPI/Ansible
 ansible-playbook install_mpi.yml
 ```
 
+Test to make sure it installed correctly
+```bash
+/usr/lib64/openmpi/bin/ompi_info --version
+````
 MPI needs to be compiled with PMIx support in order to integrate with SLURM scheduler.
-It will take about 15 minutes for MPI compilation to complete and install MPI on th cluster.
+We will not be doing that, because it's a much more difficult process. Don't install directly via `dnf` on your own cluster.
 
-If one were to compile and install MPI manually, the procedure would look as below: 
-```c
-prtte_version=3.0.3
-openmpi_version=5.0.1
-openmpi_base_version=5.0
-cd roles/openmpi-rpm-build/files
-wget https://github.com/openpmix/prrte/releases/download/v${prtte_version}/\
-prrte-${prtte_version}-1.src.rpm
-wget https://download.open-mpi.org/release/open-mpi/v${openmpi_base_version}/\
-openmpi-${openmpi_versi
-on}-1.src.rpm
-rpmbuild --define "_topdir /tmp/rpmbuild" --rebuild -ta \
-         roles/openmpi-rpm-build/files/prrte-${prtte_version}-1.src.rpm
-dnf install /tmp/rpmbuild/RPMS/x86_64/prrte-${prtte_version}-1.el8.x86_64.rpm
-rpmbuild --define "_topdir /tmp/rpmbuild" --define 'install_in_opt 1' --rebuild \
--ta roles/openmpi-rpm-build/files/openmpi-${openmpi_version}-1.src.rpm
-dnf install /tmp/rpmbuild/RPMS/x86_64/openmpi-${openmpi_version}-1.el8.x86_64.rpm
+- The version is older than you can get otherwise
 
-```
+- PMIx isn't supported
 
-While the MPI compilation is running on the head node, we'll proceed with openmp
- exercises on one of the compute nodes. 
+- It won't be optimized for your hardware
 
 ***
 
@@ -64,15 +54,15 @@ While the MPI compilation is running on the head node, we'll proceed with openmp
 
 Create user mpiuser on the cluster.
 ```bash
-cd /home/rocky/Lab_MPI/Ansible
 ansible-playbook setup_mpiuser.yml
 ```
 
 Copy folders with OpenMP and MPI exercises into mpiuser home directory:
 ```bash
-cd /home/rocky
-sudo cp -a Lab_MPI/OpenMP /head/NFS/mpiuser/
-sudo cp -a Lab_MPI/MPI /head/NFS/mpiuser/
+cd ..
+# You should now be in the lci-scripts repo in the Lab_MPI directory
+sudo cp -a OpenMP /head/NFS/mpiuser/
+sudo cp -a MPI /head/NFS/mpiuser/
 chown -R mpiuser:mpiuser /head/NFS/mpiuser
 ```
 
@@ -90,7 +80,7 @@ All the exercises below should be done as user `mpiuser`.
 
 SSH to the first compute node:
 ```bash
-ssh lci-compute-01-1
+ssh lci-compute-XX-1
 ```
 
 Step into directory OpenMP:
@@ -114,20 +104,13 @@ ldd hello.x
 It shows the following:
 
 ```{admonition} output:
-linux-vdso.so.1 (0x00007ffdc0d58000)
-
-libgomp.so.1 => /lib64/libgomp.so.1 (0x00007f32521a9000)
-
-libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f3251f89000)
-
-libc.so.6 => /lib64/libc.so.6 (0x00007f3251bc4000)
-
-libdl.so.2 => /lib64/libdl.so.2 (0x00007f32519c0000)
-
-/lib64/ld-linux-x86-64.so.2 (0x00007f32523e1000)
+linux-vdso.so.1 (0x00007fffdb8f7000)
+libgomp.so.1 => /lib64/libgomp.so.1 (0x00007f6cd3717000)
+libc.so.6 => /lib64/libc.so.6 (0x00007f6cd3400000)
+/lib64/ld-linux-x86-64.so.2 (0x00007f6cd3765000)
 ```
-Notice `libgomp.so.1` and `libpthread.so.0` shared object libraries. 
-Executables compiled with OpenMP support always have them loaded.
+Notice `libgomp.so.1` shared object library. 
+Executables compiled with OpenMP support always have this loaded.
 
 Now run executable `hello.x` and see what happens:
 
@@ -141,7 +124,7 @@ By default, when you run an executable compiled with the openmp support, the num
 Define environment variable OMP_NUM_THREADS=4, then run the executable again:
 
 ```bash
-export OMP_NUM_THREADS=4
+export OMP_NUM_THREADS=16
 ./hello.x
 ```
 
@@ -269,7 +252,7 @@ Assuming the MPI compilation and installation on the cluster is completed, exit 
 Setup environment variables for MPI by placing the snipped below into .bashrc file of `mpiuser`:
 
 ```yaml
-export MPI_HOME=/opt/openmpi/5.0.1
+export MPI_HOME=export MPI_HOME=/usr/lib64/openmpi
 export PATH=$PATH:$MPI_HOME/bin
 ```
 
@@ -289,6 +272,8 @@ cd
 cd MPI
 ```
 
+Edit `nodes.txt` and replace the XX with the appropriate number.
+
 Verify that `mpirun` works:
 
 ```bash
@@ -300,14 +285,14 @@ If it works, it should have every compute node to print out its host name twice.
 File `nodes.txt` contains the list of the compute nodes and the number of CPU cores on each node:
 
 ```c
-lci-compute-01-1 slots=2
-lci-compute-01-2 slots=2
+lci-compute-XX-1 slots=2
+lci-compute-XX-2 slots=2
 ```
 
 ***
 ### Compile and run MPI applications
 
-Compile `helloc` and run on 4 CPU cores:
+Compile `hello.c` and run on 4 CPU cores:
 
 ```bash
 mpicc -o hello.x hello.c

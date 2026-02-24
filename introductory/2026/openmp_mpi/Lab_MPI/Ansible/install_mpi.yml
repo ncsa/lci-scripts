@@ -1,19 +1,10 @@
 ---
-### Head node play
-- name: Build mpi package and install on the local host
-  hosts: head 
-  vars_files: group_vars/openmpi.yml
-  connection: local
+- name: Install OpenMPI on all nodes
+  hosts: head:all_nodes
   gather_facts: no
+  tasks:
 
-  roles:
-   - openmpi-rpm-build  
-   - openmpi-rpm-install_head_node
-
-### compute nodes play
-- name: Install openmpi on compute nodes 
-  hosts: all_nodes
-  vars_files: group_vars/openmpi.yml
-
-  roles: 
-   - openmpi-rpm-install_compute_nodes
+    - name: Install OpenMPI via DNF
+      ansible.builtin.dnf:
+        name: openmpi-devel
+        state: present
