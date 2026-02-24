@@ -190,13 +190,17 @@ The `cp -a` command preserves permissions and directory structure.
 cd Head_node_playbook
 ```
 
-#### 3. Edit the Inventory File
+#### 3. Edit the Inventory File and the autofs config file
 
 ```bash
 vim hosts.ini
 ```
+and
+```bash
+vim roles/compute-node_autofs/files/auto.nfs
+```
 
-Replace `XX` with your cluster number in both the `[head]` and `[all_nodes]` sections:
+In both, replace `XX` with your cluster number in both the `[head]` and `[all_nodes]` sections:
 
 **Original:**
 ```ini
