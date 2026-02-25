@@ -3,6 +3,8 @@
 
 **Objective:** learn SLURM commands to submit, monitor, terminate computational jobs, and check completed job accounting info.
 
+**Note:** All source code and compiled binaries should be run from `/scratch/` (e.g., `/scratch/mpiuser/`), which is the only shared filesystem visible from all compute nodes. The home directory is not mounted on compute nodes.
+
 **Steps:**
 
 - Create accounts and users in SLURM
@@ -24,6 +26,8 @@
 - Job statistics with `sacct` commands
 
 - Command `scontrol show` exercises
+
+- Simple bash script example via `sbatch`
 
 ### 1. Create cluster account and users in SLURM
 
@@ -82,9 +86,9 @@ Become user `mpiuser`:
 sudo su - mpiuser
 ```
 
-Step into OpenMP directory:
+Step into OpenMP directory (on /scratch/ which is shared across nodes):
 ```bash
-cd OpenMP
+cd /scratch/mpiuser/OpenMP
 ```
 
 
@@ -105,7 +109,7 @@ sinfo -N -l
 Step into directory OpenMP, setup 2 threads for a run, then run heated_plate_openmp.x:
 
 ```bash
-cd OpenMP
+cd /scratch/mpiuser/OpenMP
 export OMP_NUM_THREADS=2
 ./heated_plate.x 
 ```
@@ -155,6 +159,14 @@ Notice two jobs completed, one for interactive run and another for the bash shel
 
 **MPI runs:**
 
+**Important:** Before running MPI jobs interactively, remove the default stack size limit:
+
+```bash
+ulimit -s unlimited
+```
+
+This is needed because the MPI example code allocates large arrays on the stack (~8MB). Without this, the jobs will segfault. The batch scripts (`mpi_batch.sh`, `mpi_srun.sh`, `poisson_batch.sh`) already include this command.
+
 Check SLURM support for pmi2 and pmix:
 
 ```bash
@@ -166,8 +178,7 @@ It should show pmi2, mpix, and pmix_4.
 Change directory to MPI, and run `mpi_heat2D.x` through `srun` with 4, 6, and 8 processes:
 
 ```bash
-cd 
-cd MPI
+cd /scratch/mpiuser/MPI
 srun --mpi=pmix -n 4  mpi_heat2D.x
 srun --mpi=pmix_v4 -n 4  mpi_heat2D.x
 ```
@@ -183,21 +194,20 @@ To launch Open MPI applications using PMIx the '--mpi=pmix' option must be speci
 
 ### 5. Using submit scripts and command `sbatch`
 
-In directory MPI, check out submit script `mpi_batch.sh`:
+In directory `/scratch/mpiuser/MPI`, check out submit script `mpi_batch.sh`:
 
 ```bash
 #!/bin/bash
 
 #SBATCH --job-name=MPI_test_case
 #SBATCH --ntasks-per-node=2
-#SBATCH --nodes=4
+#SBATCH --nodes=2
 #SBATCH --partition=lcilab
 
-mpirun  mpi_heat2D.x
+srun --mpi=pmix mpi_heat2D.x
 ```
 
-Notice, the `mpirun` is not using the number of processes, neither referencing the hosts file.
-The SLURM is taking care of the CPU and node allocation for mpirun through its environment variables.
+Notice, we use `srun --mpi=pmix` (not `mpirun`) so that Slurm handles the process placement and accounting. The batch scripts already include `ulimit -s unlimited` to prevent stack overflow issues.
 
 Submit the script to run with command `sbatch`:
 
@@ -214,10 +224,9 @@ Copy the submit script, ```mpi_batch.sh```, into ```mpi_srun.sh```:
 ```bash
 cp mpi_batch.sh  mpi_srun.sh
 ```
-Edit the new submit script, and replace ```mpirun``` with ```srun```, and change ```--nodes=4``` for ```--nodes=2```.
 The modified submit script, mpi_srun.sh, should look as follows:
 
-```c
+```bash
 #!/bin/bash
 
 #SBATCH --job-name=MPI_test_case
@@ -225,6 +234,7 @@ The modified submit script, mpi_srun.sh, should look as follows:
 #SBATCH --nodes=2
 #SBATCH --partition=lcilab
 
+ulimit -s unlimited
 srun --mpi=pmix mpi_heat2D.x
 ```
 
@@ -242,13 +252,10 @@ Check out the stdo output file, slurm-\<job_id\>.out
 Step into directory OpenMP:
 
 ```bash
-cd 
-cd OpenMP
+cd /scratch/mpiuser/OpenMP
 ```
 
-Check out submit script `openmp_batch.sh`. It is using the SLURM environment variables and a scratch directory.
-I/O to the local to the node scratch directory runs faster than to the NFS shared file system.
-
+Check out submit script `openmp_batch.sh`. It runs directly from `/scratch/mpiuser/OpenMP`:
 
 ```bash
 #!/bin/bash
@@ -256,23 +263,15 @@ I/O to the local to the node scratch directory runs faster than to the NFS share
 #SBATCH --job-name=OMP_run
 #SBATCH --output=slurm.out
 #SBATCH --error=slurm.err
-#SBATCH --partition=lci
+#SBATCH --partition=lcilab
 #SBATCH --ntasks-per-node=2
-
 
 myrun=heated_plate.x                          # executable to run
 
 export OMP_NUM_THREADS=$SLURM_JOB_CPUS_PER_NODE  # assign the number of threads
-MYHDIR=$SLURM_SUBMIT_DIR            # directory with input/output files 
-MYTMP="/tmp/$USER/$SLURM_JOB_ID"    # local scratch directory on the node
-mkdir -p $MYTMP                     # create scratch directory on the node  
-cp $MYHDIR/$myrun  $MYTMP           # copy the executable and input files into the scratch
-cd $MYTMP                           # step into the scratch dir, and run tasks in the scratch 
+cd /scratch/mpiuser/OpenMP
 
 ./$myrun > run.out-$SLURM_JOB_ID
-
-cp $MYTMP/run.out-$SLURM_JOB_ID  $MYHDIR     # copy everything back into the home dir
-rm -rf  $MYTMP                               # remove the scratch directory
 ```
 
 
@@ -304,8 +303,7 @@ If resources are unavailable, jobs will stay in the queue.
 Go to the MPI directory:
 
 ```bash
-cd 
-cd MPI
+cd /scratch/mpiuser/MPI
 ```
 
 Launch `srun` with bash, and requesting 2 tasks:
@@ -333,8 +331,12 @@ exit from `srun`, and run `squeue` again. The MPI job should begin running.
 
 ### 8.  Command sstat
 
-Compile  ```poisson_mpi.c```:
+First, set up the OpenMPI environment and compile `poisson_mpi.c`:
+
 ```bash
+export PATH=/opt/openmpi/5.0.1/bin:$PATH
+export LD_LIBRARY_PATH=/opt/openmpi/5.0.1/lib:$LD_LIBRARY_PATH
+cd /scratch/mpiuser/MPI
 mpicc -o poisson_mpi.x poisson_mpi.c
 ```
 
@@ -441,4 +443,64 @@ scontrol show job 12
 Submit another `openmp_batch.sh` job, and check its information with 
 ```bash
 scontrol show job <jobid>
+```
+
+### 11. Simple bash script example
+
+This section demonstrates submitting a basic bash script via `sbatch`. No MPI or OpenMP is needed for this simple example.
+
+The source files are in `simple/` directory:
+
+**count.sh** - A simple script that counts from 1 to a given number:
+
+```bash
+#!/bin/bash
+# count.sh - A simple script that counts from 1 to a given number
+# Usage: ./count.sh [number]
+# Default: counts to 10 if no argument provided
+
+MAX=${1:-10}
+
+echo "Counting from 1 to $MAX on host $(hostname)"
+echo "Started at: $(date)"
+echo "---"
+
+for i in $(seq 1 $MAX); do
+    echo "$i"
+    sleep 1
+done
+
+echo "---"
+echo "Finished at: $(date)"
+```
+
+**count_batch.sh** - The Slurm batch script to submit it:
+
+```bash
+#!/bin/bash
+
+#SBATCH --job-name=count_job
+#SBATCH --output=slurm_count.out
+#SBATCH --error=slurm_count.err
+#SBATCH --partition=lcilab
+#SBATCH --ntasks=1
+#SBATCH --time=00:05:00
+
+bash count.sh 20
+```
+
+To run this example:
+
+```bash
+cd /scratch/mpiuser/simple
+cat count.sh
+cat count_batch.sh
+sbatch count_batch.sh
+squeue
+
+# After the job completes, check the output
+cat slurm_count.out
+
+# Check job accounting
+sacct -u mpiuser
 ```

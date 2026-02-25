@@ -10,13 +10,6 @@
 myrun=heated_plate.x                          # executable to run
 
 export OMP_NUM_THREADS=$SLURM_JOB_CPUS_PER_NODE  # assign the number of threads
-MYHDIR=$SLURM_SUBMIT_DIR            # directory with input/output files 
-MYTMP="/tmp/$USER/$SLURM_JOB_ID"    # local scratch directory on the node
-mkdir -p $MYTMP                     # create scratch directory on the node  
-cp $MYHDIR/$myrun  $MYTMP           # copy the executable and input files into the scratch
-cd $MYTMP                           # step into the scratch dir, and run tasks in the scratch 
+cd /scratch/mpiuser/OpenMP
 
 ./$myrun > run.out-$SLURM_JOB_ID
-
-cp $MYTMP/run.out-$SLURM_JOB_ID  $MYHDIR     # copy everything back into the home dir
-rm -rf  $MYTMP                               # remove the scratch directory

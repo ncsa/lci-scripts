@@ -19,14 +19,14 @@ cd Run_apps_scheduler
 useradd -u 2004 mpiuser
 clush -g compute "useradd -u 2004 mpiuser"
 
-# Copy the lab code to mpiuser's home
-# This creates /home/mpiuser/Lab_MPI/ with MPI/ and OpenMP/ subdirectories
-cp -r MPI OpenMP /home/mpiuser/Lab_MPI/
-chown -R mpiuser:mpiuser /home/mpiuser/Lab_MPI
+# Copy the lab source code to /scratch/ (shared filesystem visible from all nodes)
+mkdir -p /scratch/mpiuser
+cp -r MPI OpenMP simple /scratch/mpiuser/
+chown -R mpiuser:mpiuser /scratch/mpiuser
 
 # Verify files are in place
-ls -la /home/mpiuser/Lab_MPI/OpenMP/
-ls -la /home/mpiuser/Lab_MPI/MPI/
+ls -la /scratch/mpiuser/OpenMP/
+ls -la /scratch/mpiuser/MPI/
 
 # Create Slurm accounts and users
 sacctmgr -i add account lci2026 Description="LCI 2026 workshop"
@@ -41,7 +41,7 @@ squeue
 
 # 3. salloc - allocate resources for OpenMP run
 sudo su - mpiuser
-cd ~/Lab_MPI/OpenMP
+cd /scratch/mpiuser/OpenMP
 salloc -n 2
 
 # Check allocated resources
@@ -49,7 +49,7 @@ sinfo
 squeue
 sinfo -N -l
 
-# Compile and run OpenMP app (compile if not already done)
+# Compile and run OpenMP app
 gcc -fopenmp -o heated_plate.x heated_plate_openmp.c -lm
 export OMP_NUM_THREADS=2
 ./heated_plate.x
@@ -63,7 +63,7 @@ sacct -u mpiuser
 
 # OpenMP interactive run
 srun -n 2 --pty bash
-cd ~/Lab_MPI/OpenMP
+cd /scratch/mpiuser/OpenMP
 export OMP_NUM_THREADS=2
 ./heated_plate.x
 exit
@@ -72,8 +72,21 @@ sacct -u mpiuser
 # Check MPI support
 srun --mpi=list
 
+# Set up OpenMPI environment (required for mpicc and MPI runs)
+export PATH=/opt/openmpi/5.0.1/bin:$PATH
+export LD_LIBRARY_PATH=/opt/openmpi/5.0.1/lib:$LD_LIBRARY_PATH
+
+# Remove the default stack size limit to prevent segfaults from large stack-allocated
+# arrays (e.g. mpi_heat2D.c allocates ~8MB on the stack). This must be set before
+# launching MPI jobs interactively. Batch scripts include this automatically.
+ulimit -s unlimited
+
+# Compile MPI applications
+cd /scratch/mpiuser/MPI
+mpicc -o mpi_heat2D.x mpi_heat2D.c -lm
+mpicc -o poisson_mpi.x poisson_mpi.c
+
 # MPI interactive runs
-cd ~/Lab_MPI/MPI
 srun --mpi=pmix -n 4 mpi_heat2D.x
 srun --mpi=pmix_v4 -n 4 mpi_heat2D.x
 sacct -u mpiuser
@@ -81,7 +94,7 @@ sacct -u mpiuser
 # 5. sbatch - submit batch scripts
 
 # MPI batch (uses srun --mpi=pmix, NOT mpirun)
-cd ~/Lab_MPI/MPI
+cd /scratch/mpiuser/MPI
 cat mpi_batch.sh
 sbatch mpi_batch.sh
 squeue
@@ -91,7 +104,7 @@ squeue
 sbatch mpi_srun.sh
 
 # OpenMP batch
-cd ~/Lab_MPI/OpenMP
+cd /scratch/mpiuser/OpenMP
 cat openmp_batch.sh
 sbatch openmp_batch.sh
 # Check output: cat run.out-<jobid> and cat slurm.out
@@ -102,7 +115,7 @@ squeue
 scancel -j <jobid>
 
 # 7. Concurrent jobs - observe resource contention
-cd ~/Lab_MPI/MPI
+cd /scratch/mpiuser/MPI
 srun -n 2 --pty bash
 # In another terminal, submit a job that will pend:
 sbatch mpi_batch.sh
@@ -114,13 +127,7 @@ squeue
 
 # 8. sstat - monitor running jobs
 
-# First, set up OpenMPI environment (required for mpicc)
-export PATH=/opt/openmpi/5.0.1/bin:$PATH
-export LD_LIBRARY_PATH=/opt/openmpi/5.0.1/lib:$LD_LIBRARY_PATH
-
-# Compile and submit
-cd ~/Lab_MPI/MPI
-mpicc -o poisson_mpi.x poisson_mpi.c
+cd /scratch/mpiuser/MPI
 sbatch poisson_batch.sh
 
 # Monitor the job
@@ -138,5 +145,21 @@ scontrol show node lci-compute-XX-1
 scontrol show job <jobid>
 
 # Submit another job and check its info
+cd /scratch/mpiuser/OpenMP
 sbatch openmp_batch.sh
 scontrol show job <jobid>
+
+# 11. Simple bash example - submitting a basic script via sbatch
+# This demonstrates sbatch with a plain bash script (no MPI/OpenMP needed)
+
+cd /scratch/mpiuser/simple
+cat count.sh
+cat count_batch.sh
+
+# Submit the counting job
+sbatch count_batch.sh
+squeue
+
+# After the job completes, check the output
+cat slurm_count.out
+sacct -u mpiuser

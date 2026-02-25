@@ -101,10 +101,10 @@ systemctl enable --now salt-minion
 
 # Install Salt Minion (compute nodes)
 clush -g compute "dnf install -y salt-minion"
-clush -g compute "echo 'master: lci-head-XX-1' > /etc/salt/minion.d/master.conf"
-clush -w lci-compute-XX-1 "echo 'id: lci-compute-XX-1' > /etc/salt/minion.d/id.conf"
-clush -w lci-compute-XX-2 "echo 'id: lci-compute-XX-2' > /etc/salt/minion.d/id.conf"
+clush -g compute "echo 'master: lci-head-01-1' > /etc/salt/minion.d/master.conf"
+clush -g compute 'echo "id: ${HOSTNAME}" > /etc/salt/minion.d/id.conf --host ${HOSTNAME}'
 clush -g compute "systemctl enable --now salt-minion"
+clush -g compute "systemctl restart salt-minion"
 
 # Verify minions
 salt-key -L
