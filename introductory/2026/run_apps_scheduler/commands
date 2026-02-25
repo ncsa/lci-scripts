@@ -21,7 +21,7 @@ clush -g compute "useradd -u 2004 mpiuser"
 chmod -R 0775 /opt/slurm/
 echo 'export PATH="/opt/slurm/current/bin:$PATH"' >> /etc/bashrc
 clush -g compute "echo 'export PATH="/opt/slurm/current/bin:$PATH"' >> /etc/bashrc"
-clush -g compute "chown -R mpiuser:mpiuser /opt/slurm/"
+clush -g compute "chmod -R 0766 /opt/slurm"
 
 # Create the lcilab partition for job submissions
 scontrol create PartitionName=lcilab Nodes=ALL Default=YES MaxTime=04:00:00 State=UP
@@ -54,7 +54,7 @@ sinfo -N -l
 squeue
 
 # 3. Simple sbatch examples
-sudo su - mpiuser
+su - mpiuser
 cd /scratch/mpiuser/simple
 
 # 3a. Hello World - simplest sbatch job
