@@ -1,0 +1,5 @@
+---
+####### Setup hostnames #######
+- name: Display hostname
+  debug:
+    msg: "The hostname is {{ ansible_hostname }}"
