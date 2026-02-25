@@ -1,4 +1,4 @@
-i---
+---
 - name: Disable SELINUX on compute nodes
   hosts: all_nodes
   gather_facts: no
