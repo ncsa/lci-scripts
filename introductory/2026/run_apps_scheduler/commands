@@ -1,5 +1,5 @@
 # Lab: Run Application via Scheduler - Commands
-# Replace XX with your cluster number (e.g., 01, 02, etc.)
+# Replace 01 with your cluster number (e.g., 01, 02, etc.)
 # Using vim - vim commands, :%s/01/<clusternumber>/g, :wq
 # Using nano - nano commands, Ctrl+\, Enter "01", Enter your cluster number, A, Ctrl+O, Enter, Ctrl+X
 
@@ -7,7 +7,7 @@
 sudo -i
 cd
 
-# If you are reading this in a browser - Clone repository to your lci-head-XX-1
+# If you are reading this in a browser - Clone repository to your lci-head-01-1
 git clone https://github.com/ncsa/lci-scripts.git
 
 # Copy the scheduler playbook to your home directory and work from there
@@ -18,15 +18,30 @@ cd Run_apps_scheduler
 # 1. Create Linux user mpiuser on all nodes (must exist everywhere for Slurm jobs)
 useradd -u 2004 mpiuser
 clush -g compute "useradd -u 2004 mpiuser"
+chmod -R 0775 /opt/slurm/
+echo "export PATH='/opt/slurm/current/bin:$PATH'" >> /etc/bashrc
+clush -g compute "echo 'export PATH=\"/opt/slurm/current/bin:\$PATH\"' >> /etc/bashrc"
+clush -g compute "chmod -R 0755 /opt/slurm"
 
-# Copy the lab code to mpiuser's home
-# This creates /home/mpiuser/Lab_MPI/ with MPI/ and OpenMP/ subdirectories
-cp -r MPI OpenMP /home/mpiuser/Lab_MPI/
-chown -R mpiuser:mpiuser /home/mpiuser/Lab_MPI
+# Create the lcilab partition for job submissions
+scontrol create PartitionName=lcilab Nodes=ALL Default=YES MaxTime=04:00:00 State=UP
+
+# Verify partition was created
+sinfo
+
+# To modify an existing partition (e.g., change MaxTime):
+# scontrol update PartitionName=lcilab MaxTime=08:00:00
+
+# Copy the lab source code to /scratch/ (shared filesystem visible from all nodes)
+mkdir -p /scratch/mpiuser
+cp -r MPI OpenMP simple /scratch/mpiuser/
+chown -R mpiuser:mpiuser /scratch/mpiuser
+chmod -R 0755 /scratch/mpiuser/simple/
 
 # Verify files are in place
-ls -la /home/mpiuser/Lab_MPI/OpenMP/
-ls -la /home/mpiuser/Lab_MPI/MPI/
+ls -la /scratch/mpiuser/OpenMP/
+ls -la /scratch/mpiuser/MPI/
+ls -la /scratch/mpiuser/simple/
 
 # Create Slurm accounts and users
 sacctmgr -i add account lci2026 Description="LCI 2026 workshop"
@@ -39,17 +54,307 @@ sinfo
 sinfo -N -l
 squeue
 
-# 3. salloc - allocate resources for OpenMP run
+# 3. Simple sbatch examples
+su - mpiuser
+cd /scratch/mpiuser/simple
+
+# 3a. Hello World - simplest sbatch job
+# Before: Check cluster state
+sinfo
+squeue
+
+cd 01-hello
+cat hello.sh
+cat hello_batch.sh
+sbatch hello_batch.sh
+
+# After: Check job status
+squeue
+# Get job ID from squeue output, then check details
+scontrol show job <jobid>
+
+# Wait for completion, then check output
+sleep 5
+cat hello.out
+cd ..
+
+# 3b. Hostname across multiple tasks
+# Before: Check node availability
+sinfo -N
+
+cd 02-hostname
+cat hostname_array.sh
+cat hostname_batch.sh
+sbatch hostname_batch.sh
+
+# After: See which nodes were allocated
+squeue
+scontrol show job <jobid>
+
+# Wait for completion
+cat hostname.out
+cd ..
+
+# 3c. Count script (longer running job)
+# Before
+squeue
+
+cd 03-count
+cat count.sh
+cat count_batch.sh
+sbatch count_batch.sh
+
+# After: Watch job progress
+squeue
+# Job runs for 20 seconds - observe while running
+watch -n 1 squeue   # Press Ctrl+C to stop watching
+
+# Check output after completion
+cat slurm_count.out
+cd ..
+
+# 3d. Slurm environment variables
+# Before
+sinfo
+
+cd 04-env
+cat env_check.sh
+cat env_batch.sh
+sbatch env_batch.sh
+
+# After
+squeue
+sleep 3
+cat env.out
+cd ..
+
+# 3e. Job Array - submit multiple similar jobs at once
+# Before: Note empty queue
+squeue
+
+cd 05-array
+cat array_task.sh
+cat array_batch.sh
+sbatch array_batch.sh
+
+# After: See array tasks (may show as single job with array info)
+squeue
+squeue -r   # Show array tasks expanded
+
+# Job Arrays: Submit multiple similar jobs with a single sbatch
+# --array=1-5 creates 5 independent tasks (IDs 1-5)
+# Each task gets its own SLURM_ARRAY_TASK_ID (1,2,3,4,5)
+# Output: %A = array job ID, %a = task ID (e.g., array_12345_1.out)
+# Useful for: parameter sweeps, processing multiple files, Monte Carlo simulations
+# Limit concurrent: --array=1-100%10 (max 10 tasks running at once)
+
+# Check array job outputs
+ls -la array_*.out
+cat array_*_1.out
+cd ..
+
+# 3j. Queue filling - demonstrate squeue and scancel
+# This example shows how jobs queue up when resources are limited
+
+# Before: Check available resources
+echo "=== Initial cluster state ==="
+sinfo
+squeue
+
+cd 06-queue_fill
+
+# Submit 6 jobs (likely more than available CPUs, some will pend)
+echo ""
+echo "=== Submitting 6 jobs to fill the queue ==="
+cat queue_fill_batch.sh
+
+for i in {1..6}; do
+    sbatch queue_fill_batch.sh
+done
+cd ..
+
+# Watch the queue - some RUNNING, some PENDING
+echo ""
+echo "=== Queue state after submissions ==="
+squeue
+
+# Show only pending jobs (waiting for resources)
+echo ""
+echo "=== Pending jobs (waiting for resources) ==="
+squeue -t PENDING
+
+# Show only running jobs
+echo ""
+echo "=== Running jobs ==="
+squeue -t RUNNING
+
+# Demonstrate scancel - cancel one pending job
+echo ""
+echo "=== Canceling one pending job ==="
+JOBID=$(squeue -t PENDING -h -o "%i" | head -1)
+if [ -n "$JOBID" ]; then
+    echo "Canceling job $JOBID"
+    scancel -j $JOBID
+    sleep 1
+    squeue
+fi
+
+# Cancel all jobs with name "queue_fill"
+echo ""
+echo "=== Canceling all queue_fill jobs ==="
+scancel -n queue_fill
+sleep 1
+squeue
+
+# Alternative: Cancel all jobs for current user
+# scancel -u $USER
+
+# Alternative: Cancel all pending jobs
+# scancel -t PENDING
+
+# Final state check
+echo ""
+echo "=== Final cluster state ==="
+sinfo
+squeue
+
+# Check accounting for all simple jobs
+sacct -u mpiuser
+
+# 3k. Python Array Job - parameter sweep with input files
+cd /scratch/mpiuser/simple/07-python_array
+
+# View the Python processing script
+cat process_inputs.py
+
+# View the input generation Script
+cat generate_inputs.py
+
+# Generate sample input files (interactive demo)
+python3 generate_inputs.py
+ls -la input/
+
+# View the array batch Script
+cat python_array_batch.sh
+
+# Submit the array Job
+sbatch python_array_batch.sh
+
+# Check status - shows array tasks
+squeue
+squeue -r   # Expanded view showing each array task
+
+# Wait for completion
+sleep 10
+
+# Check all output files
+cat output/*.out
+
+# View the Slurm output logs
+ls -la slurm_py_array_*.out
+head slurm_py_array_*.out
+
+# Key concepts:
+# --array=1-5     : Creates 5 tasks with IDs 1, 2, 3, 4, 5
+# %A in filename  : Parent job ID
+# %a in filename  : Array task ID
+# $SLURM_ARRAY_TASK_ID : Unique ID for each task (1-5)
+
+# Alternative array syntax:
+# --array=1-10        : Tasks 1 through 10
+# --array=1,3,5,7     : Specific task IDs
+# --array=1-20:2      : Steps of 2 (1, 3, 5, ..., 19)
+# --array=1-100%10    : Max 10 tasks running at once
+
+# Check accounting for array job
+sacct -u mpiuser
+
+# 3l. R Array Job - data processing with R
+# R must be installed on all nodes (run as root):
+dnf install -y R
+clush -g compute "dnf install -y R"
+cd /scratch/mpiuser/simple/08-R
+
+# View the R processing script
+cat process_data.R
+
+# View the array batch Script
+cat r_batch.sh
+
+# Submit the array Job
+sbatch r_batch.sh
+
+# Check status - shows array tasks
+squeue
+squeue -r   # Expanded view showing each array task
+
+# Wait for completion
+sleep 10
+
+# Check all output files
+cat r_output/*.out
+
+# View the Slurm output logs
+ls -la slurm_r_array_*.out
+head slurm_r_array_*.out
+
+# Key concepts:
+# Rscript command  : Runs R scripts non-interactively
+# $SLURM_ARRAY_TASK_ID : Unique ID for each task (1-5)
+# --array=1-5      : Creates 5 tasks processing 5 input files
+
+# Check accounting for R job
+sacct -u mpiuser
+
+# 3f. OpenMP Hello World - parallel threads
+cd /scratch/mpiuser/OpenMP
+cat hello_omp.c
+cat hello_omp_batch.sh
+gcc -fopenmp -o hello_omp.x hello_omp.c
+sbatch hello_omp_batch.sh
+squeue
+# Check output: cat a.out (shows greeting from each thread)
+
+# 3g. OpenMP Environment - display environment from each thread
+cat env_omp.c
+cat env_omp_batch.sh
+gcc -fopenmp -o env_omp.x env_omp.c
+sbatch env_omp_batch.sh
+squeue
+# Check output: cat a.out (shows SLURM_* vars from thread perspective)
+
+# 3h. MPI Hello World - parallel ranks
+cd /scratch/mpiuser/MPI
+export PATH=/opt/openmpi/5.0.1/bin:$PATH
+export LD_LIBRARY_PATH=/opt/openmpi/5.0.1/lib:$LD_LIBRARY_PATH
+cat hello_mpi.c
+cat hello_mpi_batch.sh
+mpicc -o hello_mpi.x hello_mpi.c
+sbatch hello_mpi_batch.sh
+squeue
+# Check output: cat a.out (shows greeting from each MPI rank)
+
+# 3i. MPI Environment - display environment from each rank
+cat env_mpi.c
+cat env_mpi_batch.sh
+mpicc -o env_mpi.x env_mpi.c
+sbatch env_mpi_batch.sh
+squeue
+# Check output: cat a.out (shows SLURM_* vars from rank perspective)
+
+# Check accounting for all parallel examples
+sacct -u mpiuser
+
+# 4. salloc - allocate resources for OpenMP run
 sudo su - mpiuser
-cd ~/Lab_MPI/OpenMP
-salloc -n 2
+cd /scratch/mpiuser/OpenMP
+salloc -n 2 -p lcilab
 
 # Check allocated resources
-sinfo
 squeue
 sinfo -N -l
 
-# Compile and run OpenMP app (compile if not already done)
+# Compile and run OpenMP app
 gcc -fopenmp -o heated_plate.x heated_plate_openmp.c -lm
 export OMP_NUM_THREADS=2
 ./heated_plate.x
@@ -59,11 +364,11 @@ exit
 sinfo
 sacct -u mpiuser
 
-# 4. srun - interactive runs
+# 5. srun - interactive runs
 
 # OpenMP interactive run
-srun -n 2 --pty bash
-cd ~/Lab_MPI/OpenMP
+srun -n 2 -p lcilab --pty bash
+cd /scratch/mpiuser/OpenMP
 export OMP_NUM_THREADS=2
 ./heated_plate.x
 exit
@@ -72,16 +377,29 @@ sacct -u mpiuser
 # Check MPI support
 srun --mpi=list
 
+# Set up OpenMPI environment (required for mpicc and MPI runs)
+export PATH=/opt/openmpi/5.0.1/bin:$PATH
+export LD_LIBRARY_PATH=/opt/openmpi/5.0.1/lib:$LD_LIBRARY_PATH
+
+# Remove the default stack size limit to prevent segfaults from large stack-allocated
+# arrays (e.g. mpi_heat2D.c allocates ~8MB on the stack). This must be set before
+# launching MPI jobs interactively. Batch scripts include this automatically.
+ulimit -s unlimited
+
+# Compile MPI applications
+cd /scratch/mpiuser/MPI
+mpicc -o mpi_heat2D.x mpi_heat2D.c -lm
+mpicc -o poisson_mpi.x poisson_mpi.c
+
 # MPI interactive runs
-cd ~/Lab_MPI/MPI
-srun --mpi=pmix -n 4 mpi_heat2D.x
-srun --mpi=pmix_v4 -n 4 mpi_heat2D.x
+srun --mpi=pmix -n 4 -p lcilab mpi_heat2D.x
+srun --mpi=pmix_v4 -n 4 -p lcilab mpi_heat2D.x
 sacct -u mpiuser
 
-# 5. sbatch - submit batch scripts
+# 6. sbatch - submit batch scripts
 
 # MPI batch (uses srun --mpi=pmix, NOT mpirun)
-cd ~/Lab_MPI/MPI
+cd /scratch/mpiuser/MPI
 cat mpi_batch.sh
 sbatch mpi_batch.sh
 squeue
@@ -91,19 +409,19 @@ squeue
 sbatch mpi_srun.sh
 
 # OpenMP batch
-cd ~/Lab_MPI/OpenMP
+cd /scratch/mpiuser/OpenMP
 cat openmp_batch.sh
 sbatch openmp_batch.sh
 # Check output: cat run.out-<jobid> and cat slurm.out
 
-# 6. scancel - terminate a job
-sbatch -w lci-compute-XX-1 openmp_batch.sh
+# 7. scancel - terminate a job
+sbatch -w lci-compute-01-1 openmp_batch.sh
 squeue
 scancel -j <jobid>
 
-# 7. Concurrent jobs - observe resource contention
-cd ~/Lab_MPI/MPI
-srun -n 2 --pty bash
+# 8. Concurrent jobs - observe resource contention
+cd /scratch/mpiuser/MPI
+srun -n 2 -p lcilab --pty bash
 # In another terminal, submit a job that will pend:
 sbatch mpi_batch.sh
 squeue
@@ -112,31 +430,26 @@ squeue
 exit
 squeue
 
-# 8. sstat - monitor running jobs
+# 9. sstat - monitor running jobs
 
-# First, set up OpenMPI environment (required for mpicc)
-export PATH=/opt/openmpi/5.0.1/bin:$PATH
-export LD_LIBRARY_PATH=/opt/openmpi/5.0.1/lib:$LD_LIBRARY_PATH
-
-# Compile and submit
-cd ~/Lab_MPI/MPI
-mpicc -o poisson_mpi.x poisson_mpi.c
+cd /scratch/mpiuser/MPI
 sbatch poisson_batch.sh
 
 # Monitor the job
 sstat -j <jobid>
 sstat -p --format=AveCPU,AvePages,AveRSS,AveVMSize,JobID -j <jobid>
 
-# 9. sacct - job accounting
+# 10. sacct - job accounting
 sacct --helpformat
 sacct -j <jobid> --format="JobID,JobName,State,Start,End"
 sacct -j <jobid> --format="JobID,JobName%15,State,NodeList%20,CPUTime"
 
-# 10. scontrol - cluster and job info
+# 11. scontrol - cluster and job info
 scontrol show config
-scontrol show node lci-compute-XX-1
+scontrol show node lci-compute-01-1
 scontrol show job <jobid>
 
 # Submit another job and check its info
+cd /scratch/mpiuser/OpenMP
 sbatch openmp_batch.sh
 scontrol show job <jobid>

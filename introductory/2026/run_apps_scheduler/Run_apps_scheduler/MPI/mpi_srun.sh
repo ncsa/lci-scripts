@@ -5,4 +5,5 @@
 #SBATCH --nodes=2
 #SBATCH --partition=lcilab
 
+ulimit -s unlimited
 srun --mpi=pmix mpi_heat2D.x
