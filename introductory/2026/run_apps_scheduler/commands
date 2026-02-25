@@ -160,25 +160,22 @@ cd ..
 #   - queue_fill_multiple.sh : Helper script that submits 6 jobs at once
 
 # Before: Check available resources
-echo "=== Initial cluster state ==="
+# === Initial cluster state ===
 sinfo
 squeue
 
 cd 06-queue_fill
 
 # View the batch script that each job will run
-echo ""
-echo "=== Viewing queue_fill_batch.sh ==="
+# === Viewing queue_fill_batch.sh ===
 cat queue_fill_batch.sh
 
 # View the helper script that submits multiple jobs
-echo ""
-echo "=== Viewing queue_fill_multiple.sh ==="
+# === Viewing queue_fill_multiple.sh ===
 cat queue_fill_multiple.sh
 
 # Option 1: Use the helper script to submit 6 jobs
-echo ""
-echo "=== Option 1: Using helper script ==="
+#=== Option 1: Using helper script ===
 ./queue_fill_multiple.sh
 
 # Option 2: Submit jobs manually (same as helper script does)
@@ -190,23 +187,19 @@ echo "=== Option 1: Using helper script ==="
 # done
 
 # Watch the queue - some RUNNING, some PENDING
-echo ""
-echo "=== Queue state after submissions ==="
+# === Queue state after submissions ===
 squeue
 
 # Show only pending jobs (waiting for resources)
-echo ""
-echo "=== Pending jobs (waiting for resources) ==="
+# === Pending jobs (waiting for resources) ===
 squeue -t PENDING
 
 # Show only running jobs
-echo ""
-echo "=== Running jobs ==="
+#=== Running jobs ===
 squeue -t RUNNING
 
 # Demonstrate scancel - cancel one pending job
-echo ""
-echo "=== Canceling one pending job ==="
+# === Canceling one pending job ===
 JOBID=$(squeue -t PENDING -h -o "%i" | head -1)
 if [ -n "$JOBID" ]; then
     echo "Canceling job $JOBID"
@@ -216,8 +209,7 @@ if [ -n "$JOBID" ]; then
 fi
 
 # Cancel all jobs with name "queue_fill"
-echo ""
-echo "=== Canceling all queue_fill jobs ==="
+# === Canceling all queue_fill jobs ===
 scancel -n queue_fill
 sleep 1
 squeue
@@ -229,8 +221,7 @@ squeue
 # scancel -t PENDING
 
 # Final state check
-echo ""
-echo "=== Final cluster state ==="
+#=== Final cluster state ===
 sinfo
 squeue
 
