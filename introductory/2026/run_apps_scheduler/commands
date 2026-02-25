@@ -155,42 +155,51 @@ cd ..
 
 # 3j. Queue filling - demonstrate squeue and scancel
 # This example shows how jobs queue up when resources are limited
+# The directory contains two scripts:
+#   - queue_fill_batch.sh : Slurm batch script that sleeps for 2 minutes
+#   - queue_fill_multiple.sh : Helper script that submits 6 jobs at once
 
 # Before: Check available resources
-echo "=== Initial cluster state ==="
+# === Initial cluster state ===
 sinfo
 squeue
 
 cd 06-queue_fill
 
-# Submit 6 jobs (likely more than available CPUs, some will pend)
-echo ""
-echo "=== Submitting 6 jobs to fill the queue ==="
+# View the batch script that each job will run
+# === Viewing queue_fill_batch.sh ===
 cat queue_fill_batch.sh
 
-for i in {1..6}; do
-    sbatch queue_fill_batch.sh
-done
-cd ..
+# View the helper script that submits multiple jobs
+# === Viewing queue_fill_multiple.sh ===
+cat queue_fill_multiple.sh
+
+# Option 1: Use the helper script to submit 6 jobs
+#=== Option 1: Using helper script ===
+./queue_fill_multiple.sh
+
+# Option 2: Submit jobs manually (same as helper script does)
+# Uncomment the following lines to use this approach instead:
+# echo ""
+# echo "=== Option 2: Manual submission ==="
+# for i in {1..6}; do
+#     sbatch queue_fill_batch.sh
+# done
 
 # Watch the queue - some RUNNING, some PENDING
-echo ""
-echo "=== Queue state after submissions ==="
+# === Queue state after submissions ===
 squeue
 
 # Show only pending jobs (waiting for resources)
-echo ""
-echo "=== Pending jobs (waiting for resources) ==="
+# === Pending jobs (waiting for resources) ===
 squeue -t PENDING
 
 # Show only running jobs
-echo ""
-echo "=== Running jobs ==="
+#=== Running jobs ===
 squeue -t RUNNING
 
 # Demonstrate scancel - cancel one pending job
-echo ""
-echo "=== Canceling one pending job ==="
+# === Canceling one pending job ===
 JOBID=$(squeue -t PENDING -h -o "%i" | head -1)
 if [ -n "$JOBID" ]; then
     echo "Canceling job $JOBID"
@@ -200,8 +209,7 @@ if [ -n "$JOBID" ]; then
 fi
 
 # Cancel all jobs with name "queue_fill"
-echo ""
-echo "=== Canceling all queue_fill jobs ==="
+# === Canceling all queue_fill jobs ===
 scancel -n queue_fill
 sleep 1
 squeue
@@ -213,10 +221,11 @@ squeue
 # scancel -t PENDING
 
 # Final state check
-echo ""
-echo "=== Final cluster state ==="
+#=== Final cluster state ===
 sinfo
 squeue
+
+cd ..
 
 # Check accounting for all simple jobs
 sacct -u mpiuser

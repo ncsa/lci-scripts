@@ -5,11 +5,17 @@
 
 **Note:** All source code and compiled binaries should be run from `/scratch/` (e.g., `/scratch/mpiuser/`), which is the only shared filesystem visible from all compute nodes. The home directory is not mounted on compute nodes.
 
+**Note:** Replace `01` with your cluster number (e.g., 01, 02, etc.) throughout this lab.
+- Using vim: `:%s/01/<clusternumber>/g`, then `:wq`
+- Using nano: `Ctrl+\`, Enter "01", Enter your cluster number, `A`, `Ctrl+O`, `Enter`, `Ctrl+X`
+
 **Steps:**
 
-- Create accounts and users in SLURM
+- Initial setup (clone repo, create users, copy files)
 
 - Create Slurm partition for jobs
+
+- Create accounts and users in SLURM
 
 - Browse the cluster resources with `sinfo`
 
@@ -31,7 +37,73 @@
 
 - Command `scontrol show` exercises
 
-### 1. Create cluster account and users in SLURM
+### 0. Initial Setup
+
+Run as root and clone the repository:
+
+```bash
+sudo -i
+cd
+git clone https://github.com/ncsa/lci-scripts.git
+```
+
+Copy the scheduler playbook to your home directory:
+
+```bash
+cd ~
+cp -a lci-scripts/introductory/2026/run_apps_scheduler/Run_apps_scheduler .
+cd Run_apps_scheduler
+```
+
+Create Linux user `mpiuser` on all nodes (must exist everywhere for Slurm jobs):
+
+```bash
+useradd -u 2004 mpiuser
+clush -g compute "useradd -u 2004 mpiuser"
+chmod -R 0775 /opt/slurm/
+echo "export PATH='/opt/slurm/current/bin:$PATH'" >> /etc/bashrc
+clush -g compute "echo 'export PATH=\"/opt/slurm/current/bin:\$PATH\"' >> /etc/bashrc"
+clush -g compute "chmod -R 0755 /opt/slurm"
+```
+
+Copy the lab source code to `/scratch/` (shared filesystem visible from all nodes):
+
+```bash
+mkdir -p /scratch/mpiuser
+cp -r MPI OpenMP simple /scratch/mpiuser/
+chown -R mpiuser:mpiuser /scratch/mpiuser
+chmod -R 0755 /scratch/mpiuser/simple/
+```
+
+Verify files are in place:
+
+```bash
+ls -la /scratch/mpiuser/OpenMP/
+ls -la /scratch/mpiuser/MPI/
+ls -la /scratch/mpiuser/simple/
+```
+
+### 1. Create Slurm partition for jobs
+
+A partition in Slurm is a logical group of nodes where jobs can be submitted. Create the lcilab partition that will be used for all job submissions:
+
+```bash
+scontrol create PartitionName=lcilab Nodes=ALL Default=YES MaxTime=04:00:00 State=UP
+```
+
+Verify the partition was created:
+
+```bash
+sinfo
+```
+
+**To modify an existing partition** (e.g., change MaxTime):
+
+```bash
+scontrol update PartitionName=lcilab MaxTime=08:00:00
+```
+
+### 2. Create cluster account and users in SLURM
 
 For correct accounting, association, and resource assignments, users and accounts should be created in SLURM.
 
@@ -56,27 +128,7 @@ Check the accounts and users:
 sacctmgr list associations format=user,account
 ```
 
-### 1a. Create Slurm partition
-
-A partition in Slurm is a logical group of nodes where jobs can be submitted. Create the lcilab partition that will be used for all job submissions:
-
-```bash
-sudo scontrol create PartitionName=lcilab Nodes=ALL Default=YES MaxTime=04:00:00 State=UP
-```
-
-Verify the partition was created:
-
-```bash
-sinfo
-```
-
-**To modify an existing partition** (e.g., change MaxTime):
-
-```bash
-sudo scontrol update PartitionName=lcilab MaxTime=08:00:00
-```
-
-### 2. Cluster resources monitoring
+### 3. Cluster resources monitoring
 
 To see what nodes are allocated, used, and idle (available), run command `sinfo`:
 
@@ -96,7 +148,7 @@ To see running and pending jobs in the queue:
 squeue
 ```
 
-### 3. Simple sbatch examples
+### 4. Simple sbatch examples
 
 This section demonstrates basic `sbatch` usage with simple scripts. No MPI or OpenMP is needed for these examples.
 
@@ -107,7 +159,7 @@ sudo su - mpiuser
 cd /scratch/mpiuser/simple
 ```
 
-#### 3a. Hello World - simplest sbatch job
+#### 4a. Hello World - simplest sbatch job
 
 **01-hello/hello.sh** - A simple greeting script:
 
@@ -153,7 +205,7 @@ cat hello.out
 cd ..
 ```
 
-#### 3b. Hostname across multiple tasks
+#### 4b. Hostname across multiple tasks
 
 **02-hostname/hostname_array.sh** - Shows which node each task runs on:
 
@@ -195,7 +247,7 @@ cat hostname.out
 cd ..
 ```
 
-#### 3c. Count script
+#### 4c. Count script
 
 **03-count/count.sh** - A simple script that counts from 1 to a given number:
 
@@ -253,7 +305,7 @@ cat slurm_count.out
 cd ..
 ```
 
-#### 3d. Slurm environment variables
+#### 4d. Slurm environment variables
 
 **04-env/env_check.sh** - Display Slurm environment variables:
 
@@ -302,7 +354,7 @@ cat env.out
 cd ..
 ```
 
-#### 3e. Job Arrays
+#### 4e. Job Arrays
 
 **05-array/array_task.sh** - Script for job array tasks:
 
@@ -386,7 +438,7 @@ Check accounting for all simple jobs:
 sacct -u mpiuser
 ```
 
-#### 3f. OpenMP Hello World
+#### 4f. OpenMP Hello World
 
 **hello_omp.c** - Hello World with OpenMP threads:
 
@@ -438,7 +490,7 @@ squeue
 # Check output: cat a.out (shows greeting from each thread)
 ```
 
-#### 3g. OpenMP Environment
+#### 4g. OpenMP Environment
 
 **env_omp.c** - Display OpenMP/Slurm environment from each thread:
 
@@ -499,7 +551,7 @@ squeue
 # Check output: cat a.out (shows SLURM_* vars from thread perspective)
 ```
 
-#### 3h. MPI Hello World
+#### 4h. MPI Hello World
 
 **hello_mpi.c** - Hello World with MPI ranks:
 
@@ -551,7 +603,7 @@ squeue
 # Check output: cat a.out (shows greeting from each MPI rank)
 ```
 
-#### 3i. MPI Environment
+#### 4i. MPI Environment
 
 **env_mpi.c** - Display MPI/Slurm environment from each rank:
 
@@ -621,7 +673,7 @@ Check accounting for all parallel examples:
 sacct -u mpiuser
 ```
 
-#### 3j. Queue Filling - Demonstrating squeue and scancel
+#### 4j. Queue Filling - Demonstrating squeue and scancel
 
 This example demonstrates how jobs queue up when resources are limited, and how to use `squeue` and `scancel` to manage them.
 
@@ -712,7 +764,7 @@ squeue
 - Use `squeue -t PENDING` to see only waiting jobs
 - Use `squeue -t RUNNING` to see only active jobs
 
-#### 3k. Python Array Job - Parameter Sweep
+#### 4k. Python Array Job - Parameter Sweep
 
 This example demonstrates processing multiple input files using a Slurm job array with Python.
 
@@ -794,7 +846,7 @@ sleep 10
 cat output/*.out
 ```
 
-#### 3l. R Array Job - Data Processing
+#### 4l. R Array Job - Data Processing
 
 This example demonstrates using R with Slurm job arrays for parallel data processing.
 
@@ -896,7 +948,7 @@ Check accounting for all simple jobs:
 sacct -u mpiuser
 ```
 
-### 4. Cluster resource allocation with `salloc`
+### 5. Cluster resource allocation with `salloc`
 
 **OpenMP run:**
 
@@ -950,7 +1002,7 @@ sacct -u mpiuser
 
 It should show one completed job.
 
-### 5. Using command `srun`
+### 6. Using command `srun`
 
 Execute `srun` to allocate two CPUs on the cluster and get a shell on a compute node:
 
@@ -1013,7 +1065,7 @@ sacct -u mpiuser
 To launch Open MPI applications using PMIx the '--mpi=pmix' option must be specified on the srun command line or 'MpiDefault=pmix' must be configured in slurm.conf.
 
 
-### 6. Using submit scripts and command `sbatch`
+### 7. Using submit scripts and command `sbatch`
 
 In directory `/scratch/mpiuser/MPI`, check out submit script `mpi_batch.sh`:
 
@@ -1105,7 +1157,7 @@ sbatch openmp_batch.sh
 
 After the job completes, check out the content of the output file, run.out-\<jobid\>, and the stdo output file slurm.out
 
-### 7. Terminate a job with command `scancel`
+### 8. Terminate a job with command `scancel`
 
 Submit the OpenMP job with `sbatch` to run on node `compute2`. Check out its status with command `squeue`.
 Terminate the job with command `scancel`:
@@ -1117,7 +1169,7 @@ scancel -j <jobid>
 ```
 
 
-### 8.  Concurrently submitted jobs
+### 9.  Concurrently submitted jobs
 
 
 If resources are unavailable, jobs will stay in the queue.
@@ -1151,7 +1203,7 @@ Run command `squeue`. It should show you that the last job is waiting in the que
 
 exit from `srun`, and run `squeue` again. The MPI job should begin running.
 
-### 9.  Command sstat
+### 10.  Command sstat
 
 First, set up the OpenMPI environment and compile `poisson_mpi.c`:
 
@@ -1186,7 +1238,7 @@ AveCPU|AvePages|AveRSS|AveVMSize|JobID|
 ```
 
 
-### 10. Job accounting information
+### 11. Job accounting information
 
 Command `sacct` can give formatted output.
 
