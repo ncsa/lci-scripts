@@ -19,9 +19,9 @@ cd Run_apps_scheduler
 useradd -u 2004 mpiuser
 clush -g compute "useradd -u 2004 mpiuser"
 chmod -R 0775 /opt/slurm/
-echo 'export PATH="/opt/slurm/current/bin:$PATH"' >> /etc/bashrc
-clush -g compute "echo 'export PATH="/opt/slurm/current/bin:$PATH"' >> /etc/bashrc"
-clush -g compute "chmod -R 0766 /opt/slurm"
+echo "export PATH='/opt/slurm/current/bin:$PATH'" >> /etc/bashrc
+clush -g compute "echo 'export PATH=\"/opt/slurm/current/bin:\$PATH\"' >> /etc/bashrc"
+clush -g compute "chmod -R 0755 /opt/slurm"
 
 # Create the lcilab partition for job submissions
 scontrol create PartitionName=lcilab Nodes=ALL Default=YES MaxTime=04:00:00 State=UP
@@ -36,6 +36,7 @@ sinfo
 mkdir -p /scratch/mpiuser
 cp -r MPI OpenMP simple /scratch/mpiuser/
 chown -R mpiuser:mpiuser /scratch/mpiuser
+chmod -R 0755 /scratch/mpiuser/simple/
 
 # Verify files are in place
 ls -la /scratch/mpiuser/OpenMP/
@@ -62,9 +63,10 @@ cd /scratch/mpiuser/simple
 sinfo
 squeue
 
-cat 01-hello/hello.sh
-cat 01-hello/hello_batch.sh
-sbatch 01-hello/hello_batch.sh
+cd 01-hello
+cat hello.sh
+cat hello_batch.sh
+sbatch hello_batch.sh
 
 # After: Check job status
 squeue
@@ -73,30 +75,34 @@ scontrol show job <jobid>
 
 # Wait for completion, then check output
 sleep 5
-cat a.out
+cat hello.out
+cd ..
 
 # 3b. Hostname across multiple tasks
 # Before: Check node availability
 sinfo -N
 
-cat 02-hostname/hostname_array.sh
-cat 02-hostname/hostname_batch.sh
-sbatch 02-hostname/hostname_batch.sh
+cd 02-hostname
+cat hostname_array.sh
+cat hostname_batch.sh
+sbatch hostname_batch.sh
 
 # After: See which nodes were allocated
 squeue
 scontrol show job <jobid>
 
 # Wait for completion
-cat a.out
+cat hostname.out
+cd ..
 
 # 3c. Count script (longer running job)
 # Before
 squeue
 
-cat 03-count/count.sh
-cat 03-count/count_batch.sh
-sbatch 03-count/count_batch.sh
+cd 03-count
+cat count.sh
+cat count_batch.sh
+sbatch count_batch.sh
 
 # After: Watch job progress
 squeue
@@ -105,27 +111,31 @@ watch -n 1 squeue   # Press Ctrl+C to stop watching
 
 # Check output after completion
 cat slurm_count.out
+cd ..
 
 # 3d. Slurm environment variables
 # Before
 sinfo
 
-cat 04-env/env_check.sh
-cat 04-env/env_batch.sh
-sbatch 04-env/env_batch.sh
+cd 04-env
+cat env_check.sh
+cat env_batch.sh
+sbatch env_batch.sh
 
 # After
 squeue
 sleep 3
-cat a.out
+cat env.out
+cd ..
 
 # 3e. Job Array - submit multiple similar jobs at once
 # Before: Note empty queue
 squeue
 
-cat 05-array/array_task.sh
-cat 05-array/array_batch.sh
-sbatch 05-array/array_batch.sh
+cd 05-array
+cat array_task.sh
+cat array_batch.sh
+sbatch array_batch.sh
 
 # After: See array tasks (may show as single job with array info)
 squeue
@@ -141,6 +151,7 @@ squeue -r   # Show array tasks expanded
 # Check array job outputs
 ls -la array_*.out
 cat array_*_1.out
+cd ..
 
 # 3j. Queue filling - demonstrate squeue and scancel
 # This example shows how jobs queue up when resources are limited
@@ -150,14 +161,17 @@ echo "=== Initial cluster state ==="
 sinfo
 squeue
 
+cd 06-queue_fill
+
 # Submit 6 jobs (likely more than available CPUs, some will pend)
 echo ""
 echo "=== Submitting 6 jobs to fill the queue ==="
-cat 06-queue_fill/queue_fill_batch.sh
+cat queue_fill_batch.sh
 
 for i in {1..6}; do
-    sbatch 06-queue_fill/queue_fill_batch.sh
+    sbatch queue_fill_batch.sh
 done
+cd ..
 
 # Watch the queue - some RUNNING, some PENDING
 echo ""

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name=hostname_job
-#SBATCH --output=a.out
+#SBATCH --output=hostname.out
 #SBATCH --partition=lcilab
 #SBATCH --ntasks=4
 #SBATCH --time=00:01:00

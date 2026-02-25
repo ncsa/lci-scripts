@@ -125,7 +125,7 @@ echo "Running at: $(date)"
 #!/bin/bash
 
 #SBATCH --job-name=hello_job
-#SBATCH --output=a.out
+#SBATCH --output=hello.out
 #SBATCH --partition=lcilab
 #SBATCH --ntasks=1
 #SBATCH --time=00:01:00
@@ -140,7 +140,8 @@ To run:
 sinfo
 squeue
 
-sbatch 01-hello/hello_batch.sh
+cd 01-hello
+sbatch hello_batch.sh
 
 # After: Check job status
 squeue
@@ -148,7 +149,8 @@ scontrol show job <jobid>
 
 # Wait for completion, then check output
 sleep 5
-cat a.out
+cat hello.out
+cd ..
 ```
 
 #### 3b. Hostname across multiple tasks
@@ -167,7 +169,7 @@ echo "Task $SLURM_PROCID on host $HOSTNAME"
 #!/bin/bash
 
 #SBATCH --job-name=hostname_job
-#SBATCH --output=a.out
+#SBATCH --output=hostname.out
 #SBATCH --partition=lcilab
 #SBATCH --ntasks=4
 #SBATCH --time=00:01:00
@@ -181,14 +183,16 @@ To run:
 # Before: Check node availability
 sinfo -N
 
-sbatch 02-hostname/hostname_batch.sh
+cd 02-hostname
+sbatch hostname_batch.sh
 
 # After: See which nodes were allocated
 squeue
 scontrol show job <jobid>
 
 # Wait for completion
-cat a.out
+cat hostname.out
+cd ..
 ```
 
 #### 3c. Count script
@@ -237,7 +241,8 @@ To run:
 # Before
 squeue
 
-sbatch 03-count/count_batch.sh
+cd 03-count
+sbatch count_batch.sh
 
 # After: Watch job progress (runs for 20 seconds)
 squeue
@@ -245,6 +250,7 @@ watch -n 1 squeue   # Press Ctrl+C to stop watching
 
 # Check output after completion
 cat slurm_count.out
+cd ..
 ```
 
 #### 3d. Slurm environment variables
@@ -272,7 +278,7 @@ echo "========================="
 #!/bin/bash
 
 #SBATCH --job-name=env_check
-#SBATCH --output=a.out
+#SBATCH --output=env.out
 #SBATCH --partition=lcilab
 #SBATCH --ntasks=1
 #SBATCH --time=00:01:00
@@ -286,12 +292,14 @@ To run:
 # Before
 sinfo
 
-sbatch 04-env/env_batch.sh
+cd 04-env
+sbatch env_batch.sh
 
 # After
 squeue
 sleep 3
-cat a.out
+cat env.out
+cd ..
 ```
 
 #### 3e. Job Arrays
@@ -332,7 +340,8 @@ To run:
 # Before: Note empty queue
 squeue
 
-sbatch 05-array/array_batch.sh
+cd 05-array
+sbatch array_batch.sh
 
 # After: See array tasks
 squeue
@@ -341,6 +350,7 @@ squeue -r   # Show array tasks expanded
 # Check array job outputs after completion
 ls -la array_*.out
 cat array_*_1.out
+cd ..
 ```
 
 #### Job Arrays Explained
@@ -642,11 +652,14 @@ echo "=== Initial cluster state ==="
 sinfo
 squeue
 
+cd 06-queue_fill
+
 # Submit 6 jobs (likely more than available CPUs)
 echo "=== Submitting 6 jobs to fill the queue ==="
 for i in {1..6}; do
-    sbatch 06-queue_fill/queue_fill_batch.sh
+    sbatch queue_fill_batch.sh
 done
+cd ..
 
 # Watch the queue - some RUNNING, some PENDING
 echo "=== Queue state after submissions ==="
