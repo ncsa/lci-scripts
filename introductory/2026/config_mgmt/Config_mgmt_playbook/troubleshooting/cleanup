@@ -1,0 +1,22 @@
+# ============================================================
+# Cleanup if needed
+# ============================================================
+
+# NOTE: Run the Salt cleanup commands BEFORE running destroy.yml,
+# since destroy.yml stops Salt services and the salt command will not work after.
+
+# Remove Salt-managed users and files
+salt '*' user.absent workshop_salt remove=True
+salt '*' file.remove /etc/motd
+
+# Remove Ansible-managed users and files
+ansible all_nodes -i hosts.ini -m user -a "name=workshop state=absent remove=yes" --become
+ansible all_nodes -i hosts.ini -m file -a "path=/tmp/lci_test.txt state=absent" --become
+ansible all_nodes -i hosts.ini -m file -a "path=/etc/issue state=absent" --become
+
+# Remove packages installed during exercises
+ansible all_nodes -i hosts.ini -m dnf -a "name=tree state=absent" --become
+salt '*' pkg.remove vim-enhanced
+
+# Run destroy playbook (removes Salt, test packages, etc.)
+ansible-playbook -i hosts.ini destroy.yml
