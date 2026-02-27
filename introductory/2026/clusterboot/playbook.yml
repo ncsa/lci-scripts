@@ -1,0 +1,172 @@
+---
+####### Setup hostnames #######
+- name: Hostname fixes
+  hosts: all
+  gather_facts: yes
+  tasks:
+    - name: Set system hostname
+      ansible.builtin.hostname:
+        name: "{{ inventory_hostname_short }}"
+
+- name: All nodes preliminary config
+  hosts: all
+  tasks:
+    - name: Enable the EPEL repo
+      ansible.builtin.dnf:
+        name: epel-release
+        state: latest
+    - name: Enable the CRB repo (formerly powertools)
+      ansible.builtin.command:
+        cmd: dnf config-manager --set-enabled crb
+    - name: Ensure time zones are in sync
+      ansible.builtin.command:
+        cmd: "{{ item }}"
+      with_items:
+        - timedatectl set-timezone America/Chicago
+        - timedatectl set-ntp yes
+
+- name: Head Node Config
+  hosts: head_nodes
+  gather_facts: no
+  vars:
+    clusternumber: "{{lookup('env', 'myclusternumber')}}"
+  tasks:
+    - name: Install headnode packages
+      ansible.builtin.dnf:
+        name: gcc,ansible,rpm-build,pam-devel,perl,perl-DBI,openssl-devel,readline-devel,mariadb-devel,mariadb-server,python3-PyMySQL,munge-libs,munge-devel,hwloc,nfs-utils,clustershell
+        state: latest
+    - name: Force stop of MariaDB
+      ansible.builtin.systemd:
+        state: stopped
+        name: mariadb
+    - name: Force start of MariaDB
+      ansible.builtin.systemd:
+        state: started
+        name: mariadb
+        enabled: yes
+    - name: Create directory for NFS exports if it does not exist
+      ansible.builtin.file:
+        path: /head/NFS
+        state: directory
+        mode: '0755'
+    - name: Export /head/NFS
+      ansible.builtin.lineinfile:
+        path: /etc/exports
+        line: /head/NFS  lci-compute*(rw,async) 
+        create: yes
+    - name: Ensure nfs-utils service restarted
+      ansible.builtin.systemd_service:
+        state: restarted
+        name: nfs-utils
+        enabled: yes
+    - name: Ensure nfs-server service restarted
+      ansible.builtin.systemd_service:
+        state: restarted
+        name: nfs-server
+        enabled: yes
+    - name: Create local clush config
+      ansible.builtin.template:
+        src: local.cfg.j2
+        dest: /etc/clustershell/groups.d/local.cfg
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Create MPI User and generate keys
+      ansible.builtin.user:
+        name: mpiuser
+        password: '*'
+        uid: 5000
+        state: present
+        shell: /bin/bash
+        createhome: yes
+        home: /head/NFS/mpiuser
+        generate_ssh_key: yes
+        ssh_key_type: ed25519
+        ssh_key_bits: 256
+    - name: create mpiuser authorized_keys
+      ansible.posix.authorized_key:
+        user: mpiuser
+        state: present
+        key: "{{ lookup('file', '/head/NFS/mpiuser/.ssh/id_ed25519.pub') }}"
+
+- name: Compute Node Config
+  hosts: compute_nodes
+  gather_facts: no
+  vars:
+    clusternumber: "{{lookup('env', 'myclusternumber')}}"
+  tasks:
+    - name: Install packages
+      ansible.builtin.dnf:
+        name: perl, perl-DBI, autofs, hwloc
+        state: present
+    - name: Disable SELINUX
+      ansible.posix.selinux:
+        update_kernel_param: true
+        state: disabled
+    - name: Create directory
+      ansible.builtin.file:
+        path: /head
+        state: directory
+        mode: '0755'
+    - name: Copy auto.master
+      ansible.builtin.copy:
+        src: auto.master
+        dest: /etc/auto.master
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Copy auto.nfs
+      ansible.builtin.template:
+        src: auto.nfs.j2
+        dest: /etc/auto.nfs
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Restart autofs
+      ansible.builtin.systemd_service:
+        state: restarted
+        daemon_reload: yes
+        name: autofs
+    - name: Create mpi user on nodes
+      ansible.builtin.user:
+        name: mpiuser
+        password: '*'
+        uid: 5000
+        state: present
+        shell: /bin/bash
+        createhome: no
+        home: /head/NFS/mpiuser
+
+- name: All nodes config
+  hosts: all
+  gather_facts: yes
+  tasks:
+    - name: Install software
+      ansible.builtin.dnf:
+        name: openmpi,Lmod
+        state: latest
+    - name: Create sample group lci-bio
+      ansible.builtin.group:
+        name: lci-bio
+        gid: 3001
+        state: present
+    - name: Create sample group lci-eng
+      ansible.builtin.group:
+        name: lci-eng
+        gid: 3002
+        state: present
+    - name: Create sample user justin
+      ansible.builtin.user:
+        name: justin
+        uid: 2002
+        group: lci-bio
+        create_home: yes
+        state: present
+    - name: Create sample user katie
+      ansible.builtin.user:
+        name: katie
+        uid: 2003
+        group: lci-eng
+        create_home: yes
+        state: present
+
