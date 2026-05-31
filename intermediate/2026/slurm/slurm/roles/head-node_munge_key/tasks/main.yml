@@ -1,0 +1,27 @@
+  - name: Install Munge through DNF
+    ansible.builtin.dnf:
+      name: munge
+      state: latest
+
+  - name: Check if the munge.key exists
+    stat:
+      path: /etc/munge/munge.key
+    register: stat_result
+
+  - name: Create munge.key
+    ansible.builtin.command:
+     cmd: /usr/bin/dd if=/dev/urandom bs=1 count=1024 of=roles/head-node_munge_key/files/munge.key
+    when: not stat_result.stat.exists
+
+  - name: Copy munge.key into /etc/munge 
+    ansible.builtin.copy:
+     src: munge.key 
+     dest: /etc/munge
+     owner: munge
+     group: munge
+     mode: '0400'
+
+  - name: Restart munge service 
+    ansible.builtin.service:
+     name: munge
+     state: restarted

@@ -270,7 +270,7 @@ MariaDB should be active (running). This is the database that will store Slurm a
 timedatectl status
 ```
 
-Should show correct timezone (America/Chicago) and NTP service active.
+Should show correct timezone (America/New_York) and NTP service active.
 
 ```bash
 showmount -e

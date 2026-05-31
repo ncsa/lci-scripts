@@ -1,0 +1,88 @@
+## Lustre source has already been compiled and installed on your nodes
+
+## See disks on your storage nodes
+lsblk ## should see vdb and vdc on each of the four storage nodes (each device is 5GB)
+
+## Format your MGT on your first storage node (lci-storage-XX-1)
+mkfs.lustre --mgs /dev/vdb
+
+## Format your MDT on your first storage node (lci-storage-XX-1)
+mkfs.lustre --fsname=lci --mgsnode=lci-storage-XX-1@tcp --mdt --index=0 /dev/vdc
+
+## Mount both targets
+mkdir -p /mnt/mgt && mkdir -p /mnt/mdt
+mount -t lustre /dev/vdb /mnt/mgt
+mount -t lustre /dev/vdc /mnt/mdt
+
+## Format and mount your OSTs on the other three nodes (lci-storage-XX-[2-4])
+# lci-storage-XX-2
+mkfs.lustre --fsname=lci --mgsnode=lci-storage-XX-1@tcp --ost --index=0 /dev/vdb
+mkfs.lustre --fsname=lci --mgsnode=lci-storage-XX-1@tcp --ost --index=1 /dev/vdc
+mkdir -p /mnt/ost0 && mkdir -p /mnt/ost1
+mount -t lustre /dev/vdb /mnt/ost0
+mount -t lustre /dev/vdc /mnt/ost1
+
+# lci-storage-XX-3
+mkfs.lustre --fsname=lci --mgsnode=lci-storage-XX-1@tcp --ost --index=2 /dev/vdb
+mkfs.lustre --fsname=lci --mgsnode=lci-storage-XX-1@tcp --ost --index=3 /dev/vdc
+mkdir -p /mnt/ost2 && mkdir -p /mnt/ost3
+mount -t lustre /dev/vdb /mnt/ost2
+mount -t lustre /dev/vdc /mnt/ost3
+
+# lci-storage-XX-4
+mkfs.lustre --fsname=lci --mgsnode=lci-storage-XX-1@tcp --ost --index=4 /dev/vdb
+mkfs.lustre --fsname=lci --mgsnode=lci-storage-XX-1@tcp --ost --index=5 /dev/vdc
+mkdir -p /mnt/ost4 && mkdir -p /mnt/ost5
+mount -t lustre /dev/vdb /mnt/ost4
+mount -t lustre /dev/vdc /mnt/ost5
+
+## On *each* compute node, mount the Lustre FS
+mkdir -p /lustre/lci
+mount -t lustre lci-storage-XX-1@tcp:/lci /lustre/lci
+
+## Make home and scratch directories
+lfs mkdir -o 02775 /lustre/lci/home && lfs mkdir -o 02775 /lustre/lci/scratch
+
+## Assign project ids to these areas
+lfs project -p 1 -s -r /lustre/lci/home && lfs project -p 2 -s -r /lustre/lci/scratch
+
+## Enable Quotas (from lci-storage-XX-1)
+lctl conf_param lci.quota.ost=ugp
+lctl conf_param lci.quota.mdt=ugp 
+
+## From one of your compute nodes set some quotas (user and project)
+lfs setquota -u 1000 -b 2G -B 4G -i 1200 -I 1500 /lustre/lci
+lfs setquota -p 1 -b 9G -B 10G -i 10000 -I 110000 /lustre/lci
+
+## Sync in data from head node
+rsync -avP lci@levi2.ncsa.Illinois.edu:/gideon/lci/* /lustre/lci/scratch
+
+## Some Handy/Fun commands (from compute node)
+lfs df -h
+lfs df -i
+lfs setstripe
+lfs getstripe
+
+## To clean up for next lab
+
+## Unmount FS from compute/head nodes
+umount /lustre/lci
+
+## Unmount the targets on all four storage nodes (reverse order of mounting)
+
+# lci-storage-XX-4
+umount /mnt/ost4
+umount /mnt/ost5
+
+
+# lci-storage-XX-3
+umount /mnt/ost2
+umount /mnt/ost3
+
+# lci-storage-XX-2
+umount /mnt/ost0
+umount /mnt/ost1
+
+# lci-storage-XX-1
+umount /mnt/mgt
+umount /mnt/mdt
