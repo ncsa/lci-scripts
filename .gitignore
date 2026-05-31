@@ -1,7 +1,9 @@
 *.DS_Store
 AGENTS.md
+CLAUDE.md
 sess*
 fix.md
+.claude/ 
 
 # Ignore all backup directories at any level
 **/bak/
