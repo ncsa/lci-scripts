@@ -1,0 +1,406 @@
+# ============================================================
+# Schedulers track - install + configuration + usage commands
+# ============================================================
+# This file is the SOURCE OF TRUTH for the commands to run.
+# Each step has a one-liner explanation; for the full story see:
+#   INSTALL.md  - what install_all.sh does, step by step
+#   LAB.md      - detailed explanation of every lab section below
+#
+# NOTE: shared storage (NFS) is built in a previous lab and is
+# NOT configured here.
+#
+# Replace XX with your cluster number (e.g., 07) throughout.
+# Run as root on lci-head-XX-1:  sudo -i
+# ============================================================
+
+
+# ============================================================
+# 0. Install the cluster (install_all.sh)
+# ============================================================
+# Get the bundle onto the head node (skip if you already have it):
+#   git clone https://github.com/ncsa/lci-scripts.git ~/lci-scripts
+cd ~/lci-scripts/intermediate/2026/slurm
+
+# Run the installer. Two modes:
+#   classic    - playbook also writes /etc/slurm/slurm.conf on compute
+#   configless - compute nodes fetch slurm.conf from slurmctld at startup
+./install_all.sh XX               # classic
+# ./install_all.sh --configless XX  # configless variant
+
+# Heads up during the install: you'll see a "FAILED!...ignoring" line
+# for a `mysql -e "SELECT 1 FROM mysql.user..."` task. That's normal -
+# it's the "does the slurm DB user already exist?" check; on a fresh
+# install it doesn't, the playbook ignores the failure and creates it
+# in the next task.
+
+# Tear down and re-run (cleans up everything install_all.sh installed):
+# ./uninstall_all.sh
+# ./install_all.sh XX
+
+
+# ============================================================
+# 1. Verify the install
+# ============================================================
+# Head node services should all be 'active (running)':
+systemctl status mariadb
+systemctl status slurmctld
+systemctl status slurmdbd
+timedatectl status              # clock sync - MUNGE needs this
+
+# Slurm should see both compute nodes as 'idle':
+sinfo
+
+# Compute node check:
+ssh lci-compute-XX-1 systemctl status slurmd
+
+# Configless extras (only if you used --configless):
+# ssh lci-compute-XX-1 ls -l /etc/slurm/slurm.conf   # No such file
+# ssh lci-compute-XX-1 scontrol show config | head   # served by controller
+
+
+# ============================================================
+# 2. ClusterShell - run commands across many nodes at once
+# ============================================================
+# Install clush (gives us 'clush -g <group>' to fan a command
+# out across a set of hosts):
+dnf install -y clustershell
+
+# Edit /etc/clustershell/groups.d/local.cfg: remove existing
+# uncommented content and add the groups for your cluster:
+#   head: lci-head-XX-1
+#   compute: lci-compute-XX-[1-2]
+#   login: lci-head-XX-1
+
+# Sanity-check the group fans out correctly:
+clush -g compute "uptime"
+
+# Compute nodes often boot with a '.novalocal' suffix from cloud-init.
+# Fix the hostname to match what's in /etc/hosts (and what slurm.conf
+# expects):
+clush -g compute 'correct_hostname=$(grep $(hostname -s) /etc/hosts | grep lci-compute | head -1 | awk "{print \$2}"); sudo hostnamectl set-hostname $correct_hostname'
+
+# Verify:
+clush -g compute "hostname"
+
+
+# ============================================================
+# 3. Groups and user accounts across all nodes
+# ============================================================
+# The hands-on goal is "4 departments with 2 users each":
+#   Department  Group     GID    Users (UID)
+#   ----------  --------  -----  ------------------------
+#   biology     lci-bio   3001   bob (2002),   alice (2003)
+#   engineering lci-eng   3002   justin (2004), katie (2005)
+#   chemistry   lci-chem  3003   carol (2006), dave  (2007)
+#   physics     lci-phys  3004   erin (2008),  frank (2009)
+#
+# SHORTCUT: scripts/create_users_groups.sh does all of section 3
+# (Linux groups/users on head + compute, plus the Slurm accounts)
+# idempotently:
+#   ./scripts/create_users_groups.sh
+# The manual commands below are what it runs.
+
+# Create groups on the head node:
+groupadd -g 3001 lci-bio
+groupadd -g 3002 lci-eng
+groupadd -g 3003 lci-chem
+groupadd -g 3004 lci-phys
+
+# Create users on the head node:
+useradd -u 2002 -g lci-bio  bob
+useradd -u 2003 -g lci-bio  alice
+useradd -u 2004 -g lci-eng  justin
+useradd -u 2005 -g lci-eng  katie
+useradd -u 2006 -g lci-chem carol
+useradd -u 2007 -g lci-chem dave
+useradd -u 2008 -g lci-phys erin
+useradd -u 2009 -g lci-phys frank
+
+# Propagate groups to compute nodes (same GIDs - critical for shared
+# storage and Slurm job_container):
+clush -g compute "groupadd -g 3001 lci-bio"
+clush -g compute "groupadd -g 3002 lci-eng"
+clush -g compute "groupadd -g 3003 lci-chem"
+clush -g compute "groupadd -g 3004 lci-phys"
+
+# Propagate users to compute nodes:
+clush -g compute "useradd -u 2002 -g lci-bio  bob"
+clush -g compute "useradd -u 2003 -g lci-bio  alice"
+clush -g compute "useradd -u 2004 -g lci-eng  justin"
+clush -g compute "useradd -u 2005 -g lci-eng  katie"
+clush -g compute "useradd -u 2006 -g lci-chem carol"
+clush -g compute "useradd -u 2007 -g lci-chem dave"
+clush -g compute "useradd -u 2008 -g lci-phys erin"
+clush -g compute "useradd -u 2009 -g lci-phys frank"
+
+# Verify across all nodes:
+clush -g compute "getent group lci-bio lci-eng lci-chem lci-phys"
+clush -g compute "id bob"
+clush -g compute "id katie"
+
+# ---- Slurm accounting accounts/users (needed by the exercises) ----
+# slurm.conf has AccountingStorageEnforce=limits,qos, so every job
+# must run under a valid Slurm account. Mirror the four departments
+# as Slurm accounts, then add each Linux user to their account.
+sacctmgr -i add account biology     Description="Biology dept"     Organization=lci
+sacctmgr -i add account engineering Description="Engineering dept" Organization=lci
+sacctmgr -i add account chemistry   Description="Chemistry dept"   Organization=lci
+sacctmgr -i add account physics     Description="Physics dept"     Organization=lci
+
+sacctmgr -i add user bob    Account=biology     DefaultAccount=biology
+sacctmgr -i add user alice  Account=biology     DefaultAccount=biology
+sacctmgr -i add user justin Account=engineering DefaultAccount=engineering
+sacctmgr -i add user katie  Account=engineering DefaultAccount=engineering
+sacctmgr -i add user carol  Account=chemistry   DefaultAccount=chemistry
+sacctmgr -i add user dave   Account=chemistry   DefaultAccount=chemistry
+sacctmgr -i add user erin   Account=physics     DefaultAccount=physics
+sacctmgr -i add user frank  Account=physics     DefaultAccount=physics
+
+# Verify the accounting tree:
+sacctmgr show account
+sacctmgr show assoc format=Account,User,Share,QOS
+
+
+# ============================================================
+# 4. Central logging (rsyslog) on the head node
+# ============================================================
+# On the head node, edit /etc/rsyslog.conf and uncomment the UDP/TCP
+# listener modules so compute logs can flow in:
+#   module(load="imudp")
+#   input(type="imudp" port="514")
+#   module(load="imtcp")
+#   input(type="imtcp" port="514")
+#
+# Add at the end of the '### Modules ###' section - sorts forwarded
+# logs by hostname into /var/log/<host>/forwarded-logs.log:
+#   $template DynamicFile,"/var/log/%HOSTNAME%/forwarded-logs.log"
+#   *.* -?DynamicFile
+
+systemctl restart rsyslog
+
+# On compute nodes, point all syslog at the head node. Add to the
+# BOTTOM of /etc/rsyslog.conf, then restart:
+#   *.* @lci-head-XX-1
+clush -g compute "systemctl restart rsyslog"
+
+# Verify the head is collecting per-host forwarded logs:
+ls /var/log/lci-compute-XX-*/
+
+
+# ============================================================
+# 5. Using the scheduler
+# ============================================================
+# Cluster + partition state:
+sinfo
+sinfo -N -l                     # per-node view
+
+# Run a command interactively across the partition:
+srun -N2 hostname
+
+# Submit a batch job (create a job script first, e.g. job.sh):
+#   #!/bin/bash
+#   #SBATCH --job-name=test
+#   #SBATCH --nodes=2
+#   #SBATCH --ntasks-per-node=1
+#   #SBATCH --partition=lcilab
+#   srun hostname
+sbatch job.sh
+
+# Monitor and inspect:
+squeue                          # queue
+scontrol show nodes             # node detail
+scontrol show partition         # partition detail
+
+# Accounting (slurmdbd):
+sacct
+
+
+# ============================================================
+# A note on the exercises below (sections 6-10)
+# ============================================================
+# These tune the LIVE scheduler so behavior changes immediately:
+#   - Edit /etc/slurm/slurm.conf on the head node, then run
+#       scontrol reconfigure
+#     to apply without restarting slurmctld.
+#   - sacctmgr/QOS/reservation changes take effect right away.
+#
+# Live edits are LOST if you re-run the playbook (it re-renders
+# slurm.conf from the template). To make a change PERMANENT, put
+# it in slurm/roles/slurm-source/templates/slurm.conf.j2 as well.
+#
+# Reusable load generator used throughout exercises 1, 2, and 5. Submits
+# N single-core sleep jobs as a given user; each user already has a
+# DefaultAccount (set in section 3), so no --account is needed.
+# Install the bundled script to /root once, then call it freely:
+cp scripts/load.sh /root/load.sh && chmod +x /root/load.sh
+
+# Usage:  /root/load.sh USER COUNT [PARTITION] [QOS]
+# Examples:
+#   /root/load.sh justin 10                  # 10 jobs as justin, lcilab, normal
+#   /root/load.sh bob 1 lcilab low           # 1 low-QOS job (exercise 5)
+
+
+# ============================================================
+# 6. Exercise 1 - Enabling Fairshare
+# ============================================================
+# Goal: every user gets an equal share, and fairshare reacts fast
+# (10-min half-life, depth 6). slurm.conf already has
+# PriorityType=priority/multifactor + PriorityWeightFairshare set.
+#
+# Edit /etc/slurm/slurm.conf and set:
+#   PriorityDecayHalfLife=00:10:00
+#   PriorityCalcPeriod=00:01:00
+#   FairShareDates=6
+# Keep PriorityFlags=DEPTH_OBLIVIOUS commented OUT so depth is honored.
+
+# Apply live:
+scontrol reconfigure
+
+# Give all four accounts an equal share at the cluster root:
+sacctmgr -i modify account biology     set fairshare=1
+sacctmgr -i modify account engineering set fairshare=1
+sacctmgr -i modify account chemistry   set fairshare=1
+sacctmgr -i modify account physics     set fairshare=1
+
+# Verify fairshare depth and the live config:
+sshare -l                # Level FS / effective shares per association
+sshare -a -l             # include users; count the levels shown
+scontrol show config | grep -i -E 'PriorityDecayHalfLife|PriorityCalcPeriod|FairShareDates|PriorityFlags'
+
+# Drive load from two users and watch priorities diverge:
+/root/load.sh justin 15
+/root/load.sh bob 3
+sleep 60
+sprio -l                                  # per-job fairshare component
+sshare -a                                 # per-user effective usage/share
+squeue -o "%.8i %.9P %.8u %.10Q %R"       # %Q = priority
+
+
+# ============================================================
+# 7. Exercise 2 - Fairshare for Groups AND Users
+# ============================================================
+# Goal: departments share evenly with each other AND users share
+# evenly inside their department (hierarchical fairshare).
+
+# Equal shares between accounts (already 1 each), then equal between users:
+sacctmgr -i modify account where account=biology,engineering,chemistry,physics set fairshare=1
+sacctmgr -i modify user bob    set fairshare=1
+sacctmgr -i modify user alice  set fairshare=1
+sacctmgr -i modify user justin set fairshare=1
+sacctmgr -i modify user katie  set fairshare=1
+sacctmgr -i modify user carol  set fairshare=1
+sacctmgr -i modify user dave   set fairshare=1
+sacctmgr -i modify user erin   set fairshare=1
+sacctmgr -i modify user frank  set fairshare=1
+
+# Inspect the share tree (accounts then users beneath them):
+sshare -l
+
+# Make one department over-use, then confirm the OTHER members of that
+# department are penalized too - hierarchical fairshare working:
+/root/load.sh justin 15      # engineering over-uses
+sleep 60
+sshare -a                    # katie's share drops too (same account)
+sprio -l
+
+
+# ============================================================
+# 8. Exercise 3 - Issues with Priority
+# ============================================================
+# Scenario: bob has a paper deadline. Two fixes:
+#   (a) 20-min reservation on one node just for bob (temporary)
+#   (b) a permanent higher-priority partition
+
+# Remember to replace XX below with your cluster number.
+
+# (a) Temporary reservation - 20 minutes, one node, bob only:
+scontrol create reservation \
+  ReservationName=bob_deadline \
+  StartTime=now Duration=00:20:00 \
+  Users=bob \
+  Nodes=lci-compute-XX-1
+scontrol show reservation
+sudo -u bob sbatch --reservation=bob_deadline -p lcilab -n1 --wrap "sleep 300"
+
+# (b) Permanent fix - high-priority partition. Add to /etc/slurm/slurm.conf
+# (and the .j2 template to persist). PriorityTier is what makes a
+# partition jump the queue:
+#   PartitionName=high Nodes=lci-compute-XX-[1-2] Default=No \
+#     PriorityTier=100 QOS=normal AllowQOS=normal
+scontrol reconfigure
+sinfo -o "%.12P %.5a %.10l %.6D"     # confirm the 'high' partition exists
+
+# Compare placement of a normal vs. high job:
+sudo -u bob sbatch -p high   -n1 --wrap "sleep 300"
+sudo -u justin sbatch -p lcilab -n1 --wrap "sleep 300"
+squeue -o "%.8i %.9P %.8u %.10Q %R"
+
+
+# ============================================================
+# 9. Exercise 4 - Limiting Groups with Accounting
+# ============================================================
+# Goal: cap each department at 20 CPU-hours, and make the 'high'
+# partition bill at 2x normal. 20 CPU-hours = 1200 CPU-minutes.
+
+# Apply the GrpTRESMins cap to each account (AccountingStorageEnforce=limits
+# is already on, so this kicks in immediately):
+sacctmgr -i modify account biology     set GrpTRESMins=cpu=1200
+sacctmgr -i modify account engineering set GrpTRESMins=cpu=1200
+sacctmgr -i modify account chemistry   set GrpTRESMins=cpu=1200
+sacctmgr -i modify account physics     set GrpTRESMins=cpu=1200
+sacctmgr show assoc format=Account,User,GrpTRESMins
+
+# Make 'high' cost 2x normal via TRESBillingWeights. Edit
+# /etc/slurm/slurm.conf to give the high partition its own weights
+# (lcilab keeps the default CPU=1.0):
+#   PartitionName=high ... TRESBillingWeights="CPU=2.0,Mem=.25G,gres/gpu=3.0"
+scontrol reconfigure
+
+# Burn usage and watch it count against the cap:
+sudo -u carol sbatch -p lcilab -n2 --wrap "sleep 600"   # chemistry
+sleep 60
+sreport cluster AccountUtilizationByUser start=$(date +%Y-%m-%d) -t Minutes
+
+# When an account exceeds GrpTRESMins, new jobs pend with reason 'GrpTRESMins':
+squeue -o "%.8i %.9P %.8u %.8a %R"
+
+
+# ============================================================
+# 10. Exercise 5 - Preemption for a Low Queue
+# ============================================================
+# Goal: a low-priority QOS that only backfills, gets preempted by
+# normal jobs, and is billed at half cost. slurm.conf already has
+# PreemptType=preempt/qos and PreemptMode=CANCEL.
+
+# Create the 'low' QOS:
+sacctmgr -i add qos low \
+  set Priority=0 \
+  UsageFactor=0.5 \
+  Preempt= \
+  Flags=
+
+# Let 'normal' preempt 'low':
+sacctmgr -i modify qos normal set Preempt=low
+
+# Allow the low QOS on the lcilab partition. Edit /etc/slurm/slurm.conf:
+#   PartitionName=lcilab ... QOS=normal AllowQOS=normal,low
+scontrol reconfigure
+
+# Verify the QOS settings:
+sacctmgr show qos format=Name,Priority,UsageFactor,Preempt
+
+# Demo: fill the cluster with normal jobs, add a low job, watch it
+# wait (and get preempted/backfilled around normal work):
+/root/load.sh justin 4              # fills both 2-CPU nodes (normal)
+sudo -u bob sbatch -p lcilab -q low -n1 --wrap "sleep 600"
+squeue -o "%.8i %.9P %.8u %.6q %.10Q %R"   # %q = QOS; low job pending
+
+# Half cost shows up in accounting (UsageFactor=0.5):
+sreport cluster AccountUtilizationByUser start=$(date +%Y-%m-%d) -t Minutes
+
+
+# ============================================================
+# 11. Tear down and re-run (if needed)
+# ============================================================
+# ./uninstall_all.sh           # full cleanup (head + compute)
+# ./install_all.sh XX          # or:  ./install_all.sh --configless XX

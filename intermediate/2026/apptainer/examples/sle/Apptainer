@@ -1,0 +1,13 @@
+# use repos and registration from build host
+BootStrap: zypper
+
+
+%runscript
+    echo "This is what happens when you run the container..."
+
+
+%post
+    update-ca-certificates
+    echo "Hello from inside the container"
+    zypper lr -d
+    SUSEConnect -l

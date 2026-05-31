@@ -22,7 +22,7 @@
       ansible.builtin.command:
         cmd: "{{ item }}"
       with_items:
-        - timedatectl set-timezone America/Chicago
+        - timedatectl set-timezone America/New_York
         - timedatectl set-ntp yes
 
 - name: Head Node Config

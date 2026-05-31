@@ -1,0 +1,24 @@
+spack:
+  specs:
+  - gcc@12.3.0
+  - zlib-ng%gcc@12.3.0
+  - 7zip
+  - tcl
+  - lua
+
+  container:
+    format: singularity
+
+    images:
+      os: rockylinux:8
+      spack: 0.22.0
+
+    strip: true
+
+    os_packages:
+      final:
+        - libgfortran
+        - wget
+
+    labels:
+      apps: "gcc"
