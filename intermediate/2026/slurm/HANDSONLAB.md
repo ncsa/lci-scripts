@@ -155,12 +155,16 @@ ships uncommented, and add (with your cluster number):
 head: lci-head-XX-1
 compute: lci-compute-XX-[1-2]
 login: lci-head-XX-1
+storage: lci-storage-XX-[1-4]
 ```
 
 The `[1-2]` is `clush`'s native range syntax — it expands to
 `lci-compute-XX-1,lci-compute-XX-2`. The `login:` group is the same host as
 `head:`; it's there because some `clush` config recipes expect a login
-group, and giving it the head's name is a no-op.
+group, and giving it the head's name is a no-op. The `storage:` group covers
+the four storage nodes (`lci-storage-XX-1` through `lci-storage-XX-4`) — the
+storage track's BeeGFS install drives them from the head node with
+`clush -g storage`.
 
 Verify:
 
