@@ -18,7 +18,7 @@ clush -w lci-storage-XX-[1-4] "dnf localinstall /root/lustre_rpm/* -y"
 clush -w lci-storage-XX-[1-4] "shutdown -r now"
 
 # Install on compute
-clush -w lci-compute-35-[1-2] "cd /root/lustre_client_rpm/ && dnf localinstall kmod-lustre-client-2.15.8-1.el9.x86_64.rpm lustre-client-2.15.8-1.el9.x86_64.rpm lustre-client-devel-2.15.8-1.el9.x86_64.rpm -y"
+clush -w lci-compute-XX-[1-2] "cd /root/lustre_client_rpm/ && dnf localinstall kmod-lustre-client-2.15.8-1.el9.x86_64.rpm lustre-client-2.15.8-1.el9.x86_64.rpm lustre-client-devel-2.15.8-1.el9.x86_64.rpm -y"
 
 ## See disks on your storage nodes
 lsblk ## should see vdb and vdc on each of the four storage nodes (each device is 5GB)
@@ -75,7 +75,7 @@ lfs setquota -u 1000 -b 2G -B 4G -i 1200 -I 1500 /lustre/lci
 lfs setquota -p 1 -b 9G -B 10G -i 10000 -I 110000 /lustre/lci
 
 ## Sync in data from head node
-rsync -avP lci@levi2.ncsa.Illinois.edu:/gideon/lci/* /lustre/lci/scratch
+rsync -avP /mnt/shared_files/sample_data/* /lustre/lci/
 
 ## Some Handy/Fun commands (from compute node)
 lfs df -h
