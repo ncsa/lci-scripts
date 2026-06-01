@@ -127,10 +127,13 @@ ansible-playbook -i hosts.ini -e "configless=${CONFIGLESS}" playbook.yml
 # Step 2b: Ensure /opt/slurm is traversable by all users
 # ============================================================
 # All users (bob, alice, ... created in the lab) must be able to traverse
-# into /opt/slurm/current/bin to run srun/sbatch/etc. The playbook now
-# creates /opt/slurm 0755 on both head and compute, so this is normally a
-# no-op - but we re-assert it here so the wrapper also self-heals a cluster
-# that was built before that fix (where /opt/slurm was 0750 on the head and
+# into /opt/slurm/current/bin to run srun/sbatch/etc. In practice only the
+# top-level /opt/slurm is the bottleneck: the Slurm build creates
+# /opt/slurm/current and .../bin already traversable (0755), so opening up
+# /opt/slurm alone is enough for everyone to reach the binaries. The
+# playbook now creates /opt/slurm 0755 on both head and compute, so this is
+# normally a no-op - but we re-assert it here so the wrapper also
+# self-heals a cluster built before that fix (where /opt/slurm was 0750 and
 # only slurm + the 'rocky' group could enter, giving everyone else
 # "Permission denied").
 echo
