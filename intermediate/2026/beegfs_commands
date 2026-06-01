@@ -1,5 +1,8 @@
 ## Install RPMs on proper machines:
+
 # lci-storage-XX-1
+rpm --import https://www.beegfs.io/release/beegfs_8.3/gpg/GPG-KEY-beegfs
+wget https://www.beegfs.io/release/beegfs_8.3/dists/beegfs-rhel9.repo -O /etc/yum.repos.d/beegfs.repo
 dnf install beegfs-mgmtd
 dnf install beegfs-meta 
 
