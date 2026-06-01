@@ -425,19 +425,57 @@ A minimal job script `job.sh`:
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1
 #SBATCH --partition=lcilab
-srun hostname
+#SBATCH --output=test-%j.out
+#SBATCH --error=test-%j.err
+echo "Job $SLURM_JOB_ID running on $SLURM_JOB_NODELIST"
+echo "Submitted from: $SLURM_SUBMIT_DIR"
+echo "--- one line per node (hostname + date): ---"
+srun bash -c 'echo "$(hostname) reporting at $(date)"'
 ```
 
-`#SBATCH` directives are equivalent to `sbatch` command-line flags. The
-body uses `srun` instead of running commands directly so the work runs as a
-Slurm step (which is what shows up in `sacct` later).
+`#SBATCH` directives are equivalent to `sbatch` command-line flags.
+
+The `--output`/`--error` directives are the point of this example. This job
+runs in a fraction of a second and prints to files, not your terminal — so
+without somewhere to send stdout/stderr there is **nothing to look at and no
+way to tell the job worked**. `%j` expands to the job ID, so each run gets
+its own `test-<jobid>.out` / `test-<jobid>.err` instead of overwriting the
+last.
+
+The body is split deliberately:
+
+- The three `echo` lines run **in the batch script itself**, on the first
+  allocated node. Their stdout goes straight to the batch script's
+  `--output` file, so you are *guaranteed* visible content — job ID, the
+  node list Slurm gave you, and where you submitted from.
+- The `srun` line launches a **job step** that fans out across the
+  allocation — one task per node — so you see *both* compute nodes report
+  in, each with its own hostname and timestamp. Running work as a step is
+  also what makes it show up in `sacct` later.
+
+Why not just `srun hostname`? With this cluster's `TaskPlugin=task/cgroup`
+and `JobContainerType=job_container/tmpfs`, step stdout doesn't always make
+it back into the batch script's `--output` file — which is exactly why a
+bare `srun hostname` can leave you with an empty `.out` and nothing to
+verify. The batch-level `echo`s sidestep that: they always land in the file.
 
 ```bash
 sbatch job.sh
 ```
 
-Returns a job ID. The default stdout file is `slurm-<jobid>.out` in the
-directory you submitted from.
+Returns a job ID. Once it's done (a second or two — `squeue` will show it
+gone), confirm it actually ran:
+
+```bash
+cat test-*.out                  # job ID, nodelist, one line per compute node
+cat test-*.err                  # empty on success
+```
+
+A populated `test-<jobid>.out` — with the job ID, the nodelist, and a
+`reporting at` line from each compute node — is your proof the job ran and
+landed on both nodes. (Without an explicit `--output`, Slurm defaults to
+`slurm-<jobid>.out` in the submit directory — but naming it yourself makes
+the file easy to find and shows the directive that controls it.)
 
 ### Inspecting jobs
 

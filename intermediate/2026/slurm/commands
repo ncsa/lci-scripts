@@ -214,14 +214,33 @@ sinfo -N -l                     # per-node view
 cd ~
 srun -p lcilab -N2 hostname
 
-# Submit a batch job (create a job script first, e.g. job.sh):
+# Submit a batch job (create a job script first, e.g. job.sh).
+# --output/--error capture stdout/stderr to files - the job runs in a
+# fraction of a second, so without them there's nothing to look at and no
+# way to confirm it worked. %j expands to the job ID.
+#
+# The echo lines run in the batch script itself (on the first allocated
+# node) and write straight to the .out file - guaranteed visible output.
+# The srun line then fans out one line PER node so you can see both compute
+# nodes report in. (A bare 'srun hostname' under task/cgroup +
+# job_container/tmpfs can leave the .out empty; the echoes avoid that.)
 #   #!/bin/bash
 #   #SBATCH --job-name=test
 #   #SBATCH --nodes=2
 #   #SBATCH --ntasks-per-node=1
 #   #SBATCH --partition=lcilab
-#   srun hostname
+#   #SBATCH --output=test-%j.out
+#   #SBATCH --error=test-%j.err
+#   echo "Job $SLURM_JOB_ID running on $SLURM_JOB_NODELIST"
+#   echo "Submitted from: $SLURM_SUBMIT_DIR"
+#   echo "--- one line per node (hostname + date): ---"
+#   srun bash -c 'echo "$(hostname) reporting at $(date)"'
 sbatch job.sh
+
+# Confirm it worked - the .out file should show the job ID, the nodelist,
+# and one 'reporting at' line per compute node:
+cat test-*.out                  # job info + both compute hostnames
+cat test-*.err                  # empty on success
 
 # Monitor and inspect:
 squeue                          # queue
