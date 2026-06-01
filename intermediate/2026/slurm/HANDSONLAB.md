@@ -387,12 +387,21 @@ State legend you'll actually see:
 ### `srun` — interactive run
 
 ```bash
-srun -N2 hostname
+srun -p lcilab -N2 hostname
 ```
 
 `-N2` means "give me 2 nodes." `srun` allocates them, runs `hostname` once
 per node, prints the output, and exits. This is the cheapest way to confirm
 jobs actually launch on the compute nodes.
+
+**Why `-p lcilab` is required.** The `lcilab` partition is defined
+`Default=No` in `slurm.conf.j2`, so there is no *system default* partition.
+Any job that omits `-p` — `srun -N2 hostname` on its own — fails with
+`srun: error: Unable to allocate resources: No partition specified or
+system default partition`. That's why every job command in this lab names
+its partition explicitly. (If you'd rather make `lcilab` the default,
+change `Default=No` to `Default=YES` in the template and re-run the
+playbook — but the lab keeps it explicit on purpose.)
 
 ### `sbatch` — batch submission
 

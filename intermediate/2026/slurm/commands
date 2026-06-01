@@ -178,7 +178,7 @@ sacctmgr show assoc format=Account,User,Share,QOS
 #   module(load="imtcp")
 #   input(type="imtcp" port="514")
 #
-# Add at the end of the '### Modules ###' section - sorts forwarded
+# Add at the end of the '### MODULES ###' section - sorts forwarded
 # logs by hostname into /var/log/<host>/forwarded-logs.log:
 #   $template DynamicFile,"/var/log/%HOSTNAME%/forwarded-logs.log"
 #   *.* -?DynamicFile
@@ -201,8 +201,11 @@ ls /var/log/lci-compute-XX-*/
 sinfo
 sinfo -N -l                     # per-node view
 
-# Run a command interactively across the partition:
-srun -N2 hostname
+# Run a command interactively across the partition. The lcilab partition
+# is defined Default=No (see slurm.conf.j2), so there is NO system default
+# partition - every job must name one with -p, or you get
+# "No partition specified or system default partition".
+srun -p lcilab -N2 hostname
 
 # Submit a batch job (create a job script first, e.g. job.sh):
 #   #!/bin/bash
