@@ -205,6 +205,13 @@ sinfo -N -l                     # per-node view
 # is defined Default=No (see slurm.conf.j2), so there is NO system default
 # partition - every job must name one with -p, or you get
 # "No partition specified or system default partition".
+#
+# Run this from ~ (cd to /root first) as root. srun starts the remote task
+# in your current directory; the lab has no shared filesystem, so a path
+# like ~/lci-scripts/... that exists only on the head node makes slurmd
+# warn "couldn't chdir ... going to /tmp instead". Harmless for hostname,
+# but launching from ~ avoids the noise.
+cd ~
 srun -p lcilab -N2 hostname
 
 # Submit a batch job (create a job script first, e.g. job.sh):
