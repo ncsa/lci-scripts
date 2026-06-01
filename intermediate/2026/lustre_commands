@@ -61,10 +61,10 @@ mount -t lustre /dev/vdc /mnt/ost5
 mkdir -p /lustre/lci
 mount -t lustre lci-storage-XX-1@tcp:/lci /lustre/lci
 
-## Make home and scratch directories
+## From any client (head or compute) Make home and scratch directories
 lfs mkdir -o 02775 /lustre/lci/home && lfs mkdir -o 02775 /lustre/lci/scratch
 
-## Assign project ids to these areas
+## From any client (head of compute) Assign project ids to these areas
 lfs project -p 1 -s -r /lustre/lci/home && lfs project -p 2 -s -r /lustre/lci/scratch
 
 ## Enable Quotas (from lci-storage-XX-1)

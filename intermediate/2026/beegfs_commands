@@ -54,7 +54,7 @@ auth-disable = true
 # Startup mmgmtd
 systemctl daemon-reload
 systemctl enable beegfs-mgmtd
-systemctl start beegfs-mgmt
+systemctl start beegfs-mgmtd
 
 #meta
 /opt/beegfs/sbin/beegfs-setup-meta -p /mnt/mdt/beegfs/beegfs_meta -s 2 -m lci-storage-XX-1
