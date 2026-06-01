@@ -82,6 +82,7 @@ dnf install -y clustershell
 #   head: lci-head-XX-1
 #   compute: lci-compute-XX-[1-2]
 #   login: lci-head-XX-1
+#   storage: lci-storage-XX-[1-4]
 
 # Sanity-check the group fans out correctly:
 clush -g compute "uptime"
