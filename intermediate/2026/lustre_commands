@@ -19,7 +19,7 @@ clush -w lci-storage-XX-[1-4] "shutdown -r now"
 
 # Install client on compute and head
 clush -w lci-compute-XX-[1-2] "cd /root/lustre_client_rpm/ && dnf localinstall kmod-lustre-client-2.15.8-1.el9.x86_64.rpm lustre-client-2.15.8-1.el9.x86_64.rpm lustre-client-devel-2.15.8-1.el9.x86_64.rpm -y"
-cd /mnt/shared_files/lustre_client_rpm && && dnf localinstall kmod-lustre-client-2.15.8-1.el9.x86_64.rpm lustre-client-2.15.8-1.el9.x86_64.rpm lustre-client-devel-2.15.8-1.el9.x86_64.rpm -y"
+cd /mnt/shared_files/lustre_client_rpm && dnf localinstall kmod-lustre-client-2.15.8-1.el9.x86_64.rpm lustre-client-2.15.8-1.el9.x86_64.rpm lustre-client-devel-2.15.8-1.el9.x86_64.rpm -y"
 
 ## See disks on your storage nodes
 lsblk ## should see vdb and vdc on each of the four storage nodes (each device is 5GB)
