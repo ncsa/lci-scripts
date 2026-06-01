@@ -16,7 +16,7 @@ slurm/                          (this bundle)
 ├── uninstall_all.sh            full teardown (classic + configless)
 ├── commands                    source of truth: every command, brief notes
 ├── INSTALL.md                  detailed: what install_all.sh actually does
-├── LAB.md                      detailed: every lab section in `commands`
+├── HANDSONLAB.md               detailed: every lab section in `commands` (the "why")
 ├── README.md                   this file (quick start)
 ├── head_node/                  head-node playbook: CRB, timesync, packages
 └── slurm/                      scheduler playbook: Slurm from source + deploy
@@ -26,7 +26,7 @@ slurm/                          (this bundle)
 
 - **In a hurry, just want to run something** → `commands` (top to bottom).
 - **Want to understand the install** → `INSTALL.md`.
-- **Working through the lab exercises** → `LAB.md` alongside `commands`.
+- **Working through the lab exercises** → `HANDSONLAB.md` alongside `commands`.
 - **Already lost** → start here, then `commands`.
 
 ## Usage
@@ -141,5 +141,5 @@ Replace `XX` with your cluster number throughout `commands`.
 
 For the **why** behind each step — what `slurm.conf` knobs you're flipping, what to
 watch for in `sshare` / `sprio` / `squeue` output, why the hostname-fix one-liner is
-shaped the way it is, etc. — see `LAB.md`. `commands` is the source of truth for
-*what to run*; `LAB.md` is the source of truth for *why*.
+shaped the way it is, etc. — see `HANDSONLAB.md`. `commands` is the source of truth for
+*what to run*; `HANDSONLAB.md` is the source of truth for *why*.
