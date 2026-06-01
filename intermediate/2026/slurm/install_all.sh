@@ -124,6 +124,22 @@ echo ">>> Building and deploying Slurm (this takes a few minutes)..."
 ansible-playbook -i hosts.ini -e "configless=${CONFIGLESS}" playbook.yml
 
 # ============================================================
+# Step 2b: Ensure /opt/slurm is traversable by all users
+# ============================================================
+# All users (bob, alice, ... created in the lab) must be able to traverse
+# into /opt/slurm/current/bin to run srun/sbatch/etc. The playbook now
+# creates /opt/slurm 0755 on both head and compute, so this is normally a
+# no-op - but we re-assert it here so the wrapper also self-heals a cluster
+# that was built before that fix (where /opt/slurm was 0750 on the head and
+# only slurm + the 'rocky' group could enter, giving everyone else
+# "Permission denied").
+echo
+echo ">>> Ensuring /opt/slurm is 0755 (all users) on head + compute..."
+chmod 0755 /opt/slurm                                  # head node (local)
+ansible all_nodes -i hosts.ini -m file \
+  -a "path=/opt/slurm mode=0755 state=directory"       # compute nodes
+
+# ============================================================
 # Done
 # ============================================================
 echo
