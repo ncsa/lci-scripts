@@ -73,6 +73,9 @@ systemctl start beegfs-mgmtd
 /opt/beegfs/sbin/beegfs-setup-storage -p /mnt/ost5/beegfs_storage -s 5 -i 502 -m lci-storage-XX-1
 
 ## Setup the compute nodes; do the following on *each* compute node and head node (lci-compute-XX-[1-2] and lci-head-XX-1)
+rpm --import https://www.beegfs.io/release/beegfs_8.3/gpg/GPG-KEY-beegfs
+wget https://www.beegfs.io/release/beegfs_8.3/dists/beegfs-rhel9.repo -O /etc/yum.repos.d/beegfs.repo
+dnf install beegfs-client
 /opt/beegfs/sbin/beegfs-setup-client -m lci-storage-XX-1
 
 ## Setup Conn Auth - on head node (lci-head-XX-1) generate the key and set perm
