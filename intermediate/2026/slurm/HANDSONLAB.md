@@ -62,6 +62,25 @@ run rpmbuild" path entirely.
 the "does the slurm DB user exist?" check. On a fresh install it doesn't,
 so the playbook ignores the failure and creates it in the next task.
 
+### Put the Slurm commands on your PATH
+
+The install writes `/etc/profile.d/slurm.sh`, which prepends
+`/opt/slurm/current/bin` to `PATH`. But files in `/etc/profile.d/` are only
+sourced by **login** shells — and the root shell that ran `install_all.sh`
+was started *before* the install, so it never picked it up. Until you fix
+this, `sinfo`, `sacctmgr`, and friends are "command not found" (and
+`scripts/create_users_groups.sh` aborts at the Slurm step with
+"sacctmgr not found"). Do one of:
+
+```bash
+source /etc/profile.d/slurm.sh   # activate in the current shell, now
+# or
+exit; sudo -i                    # drop root and get a fresh login shell
+```
+
+Sourcing your `~/.bashrc` does **not** help — `.bashrc` doesn't read
+`/etc/profile.d/`; only the login-shell startup path does.
+
 ---
 
 ## 1. Verify the install

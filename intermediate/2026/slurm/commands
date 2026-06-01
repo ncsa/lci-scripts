@@ -33,6 +33,13 @@ cd ~/lci-scripts/intermediate/2026/slurm
 # install it doesn't, the playbook ignores the failure and creates it
 # in the next task.
 
+# Activate the Slurm commands on PATH. The install wrote
+# /etc/profile.d/slurm.sh (puts /opt/slurm/current/bin on PATH), but
+# profile.d is only sourced by *login* shells - the root shell that ran
+# install_all.sh predates it, so sinfo/sacctmgr/etc aren't on PATH yet.
+# Source it now (or log out and `sudo -i` again for a fresh login shell):
+source /etc/profile.d/slurm.sh
+
 # Tear down and re-run (cleans up everything install_all.sh installed):
 # ./uninstall_all.sh
 # ./install_all.sh XX
