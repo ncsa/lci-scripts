@@ -1,4 +1,24 @@
-## Lustre source has already been compiled and installed on your nodes
+## Getting Lustre installed on machines
+# On lci-head-XX-1
+mkdir /mnt/shared_files
+mount -t nfs taiga-nfs.ncsa.illinois.edu:/taiga/ncsa/radiant/bbya /mnt/shared_files
+
+# Sync rpms to storage servers
+rsync -avP /mnt/shared_files/lustre_rpm lci-storage-XX-1:/root/
+rsync -avP /mnt/shared_files/lustre_rpm lci-storage-XX-2:/root/
+rsync -avP /mnt/shared_files/lustre_rpm lci-storage-XX-3:/root/
+rsync -avP /mnt/shared_files/lustre_rpm lci-storage-XX-4:/root/
+rsync -avP /mnt/shared_files/lustre_client_rpm lci-compute-XX-1:/root/
+rsync -avP /mnt/shared_files/lustre_client_rpm lci-compute-XX-2:/root/
+
+# Install rpms
+clush -w lci-storage-XX-[1-4] "dnf localinstall /root/lustre_rpm/* -y"
+
+# Reboot storage hosts
+clush -w lci-storage-XX-[1-4] "shutdown -r now"
+
+# Install on compute
+clush -w lci-compute-35-[1-2] "cd /root/lustre_client_rpm/ && dnf localinstall kmod-lustre-client-2.15.8-1.el9.x86_64.rpm lustre-client-2.15.8-1.el9.x86_64.rpm lustre-client-devel-2.15.8-1.el9.x86_64.rpm -y"
 
 ## See disks on your storage nodes
 lsblk ## should see vdb and vdc on each of the four storage nodes (each device is 5GB)
