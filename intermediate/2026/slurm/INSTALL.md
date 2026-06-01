@@ -158,6 +158,10 @@ The play does **not** SSH back to itself — it runs as a local play
    - `ldconfig` registers `/opt/slurm/current/lib64` (writes
      `/etc/ld.so.conf.d/slurm.conf`).
    - Adds `/opt/slurm/current/bin` to `PATH` via `/etc/profile.d/slurm.sh`.
+     **Note:** `/etc/profile.d/` is sourced only by *login* shells, so the
+     root shell that ran `install_all.sh` won't have Slurm on `PATH` until
+     you `source /etc/profile.d/slurm.sh` (or log out and `sudo -i` again).
+     See troubleshooting, section 9.
 7. **Deploy config templates.**
    - `slurm.conf`     ← `roles/slurm-source/templates/slurm.conf.j2`
    - `slurmdbd.conf`  ← `roles/slurm-source/templates/slurmdbd.conf.j2`
@@ -437,6 +441,21 @@ skip the missing piece with a message instead of bailing out.
 ---
 
 ## 9. Troubleshooting
+
+**`sinfo`/`sacctmgr`: "command not found" right after the install
+(or `scripts/create_users_groups.sh` aborts with "sacctmgr not
+found").** The install wrote `/etc/profile.d/slurm.sh` (which prepends
+`/opt/slurm/current/bin` to `PATH`), but `/etc/profile.d/` is sourced
+only by *login* shells. The root shell that ran `install_all.sh` was
+started before the install existed, so it never picked it up. Fix it in
+the current shell, or get a fresh login shell:
+```bash
+source /etc/profile.d/slurm.sh   # this shell, now
+# or
+exit; sudo -i                    # fresh login shell
+```
+Sourcing `~/.bashrc` does **not** help — `.bashrc` doesn't read
+`/etc/profile.d/`.
 
 **`AccountingStorageUser=slurm` defunct error.** Removed in Slurm
 23.11, fatal in 25.x. The shipped `slurm.conf.j2` has this line

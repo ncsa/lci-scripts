@@ -386,13 +386,34 @@ State legend you'll actually see:
 
 ### `srun` — interactive run
 
+Run this from your home directory (`cd ~`) as root:
+
 ```bash
-srun -N2 hostname
+cd ~
+srun -p lcilab -N2 hostname
 ```
 
 `-N2` means "give me 2 nodes." `srun` allocates them, runs `hostname` once
 per node, prints the output, and exits. This is the cheapest way to confirm
 jobs actually launch on the compute nodes.
+
+**Why launch from `~`.** `srun` tries to start the remote task in the same
+working directory you launched from. This lab has no shared filesystem
+(NFS is a separate lab), so a path that exists only on the head node — e.g.
+`~/lci-scripts/intermediate/2026/slurm` — makes `slurmd` on each compute
+node print `error: couldn't chdir to '...': No such file or directory:
+going to /tmp instead` and fall back to `/tmp`. It's a **warning, not a
+failure** — `hostname` doesn't care what directory it runs in — but
+launching from `~` (which root has on every node) keeps the output clean.
+
+**Why `-p lcilab` is required.** The `lcilab` partition is defined
+`Default=No` in `slurm.conf.j2`, so there is no *system default* partition.
+Any job that omits `-p` — `srun -N2 hostname` on its own — fails with
+`srun: error: Unable to allocate resources: No partition specified or
+system default partition`. That's why every job command in this lab names
+its partition explicitly. (If you'd rather make `lcilab` the default,
+change `Default=No` to `Default=YES` in the template and re-run the
+playbook — but the lab keeps it explicit on purpose.)
 
 ### `sbatch` — batch submission
 
