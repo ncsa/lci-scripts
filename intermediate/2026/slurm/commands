@@ -3,8 +3,8 @@
 # ============================================================
 # This file is the SOURCE OF TRUTH for the commands to run.
 # Each step has a one-liner explanation; for the full story see:
-#   INSTALL.md  - what install_all.sh does, step by step
-#   LAB.md      - detailed explanation of every lab section below
+#   INSTALL.md      - what install_all.sh does, step by step
+#   HANDSONLAB.md   - detailed explanation of every lab section below (the "why")
 #
 # NOTE: shared storage (NFS) is built in a previous lab and is
 # NOT configured here.
