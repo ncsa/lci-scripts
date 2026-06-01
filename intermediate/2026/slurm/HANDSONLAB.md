@@ -9,6 +9,13 @@
 >
 > For the install side of things — what `install_all.sh` actually does to
 > the cluster, step by step — see `INSTALL.md`.
+>
+> **Where to run your jobs from:** the storage track (the lab before this
+> one) mounts a shared parallel filesystem on every node. Run your
+> `srun`/`sbatch` work from there so output is visible cluster-wide. See
+> **`Storage-options.md`** for the exact work directory per filesystem
+> (Ceph, BeeGFS, Lustre, Storage Scale) and the one-time setup — do that
+> before section 5.
 
 ## How this lab works
 
@@ -220,7 +227,8 @@ Every UID and GID is explicit. Two reasons:
 1. **Consistency across nodes.** A job submitted as `bob` on the head node
    runs as UID 2002 on the compute node. If `useradd` on the compute node
    had picked a different UID, jobs would still "work" under MUNGE auth but
-   file ownership on any shared filesystem (NFS in other labs, or `/tmp`
+   file ownership on any shared filesystem (the Chosen Storage Solution
+   from the previous lab, or `/tmp`
    job containers here) would be a mess. Pinning the UID guarantees the
    user is the *same* user everywhere.
 2. **Determinism for the exercises.** The exercises hard-code things like
@@ -386,10 +394,13 @@ State legend you'll actually see:
 
 ### `srun` — interactive run
 
-Run this from your home directory (`cd ~`) as root:
+**First, set up your work directory.** Before running anything here, make
+sure you've done the one-time setup in `Storage-options.md` for whichever
+shared filesystem the storage lab left mounted, and point `LABDIR` at it:
 
 ```bash
-cd ~
+export LABDIR=/mnt/cephfs/projects/slurm-lab   # Ceph — adjust per Storage-options.md
+cd "$LABDIR"
 srun -p lcilab -N2 hostname
 ```
 
@@ -397,14 +408,21 @@ srun -p lcilab -N2 hostname
 per node, prints the output, and exits. This is the cheapest way to confirm
 jobs actually launch on the compute nodes.
 
-**Why launch from `~`.** `srun` tries to start the remote task in the same
-working directory you launched from. This lab has no shared filesystem
-(NFS is a separate lab), so a path that exists only on the head node — e.g.
-`~/lci-scripts/intermediate/2026/slurm` — makes `slurmd` on each compute
-node print `error: couldn't chdir to '...': No such file or directory:
-going to /tmp instead` and fall back to `/tmp`. It's a **warning, not a
-failure** — `hostname` doesn't care what directory it runs in — but
-launching from `~` (which root has on every node) keeps the output clean.
+**Why launch from the shared work dir.** `srun` tries to start the remote
+task in the same working directory you launched from. The shared filesystem
+(`Storage-options.md`) is mounted at the **same path on every node**, so when
+you launch from `$LABDIR` the compute nodes can `chdir` into it cleanly — no
+warning, and any output lands somewhere all nodes can see.
+
+If you launch from a path that exists *only* on the head node — e.g.
+`~/lci-scripts/intermediate/2026/slurm` — `slurmd` on each compute node
+prints `error: couldn't chdir to '...': No such file or directory: going to
+/tmp instead` and falls back to `/tmp`. It's a **warning, not a failure** —
+`hostname` doesn't care what directory it runs in.
+
+**No shared filesystem mounted?** Run from `~` instead (`cd ~`); root has a
+home on every node, so jobs run fine — output just isn't shared across nodes.
+See the fallback section in `Storage-options.md`.
 
 **Why `-p lcilab` is required.** The `lcilab` partition is defined
 `Default=No` in `slurm.conf.j2`, so there is no *system default* partition.
@@ -416,6 +434,10 @@ change `Default=No` to `Default=YES` in the template and re-run the
 playbook — but the lab keeps it explicit on purpose.)
 
 ### `sbatch` — batch submission
+
+Create and submit this from your shared work dir (`cd "$LABDIR"` — see
+`Storage-options.md`) so `$SLURM_SUBMIT_DIR` is the shared path and the
+`test-%j.out` / `test-%j.err` files land where every node can read them.
 
 A minimal job script `job.sh`:
 
@@ -920,5 +942,7 @@ more than once — it skips whatever's already gone. See `INSTALL.md` section
 ## Where to look for more
 
 - `commands` — the runnable source of truth for every step above (what to type).
+- `Storage-options.md` — where to run your jobs from on each shared filesystem
+  (Ceph, BeeGFS, Lustre, Storage Scale), with the one-time work-dir setup.
 - `INSTALL.md` — what `install_all.sh` does to your cluster, step by step.
 - `README.md` — quick orientation and the `install_all.sh` reference.

@@ -1,12 +1,14 @@
-# slurm - one-command Slurm cluster install (no storage)
+# slurm - one-command Slurm cluster install (storage built separately)
 
 Self-contained bundle that installs a working Slurm cluster in one command: head node
 configuration, then Slurm `25.11.6` built from source and deployed to the compute
 nodes. Use this when the focus is configuring and *using* the scheduler, not installing
 it.
 
-This variant does **not** set up NFS/shared storage — that is built in a previous lab,
-so the head-node playbook here skips the NFS server and compute-node autofs mounts.
+This variant does **not** set up shared storage — the Chosen Storage Solution is built
+in a previous lab, so the head-node playbook here skips the shared-storage server and
+compute-node autofs mounts. See `Storage-options.md` for how to run the lab from
+whichever filesystem that lab left mounted.
 
 Everything `install_all.sh` needs is included here:
 

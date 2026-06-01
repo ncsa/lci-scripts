@@ -7,8 +7,9 @@
 # the scheduler_installation playbook (builds Slurm from source,
 # deploys to compute nodes).
 #
-# NOTE: this variant does NOT configure NFS/storage - shared
-# storage is built in a previous lab.
+# NOTE: this variant does NOT configure storage - the Chosen Storage
+# Solution is built in a previous lab. See Storage-options.md for where
+# to run the lab from.
 #
 # The Schedulers course focuses on CONFIGURATION and USAGE, not
 # installation, so this gets you to a working cluster fast. The
