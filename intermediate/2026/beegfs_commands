@@ -7,6 +7,8 @@ dnf install beegfs-mgmtd
 dnf install beegfs-meta 
 
 # lci-storage-XX-[2-4]
+rpm --import https://www.beegfs.io/release/beegfs_8.3/gpg/GPG-KEY-beegfs
+wget https://www.beegfs.io/release/beegfs_8.3/dists/beegfs-rhel9.repo -O /etc/yum.repos.d/beegfs.repo
 dnf install beegfs-storage
 
 ## Format and mount management target and metadata target on lci-storage-XX-1
