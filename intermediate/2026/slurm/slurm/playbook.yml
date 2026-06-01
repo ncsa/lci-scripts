@@ -88,7 +88,12 @@
         state: directory
         owner: slurm
         group: "{{ 'rocky' if item == '/opt/slurm' else 'slurm' }}"
-        mode: "{{ '0750' if item == '/opt/slurm' else '0755' }}"
+        # 0755 on /opt/slurm so ALL users can traverse into
+        # /opt/slurm/current/bin and run srun/sbatch/etc. At 0750 only
+        # slurm + the 'rocky' group could enter, so lab users (bob, alice,
+        # ...) got "Permission denied" running any Slurm binary. The compute
+        # play already creates /opt/slurm 0755; this matches it on the head.
+        mode: '0755'
       loop:
         - /opt/slurm
         - /etc/slurm
