@@ -3,11 +3,16 @@
 # ============================================================
 # This file is the SOURCE OF TRUTH for the commands to run.
 # Each step has a one-liner explanation; for the full story see:
-#   INSTALL.md      - what install_all.sh does, step by step
-#   HANDSONLAB.md   - detailed explanation of every lab section below (the "why")
+#   INSTALL.md          - what install_all.sh does, step by step
+#   HANDSONLAB.md       - detailed explanation of every lab section below (the "why")
+#   Storage-options.md  - WHERE to run your jobs from, per shared filesystem
 #
-# NOTE: shared storage (NFS) is built in a previous lab and is
-# NOT configured here.
+# WHERE TO WORK: a shared parallel filesystem (Ceph, BeeGFS, Lustre, or
+# Storage Scale) is built in a previous lab and mounted on the head + compute
+# nodes. Run your sbatch/srun work from there so output is visible on every
+# node. See Storage-options.md for the exact work dir for your filesystem
+# (e.g. /mnt/cephfs/projects/slurm-lab) and the one-time setup. If nothing is
+# mounted, the lab still works from ~ - see the fallback in Storage-options.md.
 #
 # Replace XX with your cluster number (e.g., 07) throughout.
 # Run as root on lci-head-XX-1:  sudo -i
@@ -206,12 +211,17 @@ sinfo -N -l                     # per-node view
 # partition - every job must name one with -p, or you get
 # "No partition specified or system default partition".
 #
-# Run this from ~ (cd to /root first) as root. srun starts the remote task
-# in your current directory; the lab has no shared filesystem, so a path
-# like ~/lci-scripts/... that exists only on the head node makes slurmd
-# warn "couldn't chdir ... going to /tmp instead". Harmless for hostname,
-# but launching from ~ avoids the noise.
-cd ~
+# WHERE TO WORK: run the job commands below from your shared-filesystem work
+# dir so srun/sbatch can chdir into it on the compute nodes and your output
+# lands somewhere every node can see. See Storage-options.md for the path that
+# matches the storage lab you ran (Ceph/BeeGFS/Lustre/Storage Scale) and the
+# one-time mkdir + chmod 1777 setup. Set LABDIR to that path, e.g.:
+#   export LABDIR=/mnt/cephfs/projects/slurm-lab  # Ceph - adjust per Storage-options.md
+#   cd "$LABDIR"
+# No shared FS mounted? Run from ~ instead (cd to /root); srun starts the
+# remote task in your current dir, and a head-only path makes slurmd warn
+# "couldn't chdir ... going to /tmp instead" - harmless, but ~ avoids it.
+cd "$LABDIR"            # or: cd ~   (fallback; see Storage-options.md)
 srun -p lcilab -N2 hostname
 
 # Submit a batch job (create a job script first, e.g. job.sh).
