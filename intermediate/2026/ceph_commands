@@ -1,3 +1,11 @@
+## From lci-head-XX-1 do:
+# Push out root RSA key to storage nodes; from head node run (replace XX with cluster number):
+rsync -avP ~/.ssh/id_rsa lci-storage-XX-1:/root/.ssh/
+rsync -avP ~/.ssh/id_rsa lci-storage-XX-2:/root/.ssh/
+rsync -avP ~/.ssh/id_rsa lci-storage-XX-3:/root/.ssh/
+rsync -avP ~/.ssh/id_rsa lci-storage-XX-4:/root/.ssh/
+cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
+
 ## From lci-storage-XX-1 do the below:
 
 ## Get base ceph installed
