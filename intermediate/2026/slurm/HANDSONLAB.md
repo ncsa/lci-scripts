@@ -180,8 +180,8 @@ content — re-check `/etc/clustershell/groups.d/local.cfg`.
 
 The compute VMs are provisioned by cloud-init, which often leaves the
 kernel hostname as `lci-compute-XX-1.novalocal` instead of the bare
-`lci-compute-XX-1`. Slurm's `NodeName` in `slurm.conf` is the bare form
-(see `slurm.conf.j2`), and `slurmd` registers under `gethostname()` — so
+`lci-compute-XX-1`. Slurm's `NodeName` in `slurm.conf` is the bare form,
+and `slurmd` registers under `gethostname()` — so
 the mismatch makes `slurmctld` think the node is unreachable even though
 `slurmd` is happily running.
 
@@ -404,6 +404,7 @@ shared filesystem the storage lab left mounted, and point `LABDIR` at it:
 
 ```bash
 export LABDIR=/mnt/cephfs/projects/slurm-lab   # Ceph — adjust per Storage-options.md
+mkdir -p "$LABDIR"
 cd "$LABDIR"
 srun -p lcilab -N2 hostname
 ```
@@ -429,13 +430,13 @@ home on every node, so jobs run fine — output just isn't shared across nodes.
 See the fallback section in `Storage-options.md`.
 
 **Why `-p lcilab` is required.** The `lcilab` partition is defined
-`Default=No` in `slurm.conf.j2`, so there is no *system default* partition.
+`Default=No` in `slurm.conf`, so there is no *system default* partition.
 Any job that omits `-p` — `srun -N2 hostname` on its own — fails with
 `srun: error: Unable to allocate resources: No partition specified or
 system default partition`. That's why every job command in this lab names
 its partition explicitly. (If you'd rather make `lcilab` the default,
-change `Default=No` to `Default=YES` in the template and re-run the
-playbook — but the lab keeps it explicit on purpose.)
+change `Default=No` to `Default=YES` in `/etc/slurm/slurm.conf` and re-run
+`scontrol reconfigure` — but the lab keeps it explicit on purpose.)
 
 ### `sbatch` — batch submission
 
@@ -531,15 +532,11 @@ immediately. Two ways to apply a change:
    (accounting tree, QOS definitions, reservations). They take effect
    immediately — no `reconfigure` needed.
 
-**Live edits to `slurm.conf` are lost on the next playbook re-run.** The
-playbook re-renders the file from its template. To make a change permanent,
-put it in the template too:
+**Live edits to `slurm.conf` are lost on the next playbook re-run** — the
+installer rewrites the file. For this lab that's fine: the exercises tune the
+*running* scheduler and you re-run the install clean when you're done.
 
-```
-intermediate/2026/slurm/slurm/roles/slurm-source/templates/slurm.conf.j2
-```
-
-The shipped `slurm.conf` template already has the machinery the exercises
+The shipped `slurm.conf` already has the machinery the exercises
 rely on — you only edit per-exercise tuning, not these:
 
 ```
@@ -562,6 +559,7 @@ in the bundle as `scripts/load.sh` and is used in exercises 1, 2, and 5.
 Install it once on the head node, then call it freely:
 
 ```bash
+cd ~/lci-scripts/intermediate/2026/slurm/
 cp scripts/load.sh /root/load.sh && chmod +x /root/load.sh
 # usage: /root/load.sh USER COUNT [PARTITION] [QOS]
 ```
@@ -571,8 +569,12 @@ What's inside (7 lines):
 ```bash
 #!/bin/bash
 u=$1; n=$2; part=${3:-lcilab}; qos=${4:-normal}
+# Resolve sbatch to its absolute path: sudo's secure_path does not include
+# /opt/slurm/current/bin, so a bare `sudo -u "$u" sbatch` fails with
+# "command not found".
+sbatch=$(command -v sbatch || echo /opt/slurm/current/bin/sbatch)
 for i in $(seq 1 "$n"); do
-  sudo -u "$u" sbatch -p "$part" -q "$qos" -n1 \
+  sudo -u "$u" "$sbatch" -p "$part" -q "$qos" -n1 \
     --wrap "sleep 600" -J "${u}-${i}" -o /dev/null
 done
 ```
@@ -581,6 +583,15 @@ It submits N 10-minute `sleep` jobs as the named user, each requesting one
 core. The 10-minute duration is long enough to see scheduling behavior; the
 single-core size guarantees jobs are unit-allocatable so the queue actually
 backs up.
+
+> **Why the absolute path to `sbatch`?** Slurm's PATH entry
+> (`/etc/profile.d/slurm.sh`) is only sourced by **login** shells, and `sudo`
+> additionally sanitizes `PATH` to its compiled-in `secure_path`
+> (`/sbin:/bin:/usr/sbin:/usr/bin`) — which does *not* include
+> `/opt/slurm/current/bin`. So a bare `sudo -u bob sbatch ...` fails with
+> `sbatch: command not found`, even though `sbatch` works fine in your root
+> shell. Every `sudo -u … sbatch` in the exercises below uses the full path
+> `/opt/slurm/current/bin/sbatch` for the same reason.
 
 Each user already has a `DefaultAccount` from section 3, so the script
 doesn't need `--account=`. `-o /dev/null` discards the stdout files
@@ -593,28 +604,59 @@ doesn't need `--account=`. `-o /dev/null` discards the stdout files
 **Complaint.** Professor Bob runs a few 4-core jobs a week. Justin's lab
 flat-out hammers the cluster with single-core jobs and crowds Bob out.
 
-**Goal.** Give every user an equal *fairshare* slot at the queue and tune
+**Goal.** Give every user an equal fairshare slot at the queue and tune
 the decay so the system reacts within minutes (the default ~week is useless
 for a live demo).
 
+### Prerequisites
+
+Before starting this exercise confirm:
+
+- Section 3 is complete — the eight users and four Slurm accounts (`biology`,
+  `engineering`, `chemistry`, `physics`) exist.
+- `scripts/load.sh` has been staged on the head node (one-time setup from
+  the load generator section above):
+
+  ```bash
+  cp scripts/load.sh /root/load.sh && chmod +x /root/load.sh
+  ```
+
+- You are running commands on the head node (`lci-head-XX-1`) as root with
+  `/opt/slurm/current/bin` on your `PATH`.
+
 ### The three knobs you set in `slurm.conf`
+
+Edit `/etc/slurm/slurm.conf` on the head node and set (or update) these
+three parameters:
 
 ```
 PriorityDecayHalfLife=00:10:00
 PriorityCalcPeriod=00:01:00
-FairShareDates=6
+FairShareDampeningFactor=1
 ```
 
-- `PriorityDecayHalfLife=00:10:00` — past usage decays with a 10-min
-  half-life. After 10 min, a unit of usage counts half; after 20 min, a
-  quarter. The default is on the order of a week; we crank it down so the
-  exercise gives feedback inside the lab session.
-- `PriorityCalcPeriod=00:01:00` — recalculate every minute. Default is 5
-  minutes. We tighten it so changes show up while you're watching `sprio`.
-- `FairShareDates=6` — fairshare depth of 6 (root → account → user is 3;
-  the depth lets the algorithm walk associations up to 6 levels deep). Keep
-  `PriorityFlags=DEPTH_OBLIVIOUS` commented out — turning that on collapses
-  the depth and changes the answer.
+- `PriorityDecayHalfLife=00:10:00` — Past usage decays with a 10-minute
+  half-life. After 10 minutes, a unit of usage counts half as much; after
+  20 minutes, a quarter. The production default is on the order of a week
+  (`7-0`); cranking it to 10 minutes means Justin's queue flood will start
+  penalising him visibly inside the lab session.
+- `PriorityCalcPeriod=00:01:00` — Recalculate priorities every minute.
+  The default is 5 minutes. Tightening this to 1 minute means `sprio -l`
+  output changes while you are watching rather than after you have moved on.
+- `FairShareDampeningFactor=1` — Controls how aggressively the fairshare
+  factor differentiates between different levels of overuse. A value of `1`
+  gives a roughly linear response — the difference between consuming 10× your
+  share and 100× your share is clearly visible in `sprio`. Higher values
+  (up to 10) amplify that gap further. The system default is `1`; being
+  explicit here documents intent and makes it easy to experiment with
+  during the session. Keep `PriorityFlags=DEPTH_OBLIVIOUS` commented out
+  — turning that on collapses the hierarchical depth calculation and
+  changes the fairshare scores.
+
+> **Note.** The shipped `slurm.conf` already includes
+> `PriorityType=priority/multifactor` and the base `PriorityWeight*`
+> settings. You are tuning the decay and dampening on top of that
+> foundation — not replacing it.
 
 Apply live:
 
@@ -622,13 +664,16 @@ Apply live:
 scontrol reconfigure
 ```
 
+No daemon restart required. `scontrol reconfigure` signals `slurmctld` to
+re-read `slurm.conf` and immediately applies priority parameter changes.
+
 ### Equal shares for all accounts
 
 ```bash
-sacctmgr -i modify account biology     set fairshare=1
-sacctmgr -i modify account engineering set fairshare=1
-sacctmgr -i modify account chemistry   set fairshare=1
-sacctmgr -i modify account physics     set fairshare=1
+sacctmgr -i modify account where name=biology     set fairshare=1
+sacctmgr -i modify account where name=engineering set fairshare=1
+sacctmgr -i modify account where name=chemistry   set fairshare=1
+sacctmgr -i modify account where name=physics     set fairshare=1
 ```
 
 `fairshare=1` per account = each department's *share* of the cluster is
@@ -639,14 +684,37 @@ equal weight.
 ### Verify
 
 ```bash
-sshare -l                # per-association level FS and effective shares
+sshare -l                # per-association Level FS and effective shares
 sshare -a -l             # also include users; you can count the levels
-scontrol show config | grep -i -E 'PriorityDecayHalfLife|PriorityCalcPeriod|FairShareDates|PriorityFlags'
+scontrol show config | grep -iE \
+  'PriorityDecayHalfLife|PriorityCalcPeriod|FairShareDampeningFactor|PriorityFlags'
 ```
 
 `sshare` is the canonical fairshare inspection tool. `-l` switches to the
 long view with "Level FS" — that's the per-level fairshare factor, the
 number the priority calculation actually consumes.
+
+**What to look for in `sshare -l`:** Four account rows with `RawShares=1`
+and identical `NormShares` (roughly 0.25 each). `EffectvUsage` will be
+`0.000000` for everyone at rest; `FairShare` will show `1.000000` for all
+associations — perfect equity at baseline.
+
+**What to look for in `scontrol show config`:**
+
+```
+FairShareDampeningFactor = 1
+PriorityDecayHalfLife    = 00:10:00
+PriorityCalcPeriod       = 00:01:00
+PriorityFlags            =
+```
+
+The empty `PriorityFlags =` line (nothing after the `=`) is the proof that
+`DEPTH_OBLIVIOUS` is **not** set — exactly what Exercises 1 and 2 need. If
+you instead see `PriorityFlags = DEPTH_OBLIVIOUS`, the hierarchical fairshare
+depth is collapsed; comment that line out in `slurm.conf` and re-run
+`scontrol reconfigure`. Likewise, if `PriorityDecayHalfLife` still shows the
+old default, the reconfigure may not have picked up the file — double-check
+the edit and re-run.
 
 ### Drive it
 
@@ -661,13 +729,24 @@ squeue -o "%.8i %.9P %.8u %.10Q %R"
 
 `justin` has 15 jobs pending; `bob` has 3. With fairshare on, `bob`'s jobs
 should land with a higher priority than `justin`'s because Justin's recent
-(lab-time) usage is climbing fast while Bob's stays low. `sprio -l` shows
-the fairshare *component* of each job's priority; `sshare -a` shows each
-user's effective usage. `squeue` ordered by `%Q` (priority) makes the
-result visible at a glance.
+usage is climbing fast while Bob's stays low. `sprio -l` shows the fairshare
+*component* of each job's priority; `sshare -a` shows each user's effective
+usage. `squeue` ordered by `%Q` (priority) makes the result visible at a
+glance.
 
-The exact numbers depend on how fast you ran the load — give it 60 seconds
-and re-run `sprio -l` to see the values move.
+**What you should see:** In `sprio -l`, Bob's jobs show a noticeably higher
+`FAIRSHARE` component. In `sshare -a`, Justin's `EffectvUsage` is climbing
+while Bob's stays near zero; Justin's `FairShare` score drops below 0.5,
+Bob's stays near 1.0. The exact numbers depend on how fast you ran the load
+— give it 60 seconds and re-run `sprio -l` to see the values move.
+
+> **Tip.** To reset between runs: `scancel -u justin; scancel -u bob`
+> Usage history persists in `slurmdbd` and decays naturally. For a
+> clean-slate baseline, zero the raw usage counters:
+> ```bash
+> sacctmgr -i modify account where name=biology,engineering,chemistry,physics \
+>   set RawUsage=0
+> ```
 
 ---
 
@@ -681,7 +760,8 @@ The account-level shares are already 1 each from exercise 1. Now make
 user-level shares explicit:
 
 ```bash
-sacctmgr -i modify account where account=biology,engineering,chemistry,physics set fairshare=1
+sacctmgr -i modify account where name=biology,engineering,chemistry,physics \
+  set fairshare=1
 sacctmgr -i modify user bob    set fairshare=1
 sacctmgr -i modify user alice  set fairshare=1
 sacctmgr -i modify user justin set fairshare=1
@@ -691,6 +771,11 @@ sacctmgr -i modify user dave   set fairshare=1
 sacctmgr -i modify user erin   set fairshare=1
 sacctmgr -i modify user frank  set fairshare=1
 ```
+
+> **Note on the `where` clause.** When modifying accounts by name, use
+> `where name=`. Using `where account=` filters by *parent account*, not
+> account name, and will silently match nothing at the top level of the
+> hierarchy.
 
 Inspect:
 
@@ -733,6 +818,8 @@ jobs through even with fairshare on. Two fixes:
 
 ### (a) Reservation
 
+> Replace `XX` with your cluster number in `Nodes=lci-compute-XX-1`.
+
 ```bash
 scontrol create reservation \
   ReservationName=bob_deadline \
@@ -740,7 +827,7 @@ scontrol create reservation \
   Users=bob \
   Nodes=lci-compute-XX-1
 scontrol show reservation
-sudo -u bob sbatch --reservation=bob_deadline -p lcilab -n1 --wrap "sleep 300"
+sudo -u bob /opt/slurm/current/bin/sbatch --reservation=bob_deadline -p lcilab -n1 -o /dev/null -e /dev/null --wrap "sleep 300"
 ```
 
 A reservation is a chunk of resources marked off for specific users during
@@ -748,12 +835,24 @@ a specific window. `Users=bob` means only Bob can submit into it.
 `Nodes=lci-compute-XX-1` reserves the whole node. Bob has to ask for it
 explicitly: `sbatch --reservation=bob_deadline ...`.
 
+> **Why `-o /dev/null -e /dev/null`?** The job inherits *your* (root's)
+> current directory, and `sbatch` defaults to writing `slurm-<jobid>.out`
+> there. But the job runs as `bob`, and `bob` can't create a file in `/root`
+> (mode 700) or a root-owned `$LABDIR` — so `slurmd` kills the job the instant
+> it starts: it shows up as `FAILED`, exit code 15, dead in ~1 second with 0
+> CPU used (exactly what `seff` reports). Discarding stdout/stderr to
+> `/dev/null` sidesteps the problem — the same trick `scripts/load.sh` uses.
+> You observe these demo jobs through `squeue`/`sacct`/`sprio`, not their
+> output, so there's nothing to lose. (Alternatively, point `-o`/`-e` at a
+> directory `bob` *can* write, e.g. `-o /tmp/bob-%j.out`.) Every
+> `sudo -u … sbatch` in this exercise and the next two does the same.
+
 This is the cluster admin's "I owe you" — it cuts the line for a named user
 without changing the scheduler's permanent policy. Surgical and temporary.
 
 ### (b) High-priority partition
 
-Add to `/etc/slurm/slurm.conf` (and the `.j2` template to persist):
+Add to `/etc/slurm/slurm.conf`:
 
 ```
 PartitionName=high Nodes=lci-compute-XX-[1-2] Default=No \
@@ -776,13 +875,14 @@ Apply with `scontrol reconfigure`, then prove it:
 ```bash
 scontrol reconfigure
 sinfo -o "%.12P %.5a %.10l %.6D"     # confirm 'high' exists
-sudo -u bob    sbatch -p high   -n1 --wrap "sleep 300"
-sudo -u justin sbatch -p lcilab -n1 --wrap "sleep 300"
+sudo -u bob    /opt/slurm/current/bin/sbatch -p high   -n1 -o /dev/null -e /dev/null --wrap "sleep 300"
+sudo -u justin /opt/slurm/current/bin/sbatch -p lcilab -n1 -o /dev/null -e /dev/null --wrap "sleep 300"
 squeue -o "%.8i %.9P %.8u %.10Q %R"
 ```
 
-Bob's job (in `high`) should start before Justin's (in `lcilab`) even if
-both are submitted in the opposite order — that's the tier doing its job.
+**What you should see:** Bob's job (in `high`) starts before Justin's (in
+`lcilab`) even if both are submitted in the opposite order — that's the tier
+doing its job.
 
 ---
 
@@ -795,10 +895,10 @@ much as `lcilab`.
 ### CPU-time cap via `GrpTRESMins`
 
 ```bash
-sacctmgr -i modify account biology     set GrpTRESMins=cpu=1200
-sacctmgr -i modify account engineering set GrpTRESMins=cpu=1200
-sacctmgr -i modify account chemistry   set GrpTRESMins=cpu=1200
-sacctmgr -i modify account physics     set GrpTRESMins=cpu=1200
+sacctmgr -i modify account where name=biology     set GrpTRESMins=cpu=1200
+sacctmgr -i modify account where name=engineering set GrpTRESMins=cpu=1200
+sacctmgr -i modify account where name=chemistry   set GrpTRESMins=cpu=1200
+sacctmgr -i modify account where name=physics     set GrpTRESMins=cpu=1200
 sacctmgr show assoc format=Account,User,GrpTRESMins
 ```
 
@@ -839,7 +939,7 @@ even though this lab doesn't actually use them, the format is
 
 ```bash
 scontrol reconfigure
-sudo -u carol sbatch -p lcilab -n2 --wrap "sleep 600"   # chemistry
+sudo -u carol /opt/slurm/current/bin/sbatch -p lcilab -n2 -o /dev/null -e /dev/null --wrap "sleep 600"   # chemistry
 sleep 60
 sreport cluster AccountUtilizationByUser start=$(date +%Y-%m-%d) -t Minutes
 squeue -o "%.8i %.9P %.8u %.8a %R"
@@ -866,21 +966,22 @@ left, gets evicted when real work shows up. `PreemptType=preempt/qos` and
 
 ### Configure the QOS
 
+Create the `low` QOS and set its billing and priority properties:
+
 ```bash
-sacctmgr -i add qos low \
-  set Priority=0 \
-  UsageFactor=0.5 \
-  Preempt= \
-  Flags=
+sacctmgr -i add qos low Priority=0 UsageFactor=0.5
 ```
 
 - `Priority=0` — last in line for scheduling.
 - `UsageFactor=0.5` — billed at half rate against `GrpTRESMins`. 10
   wall-minutes of one CPU bills as 5 CPU-minutes.
-- `Preempt=` — empty: this QOS does NOT preempt anything else.
-- `Flags=` — empty: no special handling beyond the above.
 
-Then say which QOS preempts which:
+> **Note.** When using `sacctmgr add qos`, key=value pairs follow the QOS
+> name directly — no `set` keyword. `set` is only used with `modify`.
+> `Preempt` and `Flags` default to empty on a new QOS and do not need to
+> be explicitly specified.
+
+Then declare which QOS preempts which:
 
 ```bash
 sacctmgr -i modify qos normal set Preempt=low
@@ -912,8 +1013,8 @@ sacctmgr show qos format=Name,Priority,UsageFactor,Preempt
 
 ```bash
 /root/load.sh justin 4                  # fills both 2-CPU nodes (normal)
-sudo -u bob sbatch -p lcilab -q low -n1 --wrap "sleep 600"
-squeue -o "%.8i %.9P %.8u %.6q %.10Q %R"   # %q = QOS; low job pending
+sudo -u bob /opt/slurm/current/bin/sbatch -p lcilab -q low -n1 -o /dev/null -e /dev/null --wrap "sleep 600"
+squeue -o "%.8i %.9P %.8u %.6q %.10Q %.15R"   # %q = QOS
 sreport cluster AccountUtilizationByUser start=$(date +%Y-%m-%d) -t Minutes
 ```
 
@@ -923,8 +1024,12 @@ cancel one of Justin's jobs (or submit a new normal job and watch Bob's get
 killed mid-flight) — the preemption side becomes visible in `sacct` as
 state `PREEMPTED`.
 
-The half-cost shows up in `sreport`: Bob's low-QOS time should be listed at
-50% of wall.
+**What you should see:** Bob's low-QOS job pends immediately with
+`Reason=Resources`. After cancelling a Justin job (`scancel <jobid>`), Bob's
+job starts. If instead you let a normal job arrive while Bob's low job is
+running, Bob's job transitions to `PREEMPTED` state in `sacct`. The
+half-cost shows up in `sreport`: Bob's low-QOS time is listed at 50% of
+wall clock.
 
 ---
 
