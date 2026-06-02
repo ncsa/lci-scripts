@@ -276,8 +276,8 @@ sacct
 # scheduler, and you re-run the install clean when you're done.
 #
 # Reusable load generator used throughout exercises 1, 2, and 5. Submits
-# N single-core sleep jobs as a given user; each user already has a
-# DefaultAccount (set in section 3), so no --account is needed.
+# N single-core 10-minute sleep jobs as a given user; each user already has
+# a DefaultAccount (set in section 3), so no --account is needed.
 # Install the bundled script to /root once, then call it freely:
 cp scripts/load.sh /root/load.sh && chmod +x /root/load.sh
 
