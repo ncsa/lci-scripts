@@ -208,7 +208,7 @@ sinfo
 sinfo -N -l                     # per-node view
 
 # Run a command interactively across the partition. The lcilab partition
-# is defined Default=No (see slurm.conf.j2), so there is NO system default
+# is defined Default=No in slurm.conf, so there is NO system default
 # partition - every job must name one with -p, or you get
 # "No partition specified or system default partition".
 #
@@ -271,9 +271,9 @@ sacct
 #     to apply without restarting slurmctld.
 #   - sacctmgr/QOS/reservation changes take effect right away.
 #
-# Live edits are LOST if you re-run the playbook (it re-renders
-# slurm.conf from the template). To make a change PERMANENT, put
-# it in slurm/roles/slurm-source/templates/slurm.conf.j2 as well.
+# Live edits are LOST if you re-run the playbook (the installer rewrites
+# slurm.conf). That's fine for this lab: the exercises tune the running
+# scheduler, and you re-run the install clean when you're done.
 #
 # Reusable load generator used throughout exercises 1, 2, and 5. Submits
 # N single-core sleep jobs as a given user; each user already has a
@@ -291,28 +291,37 @@ cp scripts/load.sh /root/load.sh && chmod +x /root/load.sh
 # 6. Exercise 1 - Enabling Fairshare
 # ============================================================
 # Goal: every user gets an equal share, and fairshare reacts fast
-# (10-min half-life, depth 6). slurm.conf already has
+# (10-min half-life). slurm.conf already has
 # PriorityType=priority/multifactor + PriorityWeightFairshare set.
 #
 # Edit /etc/slurm/slurm.conf and set:
 #   PriorityDecayHalfLife=00:10:00
 #   PriorityCalcPeriod=00:01:00
-#   FairShareDates=6
-# Keep PriorityFlags=DEPTH_OBLIVIOUS commented OUT so depth is honored.
+#   FairShareDampeningFactor=1
+# Keep PriorityFlags=DEPTH_OBLIVIOUS commented OUT so hierarchical
+# fairshare depth is honored.
 
 # Apply live:
 scontrol reconfigure
 
-# Give all four accounts an equal share at the cluster root:
-sacctmgr -i modify account biology     set fairshare=1
-sacctmgr -i modify account engineering set fairshare=1
-sacctmgr -i modify account chemistry   set fairshare=1
-sacctmgr -i modify account physics     set fairshare=1
+# Give all four accounts an equal share at the cluster root.
+# NOTE: filter by 'where name=' (the account name); 'where account=' filters
+# by PARENT account and matches nothing for top-level accounts.
+sacctmgr -i modify account where name=biology     set fairshare=1
+sacctmgr -i modify account where name=engineering set fairshare=1
+sacctmgr -i modify account where name=chemistry   set fairshare=1
+sacctmgr -i modify account where name=physics     set fairshare=1
 
-# Verify fairshare depth and the live config:
+# Verify fairshare shares and the live config. Expect:
+#   FairShareDampeningFactor = 1
+#   PriorityDecayHalfLife    = 00:10:00
+#   PriorityCalcPeriod       = 00:01:00
+#   PriorityFlags            =          <- empty (nothing after '='). If it
+#       reads 'DEPTH_OBLIVIOUS', comment that line out in slurm.conf and
+#       re-run 'scontrol reconfigure'; the lab needs hierarchical fairshare.
 sshare -l                # Level FS / effective shares per association
 sshare -a -l             # include users; count the levels shown
-scontrol show config | grep -i -E 'PriorityDecayHalfLife|PriorityCalcPeriod|FairShareDates|PriorityFlags'
+scontrol show config | grep -iE 'PriorityDecayHalfLife|PriorityCalcPeriod|FairShareDampeningFactor|PriorityFlags'
 
 # Drive load from two users and watch priorities diverge:
 /root/load.sh justin 15
@@ -329,8 +338,9 @@ squeue -o "%.8i %.9P %.8u %.10Q %R"       # %Q = priority
 # Goal: departments share evenly with each other AND users share
 # evenly inside their department (hierarchical fairshare).
 
-# Equal shares between accounts (already 1 each), then equal between users:
-sacctmgr -i modify account where account=biology,engineering,chemistry,physics set fairshare=1
+# Equal shares between accounts (already 1 each), then equal between users.
+# Filter accounts by 'where name=' (not 'where account=', which is the parent).
+sacctmgr -i modify account where name=biology,engineering,chemistry,physics set fairshare=1
 sacctmgr -i modify user bob    set fairshare=1
 sacctmgr -i modify user alice  set fairshare=1
 sacctmgr -i modify user justin set fairshare=1
@@ -367,19 +377,29 @@ scontrol create reservation \
   Users=bob \
   Nodes=lci-compute-XX-1
 scontrol show reservation
-sudo -u bob sbatch --reservation=bob_deadline -p lcilab -n1 --wrap "sleep 300"
+# Submit as bob. Two things make this work:
+#   1. Full path to sbatch - sudo sanitizes PATH to its secure_path, which
+#      excludes /opt/slurm/current/bin, so a bare `sudo -u bob sbatch` would
+#      fail "command not found".
+#   2. -o/-e /dev/null - the job inherits ROOT's cwd. sbatch's default output
+#      file (slurm-<id>.out) would be created there AS bob, but bob can't write
+#      to /root (or a root-owned $LABDIR), so slurmd kills the job at startup
+#      (FAILED, exit 15, dies in ~1s). Sending output to /dev/null sidesteps it
+#      - same trick load.sh uses. You watch these demo jobs via squeue/sacct,
+#      not their stdout, so discarding it costs nothing.
+# Every sudo -u ... sbatch below follows the same pattern.
+sudo -u bob /opt/slurm/current/bin/sbatch --reservation=bob_deadline -p lcilab -n1 -o /dev/null -e /dev/null --wrap "sleep 300"
 
-# (b) Permanent fix - high-priority partition. Add to /etc/slurm/slurm.conf
-# (and the .j2 template to persist). PriorityTier is what makes a
-# partition jump the queue:
+# (b) Permanent fix - high-priority partition. Add to /etc/slurm/slurm.conf.
+# PriorityTier is what makes a partition jump the queue:
 #   PartitionName=high Nodes=lci-compute-XX-[1-2] Default=No \
 #     PriorityTier=100 QOS=normal AllowQOS=normal
 scontrol reconfigure
 sinfo -o "%.12P %.5a %.10l %.6D"     # confirm the 'high' partition exists
 
 # Compare placement of a normal vs. high job:
-sudo -u bob sbatch -p high   -n1 --wrap "sleep 300"
-sudo -u justin sbatch -p lcilab -n1 --wrap "sleep 300"
+sudo -u bob /opt/slurm/current/bin/sbatch -p high   -n1 -o /dev/null -e /dev/null --wrap "sleep 300"
+sudo -u justin /opt/slurm/current/bin/sbatch -p lcilab -n1 -o /dev/null -e /dev/null --wrap "sleep 300"
 squeue -o "%.8i %.9P %.8u %.10Q %R"
 
 
@@ -391,10 +411,10 @@ squeue -o "%.8i %.9P %.8u %.10Q %R"
 
 # Apply the GrpTRESMins cap to each account (AccountingStorageEnforce=limits
 # is already on, so this kicks in immediately):
-sacctmgr -i modify account biology     set GrpTRESMins=cpu=1200
-sacctmgr -i modify account engineering set GrpTRESMins=cpu=1200
-sacctmgr -i modify account chemistry   set GrpTRESMins=cpu=1200
-sacctmgr -i modify account physics     set GrpTRESMins=cpu=1200
+sacctmgr -i modify account where name=biology     set GrpTRESMins=cpu=1200
+sacctmgr -i modify account where name=engineering set GrpTRESMins=cpu=1200
+sacctmgr -i modify account where name=chemistry   set GrpTRESMins=cpu=1200
+sacctmgr -i modify account where name=physics     set GrpTRESMins=cpu=1200
 sacctmgr show assoc format=Account,User,GrpTRESMins
 
 # Make 'high' cost 2x normal via TRESBillingWeights. Edit
@@ -404,7 +424,7 @@ sacctmgr show assoc format=Account,User,GrpTRESMins
 scontrol reconfigure
 
 # Burn usage and watch it count against the cap:
-sudo -u carol sbatch -p lcilab -n2 --wrap "sleep 600"   # chemistry
+sudo -u carol /opt/slurm/current/bin/sbatch -p lcilab -n2 -o /dev/null -e /dev/null --wrap "sleep 600"   # chemistry
 sleep 60
 sreport cluster AccountUtilizationByUser start=$(date +%Y-%m-%d) -t Minutes
 
@@ -419,12 +439,9 @@ squeue -o "%.8i %.9P %.8u %.8a %R"
 # normal jobs, and is billed at half cost. slurm.conf already has
 # PreemptType=preempt/qos and PreemptMode=CANCEL.
 
-# Create the 'low' QOS:
-sacctmgr -i add qos low \
-  set Priority=0 \
-  UsageFactor=0.5 \
-  Preempt= \
-  Flags=
+# Create the 'low' QOS. In 'add', key=value pairs follow the name directly
+# (no 'set' - that's for 'modify'). Preempt/Flags default to empty.
+sacctmgr -i add qos low Priority=0 UsageFactor=0.5
 
 # Let 'normal' preempt 'low':
 sacctmgr -i modify qos normal set Preempt=low
@@ -439,8 +456,8 @@ sacctmgr show qos format=Name,Priority,UsageFactor,Preempt
 # Demo: fill the cluster with normal jobs, add a low job, watch it
 # wait (and get preempted/backfilled around normal work):
 /root/load.sh justin 4              # fills both 2-CPU nodes (normal)
-sudo -u bob sbatch -p lcilab -q low -n1 --wrap "sleep 600"
-squeue -o "%.8i %.9P %.8u %.6q %.10Q %R"   # %q = QOS; low job pending
+sudo -u bob /opt/slurm/current/bin/sbatch -p lcilab -q low -n1 -o /dev/null -e /dev/null --wrap "sleep 600"
+squeue -o "%.8i %.9P %.8u %.6q %.10Q %.15R"   # %q = QOS; low job pending
 
 # Half cost shows up in accounting (UsageFactor=0.5):
 sreport cluster AccountUtilizationByUser start=$(date +%Y-%m-%d) -t Minutes
