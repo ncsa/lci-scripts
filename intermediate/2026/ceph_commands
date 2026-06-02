@@ -101,3 +101,8 @@ getfattr -n ceph.quota.max_files /mnt/cephfs/projects/B
 
 ## Copy over sample data if you want to play with it (from head node)
 rsync -avP /mnt/shared_files/sample_data/* /mnt/cephfs/projects/A/
+
+## To cleanup (if you want to), on the headnode (lci-head-XX-1) run:
+umount /mnt/cephfs
+clush -w lci-compute-XX-[1-2] "umount /mnt/cephfs"
+clush -w lci-storage-XX-[1-4] "podman rm -a -f"
