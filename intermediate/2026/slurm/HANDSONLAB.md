@@ -938,14 +938,19 @@ even though this lab doesn't actually use them, the format is
 scontrol reconfigure
 sudo -u carol /opt/slurm/current/bin/sbatch -p lcilab -n2 -o /dev/null -e /dev/null --wrap "sleep 600"   # chemistry
 sleep 60
-sreport cluster AccountUtilizationByUser start=$(date +%Y-%m-%d) -t Minutes
+sacct -X -a --starttime=$(date +%Y-%m-%d) --format=JobID,User,Account,State,Elapsed,AllocCPUS,CPUTimeRAW
 squeue -o "%.8i %.9P %.8u %.8a %R"
 ```
 
-`sreport AccountUtilizationByUser` is the canonical "who used what" report.
-`-t Minutes` puts the answer in CPU-minutes, matching the cap units. The
-`squeue` line at the end exposes the `Reason` column (`%R`) — that's where
-you see `GrpTRESMins` once an account hits its cap.
+`sacct -X` reads the per-job records straight from `slurmdbd`, so each job's
+consumption is visible the moment it finishes — no waiting on a rollup.
+`CPUTimeRAW` is CPU-seconds (`AllocCPUS` × `Elapsed`); that's the usage that
+accumulates against the account's `GrpTRESMins` cap (divide by 60 for the
+CPU-minutes the cap is expressed in). The `squeue` line at the end exposes
+the `Reason` column (`%R`) — that's where you see `GrpTRESMins` once an
+account hits its cap. (`sreport cluster AccountUtilizationByUser` gives the
+same numbers aggregated per account, but it reads `slurmdbd`'s hourly
+rolled-up tables, so right after a short demo it's typically empty.)
 
 ---
 
@@ -1029,7 +1034,7 @@ sacctmgr show qos format=Name,Priority,UsageFactor,Preempt
 /root/load.sh justin 4                  # fills both 2-CPU nodes (normal)
 sudo -u bob /opt/slurm/current/bin/sbatch -p lcilab -q low -n1 -o /dev/null -e /dev/null --wrap "sleep 600"
 squeue -o "%.8i %.9P %.8u %.6q %.10Q %.15R"   # %q = QOS
-sreport cluster AccountUtilizationByUser start=$(date +%Y-%m-%d) -t Minutes
+sacct -X -a --starttime=$(date +%Y-%m-%d) --format=JobID,User,Account,State,Elapsed,AllocCPUS,CPUTimeRAW
 ```
 
 The cluster has 2 nodes × 2 CPUs = 4 CPU slots. The 4 normal-QOS jobs from
@@ -1047,9 +1052,17 @@ squeue   # Bobs job is gone as the new Justin job on the normal qos preempted it
 **What you should see:** Bob's low-QOS job pends immediately with
 `Reason=Resources`. After cancelling a Justin job (`scancel <jobid>`), Bob's
 job starts. If instead you let a normal job arrive while Bob's low job is
-running, Bob's job transitions to `PREEMPTED` state in `sacct`. The
-half-cost shows up in `sreport`: Bob's low-QOS time is listed at 50% of
-wall clock.
+running, Bob's job transitions to `PREEMPTED` state in `sacct`.
+
+`sacct -X` reads the per-job records straight from `slurmdbd`, so finished
+jobs (and their final state — `COMPLETED`, `CANCELLED`, `PREEMPTED`) show up
+the moment they end. The `State` and `Elapsed` columns are where you watch
+the preemption story play out; `CPUTimeRAW` (CPU-seconds = `AllocCPUS` ×
+`Elapsed`) is the raw consumption the `UsageFactor=0.5` then bills at half
+rate against `GrpTRESMins`. We use `sacct` rather than
+`sreport AccountUtilizationByUser` here because `sreport` reads only the
+**rolled-up** usage tables that `slurmdbd` aggregates hourly — so right after
+a short demo it's usually empty, while `sacct` has the data immediately.
 
 ---
 
