@@ -1,8 +1,5 @@
 # Module 12 — Slurm Hands-On Lab
 
-> The detailed companion for the LCI Intermediate 2026 *Schedulers* track.
-> Source of the slide deck at `slides/Current/12-slurm-hands-on/deck.py`.
->
 > **`commands` is the source of truth for *what to run*; this file is the
 > source of truth for *why*.** Run the commands on your head node
 > (`lci-head-XX-1`, where `XX` is your cluster number) as root.
