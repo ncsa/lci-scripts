@@ -15,13 +15,13 @@ chmod +x cephadm
 ./cephadm add-repo --version 18.2.2
 ./cephadm install
 
-## Get podman installed on your storage nodes
+## From the head node (lci-head-XX-1) Get podman installed on your storage nodes
 clush -w lci-storage-XX-[1-4] "dnf install podman -y"
 
-## Bootstrap your cluster
+## From your first storage node (lci-storage-XX-1) Bootstrap your cluster
 cephadm bootstrap --mon-ip $(grep storage /etc/hosts | head -n 1 | awk '{print $1}') --allow-fqdn-hostname
 
-## Push out ceph key from lci-storage-XX-1
+## From first storage node (lci-storage-XX-1) Push out ceph key from lci-storage-XX-1
 ssh-copy-id -f -i /etc/ceph/ceph.pub root@lci-storage-XX-2
 ssh-copy-id -f -i /etc/ceph/ceph.pub root@lci-storage-XX-3
 ssh-copy-id -f -i /etc/ceph/ceph.pub root@lci-storage-XX-4
@@ -33,7 +33,7 @@ cephadm shell -- ceph status
 ## Adjust hostnames on storage nodes; on each storage node run:
 hostname lci-storage-XX-[1-4] #Substitute cluster number for XX and run with appropriate final number
 
-## Expand the cluster
+## From your first storage node (lci-storage-XX-1) Expand the cluster
 cephadm shell -- ceph orch host add lci-storage-XX-2 $(grep lci-storage-XX-2 /etc/hosts | awk '{print $1}')
 cephadm shell -- ceph orch host add lci-storage-XX-3 $(grep lci-storage-XX-3 /etc/hosts | awk '{print $1}')
 cephadm shell -- ceph orch host add lci-storage-XX-4 $(grep lci-storage-XX-4 /etc/hosts | awk '{print $1}')
