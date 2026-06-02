@@ -423,10 +423,14 @@ sacctmgr show assoc format=Account,User,GrpTRESMins
 #   PartitionName=high ... TRESBillingWeights="CPU=2.0,Mem=.25G,gres/gpu=3.0"
 scontrol reconfigure
 
-# Burn usage and watch it count against the cap:
+# Burn usage and watch it count against the cap. sacct -X reads per-job
+# records from slurmdbd immediately (no rollup wait); CPUTimeRAW is CPU-seconds
+# (AllocCPUS x Elapsed) that accumulate against GrpTRESMins. (sreport cluster
+# AccountUtilizationByUser aggregates the same per account, but reads hourly
+# rolled-up tables and is usually empty right after a short demo.)
 sudo -u carol /opt/slurm/current/bin/sbatch -p lcilab -n2 -o /dev/null -e /dev/null --wrap "sleep 600"   # chemistry
 sleep 60
-sreport cluster AccountUtilizationByUser start=$(date +%Y-%m-%d) -t Minutes
+sacct -X -a --starttime=$(date +%Y-%m-%d) --format=JobID,User,Account,State,Elapsed,AllocCPUS,CPUTimeRAW
 
 # When an account exceeds GrpTRESMins, new jobs pend with reason 'GrpTRESMins':
 squeue -o "%.8i %.9P %.8u %.8a %R"
@@ -446,6 +450,13 @@ sacctmgr -i add qos low Priority=0 UsageFactor=0.5
 # Let 'normal' preempt 'low':
 sacctmgr -i modify qos normal set Preempt=low
 
+# Grant 'low' to each association. With AccountingStorageEnforce=limits,qos a
+# user can only submit a QOS that's in their association's allowed list (default
+# is just 'normal'). This is separate from the partition's AllowQOS below - both
+# must permit 'low' or sbatch -q low fails with "Invalid qos specification".
+# '+=' appends rather than replacing the existing list:
+sacctmgr -i modify account where name=biology,engineering,chemistry,physics set qos+=low
+
 # Allow the low QOS on the lcilab partition. Edit /etc/slurm/slurm.conf:
 #   PartitionName=lcilab ... QOS=normal AllowQOS=normal,low
 scontrol reconfigure
@@ -459,8 +470,11 @@ sacctmgr show qos format=Name,Priority,UsageFactor,Preempt
 sudo -u bob /opt/slurm/current/bin/sbatch -p lcilab -q low -n1 -o /dev/null -e /dev/null --wrap "sleep 600"
 squeue -o "%.8i %.9P %.8u %.6q %.10Q %.15R"   # %q = QOS; low job pending
 
-# Half cost shows up in accounting (UsageFactor=0.5):
-sreport cluster AccountUtilizationByUser start=$(date +%Y-%m-%d) -t Minutes
+# Watch state and consumption per job. sacct -X reads slurmdbd directly, so
+# finished jobs (and PREEMPTED/CANCELLED state) show immediately; CPUTimeRAW is
+# the raw usage that UsageFactor=0.5 then bills at half rate. (sreport cluster
+# AccountUtilizationByUser gives the per-account rollup, but lags an hour.)
+sacct -X -a --starttime=$(date +%Y-%m-%d) --format=JobID,User,Account,State,Elapsed,AllocCPUS,CPUTimeRAW
 
 
 # ============================================================
