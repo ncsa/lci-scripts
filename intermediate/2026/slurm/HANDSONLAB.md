@@ -1034,9 +1034,15 @@ sreport cluster AccountUtilizationByUser start=$(date +%Y-%m-%d) -t Minutes
 
 The cluster has 2 nodes × 2 CPUs = 4 CPU slots. The 4 normal-QOS jobs from
 Justin fill it. Bob's `-q low` job pends with `Reason=Resources`. Now
-cancel one of Justin's jobs (or submit a new normal job and watch Bob's get
-killed mid-flight) — the preemption side becomes visible in `sacct` as
-state `PREEMPTED`.
+cancel one of Justin's jobs and verify Bob's job starts. 
+
+```bash
+squeue   #note a jobid from Justin
+scancel 50 # assuming 50 is the jobid of one of Justin's running jobs
+squeue   # verify Bob's low qos job has started
+/root/load.sh justin 1
+squeue   # Bobs job is gone as the new Justin job on the normal qos preempted it. 
+```
 
 **What you should see:** Bob's low-QOS job pends immediately with
 `Reason=Resources`. After cancelling a Justin job (`scancel <jobid>`), Bob's
