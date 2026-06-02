@@ -58,7 +58,10 @@ ScronParameters=enable
 SelectType=select/cons_tres
 SelectTypeParameters=CR_Core_Memory,CR_CORE_DEFAULT_DIST_BLOCK
 PriorityType=priority/multifactor
-PriorityFlags=DEPTH_OBLIVIOUS
+# DEPTH_OBLIVIOUS collapses the hierarchical fairshare depth calculation and
+# changes the fairshare scores. The hands-on lab (Exercise 1/2) relies on
+# hierarchical fairshare, so keep this commented out.
+#PriorityFlags=DEPTH_OBLIVIOUS
 #PriorityFavorSmall=YES
 
 #PriorityDecayHalfLife=7-0
