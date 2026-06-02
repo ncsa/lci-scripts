@@ -26,7 +26,13 @@ if [ -z "$u" ] || [ -z "$n" ]; then
   exit 1
 fi
 
+# Resolve sbatch to its absolute path. sudo's secure_path
+# (/sbin:/bin:/usr/sbin:/usr/bin) does not include Slurm's bin dir, so
+# 'sudo -u user sbatch' fails with "command not found". Call it by full
+# path to sidestep sudo's sanitized PATH.
+sbatch=$(command -v sbatch || echo /opt/slurm/current/bin/sbatch)
+
 for i in $(seq 1 "$n"); do
-  sudo -u "$u" sbatch -p "$part" -q "$qos" -n1 \
+  sudo -u "$u" "$sbatch" -p "$part" -q "$qos" -n1 \
     --wrap "sleep 600" -J "${u}-${i}" -o /dev/null
 done
