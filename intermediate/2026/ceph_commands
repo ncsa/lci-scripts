@@ -2,10 +2,13 @@
 
 ## Get base ceph installed
 export CEPH_RELEASE=18.2.2
-curl --silent --remote-name --location https://download.ceph.com/rpm-${CEPH_RELEASE}/el8/noarch/cephadm
+curl --silent --remote-name --location https://download.ceph.com/rpm-${CEPH_RELEASE}/el9/noarch/cephadm
 chmod +x cephadm
 ./cephadm add-repo --version 18.2.2
 ./cephadm install
+
+## Get podman installed on your storage nodes
+clush -w lci-storage-XX-[1-4] "dnf install podman -y"
 
 ## Bootstrap your cluster
 cephadm bootstrap --mon-ip $(grep storage /etc/hosts | head -n 1 | awk '{print $1}') --allow-fqdn-hostname
@@ -36,8 +39,8 @@ dd if=/dev/zero of=/dev/vdc bs=1M count=5200 #Expect no space left message
 sgdisk --zap-all /dev/vdb
 sgdisk --zap-all /dev/vdc
 
-## Show all available devices
-#Wait 30 seconds after last zap from above is done
+## From lci-storage-XX-1 show all available devices
+#Wait 30 seconds after last zap from above is done, may need to run a couple times
 cephadm shell -- ceph orch device ls --refresh
 
 ## Add disks to Ceph
@@ -51,7 +54,7 @@ cephadm shell -- ceph orch apply mds lci
 ## Place Ceph Repo on Compute nodes and head node (following contents in /etc/yum.repos.d/ceph_stable.repo)
 
 [ceph_stable]
-baseurl = https://download.ceph.com/rpm-18.2.2/el8/x86_64/
+baseurl = https://download.ceph.com/rpm-18.2.2/el9/x86_64/
 gpgcheck = 1
 gpgkey = https://download.ceph.com/keys/release.asc
 name = Ceph Stable $basearch Repo
@@ -87,3 +90,6 @@ setfattr -n ceph.quota.max_files -v 100000 /mnt/cephfs/projects/B # A 100,000 in
 ## Can view quotas with:
 getfattr -n ceph.quota.max_bytes /mnt/cephfs/projects/A
 getfattr -n ceph.quota.max_files /mnt/cephfs/projects/B
+
+## Copy over sample data if you want to play with it (from head node)
+rsync -avP /mnt/shared_files/sample_data/* /mnt/cephfs/projects/A/
