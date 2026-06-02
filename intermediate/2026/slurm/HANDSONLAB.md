@@ -991,6 +991,23 @@ scavenger queues usually use `REQUEUE` so the displaced job ends up back in
 the queue instead of dying outright; `SUSPEND` and `GANG` are the other
 options — discuss the trade-offs.
 
+Finally, grant `low` to each department's association. A new QOS exists
+cluster-wide, but with `AccountingStorageEnforce=limits,qos` a user can only
+submit under a QOS that's in their **association's** allowed QOS list — which
+defaults to just `normal`. Add `low` to all four accounts (`+=` appends to
+the existing list rather than replacing it):
+
+```bash
+sacctmgr -i modify account where name=biology,engineering,chemistry,physics \
+  set qos+=low
+```
+
+> **Note.** This is a *separate* check from the partition's `AllowQOS`
+> (configured in the next step). Both must permit `low`, or `sbatch -q low`
+> fails with `Invalid qos specification`. Skip this grant and even a correctly
+> configured partition rejects the job, because bob's association still only
+> allows `normal`.
+
 ### Allow it on the partition
 
 `AllowQOS` lists which QOSes can land on this partition. Without adding
