@@ -3,6 +3,7 @@ rsync -avP ~/.ssh/id_rsa lci-storage-XX-1:/root/.ssh/
 rsync -avP ~/.ssh/id_rsa lci-storage-XX-2:/root/.ssh/
 rsync -avP ~/.ssh/id_rsa lci-storage-XX-3:/root/.ssh/
 rsync -avP ~/.ssh/id_rsa lci-storage-XX-4:/root/.ssh/
+cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
 
 ## Jump over to your lci-storage-XX-1 host via SSH as root
 
@@ -13,29 +14,30 @@ lci-storage-XX-3:quorum
 lci-storage-XX-4
 
 ## Create the cluster
-mmcrcluster -N ~/lci_storage_nodes -r `which ssh` -R `which scp` -C lci
+/usr/lpp/mmfs/bin/mmcrcluster -N ~/lci_storage_nodes -r `which ssh` -R `which scp` -C lci
 
 ## Remove the ":quorum" strings from the ~/lci_storage_nodes file
 
 ## License servers
-mmchlicense server --accept -N ~/lci_storage_nodes
+/usr/lpp/mmfs/bin/mmchlicense server --accept -N ~/lci_storage_nodes
 
-## Create compute node text file, add the following to ~/lci_compute_nodes (replace XX with your cluster number):
+## Create client node text file, add the following to ~/lci_client_nodes (replace XX with your cluster number):
 lci-compute-XX-1
 lci-compute-XX-2
+lci-head-XX-1
 
 ## Add nodes
-mmaddnode -N ~/lci_compute_nodes
+/usr/lpp/mmfs/bin/mmaddnode -N ~/lci_client_nodes
 
 ## License clients
-mmchlicense client --accept -N ~/lci_compute_nodes
+/usr/lpp/mmfs/bin/mmchlicense client --accept -N ~/lci_client_nodes
 
 ## Show cluster members
-mmlscluster
+/usr/lpp/mmfs/bin/mmlscluster
 
 ## Create some node groups
-mmcrnodeclass coreio -N lci-storage-XX-1,lci-storage-XX-2,lci-storage-XX-3,lci-storage-XX-4
-mmcrnodeclass clients -N lci-compute-XX-1,lci-compute-XX-2
+/usr/lpp/mmfs/bin/mmcrnodeclass coreio -N lci-storage-XX-1,lci-storage-XX-2,lci-storage-XX-3,lci-storage-XX-4
+/usr/lpp/mmfs/bin/mmcrnodeclass clients -N lci-compute-XX-1,lci-compute-XX-2,lci-head-XX-1
 
 ## Create a stanza file called: ~/lci_nsds on your lci-storage-XX-1 host, there should be a stanza entry for *each* disk (8 total) a few sample ones looks like
 
@@ -61,65 +63,65 @@ mmcrnodeclass clients -N lci-compute-XX-1,lci-compute-XX-2
   failureGroup=1
   
 ## Create the NSDs in Storage Scale
-mmcrnsd -F ~/lci_nsds 
+/usr/lpp/mmfs/bin/mmcrnsd -F ~/lci_nsds 
 
 ## Confirm disks created
-mmlsnsd
+/usr/lpp/mmfs/bin/mmlsnsd
 
 ## Set kernel modules to autobuild
-mmchconfig autobuildgpl=yes
+/usr/lpp/mmfs/bin/mmchconfig autobuildgpl=yes
 
 ## Startup Servers
-mmstartup -N coreio
+/usr/lpp/mmfs/bin/mmstartup -N coreio
 
 ## Wait until all nodes come to "active" state as shown by:
-mmgetstate -N coreio
+/usr/lpp/mmfs/bin/mmgetstate -N coreio
 
 ## Create a file system
-mmcrfs lci -F ~/lci_nsds -B 1M -m 1 -r 1 -Q yes -T /gpfs/lci  
-mmchfs lci --perfileset-quota --filesetdf
+/usr/lpp/mmfs/bin/mmcrfs lci -F ~/lci_nsds -B 1M -m 1 -r 1 -Q yes -T /gpfs/lci  
+/usr/lpp/mmfs/bin/mmchfs lci --perfileset-quota --filesetdf
 
 ## Mount file system on all NSD nodes
-mmmount lci -N coreio
+/usr/lpp/mmfs/bin/mmmount lci -N coreio
 
 ## Startup GPFS on compute nodes and mount the FS
-mmstartup -N clients && mmmount lci -N clients
+/usr/lpp/mmfs/bin/mmstartup -N clients && sleep 5 && /usr/lpp/mmfs/bin/mmmount lci -N clients
 
 ## Create a home and scratch fileset
-mmcrfileset lci home --inode-space=new
-mmcrfileset lci scratch --inode-space=new
+/usr/lpp/mmfs/bin/mmcrfileset lci home --inode-space=new
+/usr/lpp/mmfs/bin/mmcrfileset lci scratch --inode-space=new
 
 ## Link them into the FS tree
-mmlinkfileset lci home -J /gpfs/lci/home
-mmlinkfileset lci scratch -J /gpfs/lci/scratch
+/usr/lpp/mmfs/bin/mmlinkfileset lci home -J /gpfs/lci/home
+/usr/lpp/mmfs/bin/mmlinkfileset lci scratch -J /gpfs/lci/scratch
 
 ## Set a default home directory quota of 5GB per user
-mmsetquota lci:home --default user --block 5G:5G
+/usr/lpp/mmfs/bin/mmsetquota lci:home --default user --block 5G:5G
 
 ## Limit the scratch area to 15GB total
-mmsetquota lci:scratch --block 15G:15G
+/usr/lpp/mmfs/bin/mmsetquota lci:scratch --block 15G:15G
 
 ## Sync in test data from *the head node*
-rsync -avP lci@levi2.ncsa.Illinois.edu:/gideon/lci/* /gpfs/lci/scratch 
+rsync -avP /mnt/shared_files/sample_data/* /gpfs/lci/scratch/
 
 ## Confirm utilization as seen by quota utility
-mmrepquota -j lci --block-size=auto
+/usr/lpp/mmfs/bin/mmrepquota -j lci --block-size=auto
 
 ## Check out NSD capacities
-mmdf lci
+/usr/lpp/mmfs/bin/mmdf lci
 
 ## Suspend a LUN just as a test
-mmchdisk lci suspend -d "storage2_disk_1"
+/usr/lpp/mmfs/bin/mmchdisk lci suspend -d "storage2_disk_1"
 
 ## Remove that disk to shrink the FS
-mmdeldisk lci "storage2_disk_1" -r -N coreio
+/usr/lpp/mmfs/bin/mmdeldisk lci "storage2_disk_1" -r -N coreio
 
 ## Check NSD capacities again and you can see data got redistributed
-mmdf lci
+/usr/lpp/mmfs/bin/mmdf lci
 
 ## To tear down
 
 ## From lci-storage-XX-1
-mmumount lci -a
-mmshutdown -N clients
-mmshutdown -N coreio ## acknowledge "yes"
+/usr/lpp/mmfs/bin/mmumount lci -a
+/usr/lpp/mmfs/bin/mmshutdown -N clients
+/usr/lpp/mmfs/bin/mmshutdown -N coreio ## acknowledge "yes"
