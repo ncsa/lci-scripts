@@ -60,7 +60,7 @@ lci-head-XX-1
   nsd=storage2_disk_1
   servers=lci-storage-XX-2
   usage=dataAndMetadata
-  failureGroup=1
+  failureGroup=2
   
 ## Create the NSDs in Storage Scale
 /usr/lpp/mmfs/bin/mmcrnsd -F ~/lci_nsds 
