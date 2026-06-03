@@ -153,9 +153,9 @@ echo "============================================================"
 echo
 echo "IMPORTANT - activate the Slurm commands on PATH:"
 echo "  The install wrote /etc/profile.d/slurm.sh (puts"
-echo "  /opt/slurm/current/bin on PATH), but profile.d is only sourced"
-echo "  by *login* shells - this root shell predates the install, so"
-echo "  sinfo/sacctmgr/etc are NOT on PATH yet. Do ONE of:"
+echo "  /opt/slurm/current/bin and .../sbin on PATH), but profile.d is only"
+echo "  sourced by *login* shells - this root shell predates the install, so"
+echo "  sinfo/sacctmgr/slurmctld/etc are NOT on PATH yet. Do ONE of:"
 echo "    source /etc/profile.d/slurm.sh    # this shell, right now"
 echo "    exit; sudo -i                     # or get a fresh login shell"
 echo

@@ -150,7 +150,10 @@
     - name: Add Slurm to PATH
       ansible.builtin.lineinfile:
         path: /etc/profile.d/slurm.sh
-        line: 'export PATH=/opt/slurm/current/bin:$PATH'
+        # Anchor on the export so a re-run over a cluster built with the old
+        # bin-only line REPLACES it instead of appending a duplicate.
+        regexp: '^export PATH=/opt/slurm/current/'
+        line: 'export PATH=/opt/slurm/current/bin:/opt/slurm/current/sbin:$PATH'
         create: yes
         mode: '0644'
 
@@ -508,7 +511,10 @@
     - name: Add Slurm to PATH
       ansible.builtin.lineinfile:
         path: /etc/profile.d/slurm.sh
-        line: 'export PATH=/opt/slurm/current/bin:$PATH'
+        # Anchor on the export so a re-run over a cluster built with the old
+        # bin-only line REPLACES it instead of appending a duplicate.
+        regexp: '^export PATH=/opt/slurm/current/'
+        line: 'export PATH=/opt/slurm/current/bin:/opt/slurm/current/sbin:$PATH'
         create: yes
         mode: '0644'
 
