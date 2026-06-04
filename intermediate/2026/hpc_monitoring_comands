@@ -61,7 +61,7 @@ gpgkey = https://repos.influxdata.com/influxdata-archive_compat.key
 
 ## Install Telegraf on all nodes, from the head node
 rpm --import https://repos.influxdata.com/influxdata-archive_compat.key
-clush -w lci-compute-XX-[1-4] "rpm --import https://repos.influxdata.com/influxdata-archive_compat.key"
+clush -w lci-storage-XX-[1-4] "rpm --import https://repos.influxdata.com/influxdata-archive_compat.key"
 clush -w lci-compute-XX-[1-2] "rpm --import https://repos.influxdata.com/influxdata-archive_compat.key"
 dnf install telegraf -y
 clush -w lci-storage-XX-[1-4] "dnf install telegraf -y"
