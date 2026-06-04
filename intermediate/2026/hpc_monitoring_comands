@@ -52,12 +52,12 @@ systemctl restart httpd
 
 ## Add influx repo to all 7 VMs; put the below contents in /etc/yum.repos.d/influx.repo
 
-[influxdb]
-name = InfluxDB Repository - RHEL $releasever
-baseurl = https://repos.influxdata.com/rhel/$releasever/$basearch/stable
+[influxdata]
+name = InfluxData Repository - Stable
+baseurl = https://repos.influxdata.com/stable/\$basearch/main
 enabled = 1
 gpgcheck = 1
-gpgkey = https://repos.influxdata.com/influxdata-archive_compat.key
+gpgkey = https://repos.influxdata.com/influxdata-archive.key
 
 ## Install Telegraf on all nodes, from the head node
 rpm --import https://repos.influxdata.com/influxdata-archive_compat.key
