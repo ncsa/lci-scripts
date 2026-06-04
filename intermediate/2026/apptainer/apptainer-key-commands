@@ -1,0 +1,56 @@
+# Generate a new PGP key pair
+apptainer key newpair
+
+# List all keys in your local keyring (shows fingerprints)
+apptainer key list
+
+# Check which keyserver is configured
+apptainer remote list
+
+# Push your public key to keys.openpgp.org (use fingerprint from key list)
+apptainer key push <FINGERPRINT>
+
+# Push to a specific keyserver URL
+apptainer key push --url https://keys.openpgp.org <FINGERPRINT>
+
+# Search the keyserver by email address
+apptainer key search user@example.com
+
+# Search the keyserver by fingerprint
+apptainer key search 0x<FINGERPRINT>
+
+# Pull a public key from the keyserver by fingerprint
+apptainer key pull <FINGERPRINT>
+
+# Export your public key to a file
+apptainer key export --armor pubkey.asc <FINGERPRINT>
+
+# Export your private key to a file (keep this secure)
+apptainer key export --armor --secret privkey.asc <FINGERPRINT>
+
+# Import a key from a file
+apptainer key import privkey.asc
+
+# Remove a key from your local keyring
+apptainer key remove <FINGERPRINT>
+
+# Sign a container
+apptainer sign my_container.sif
+
+# Sign a container with a specific key
+apptainer sign --fingerprint <FINGERPRINT> my_container.sif
+
+# Verify a signed container
+apptainer verify my_container.sif
+
+# List configured keyservers
+apptainer keyserver list
+
+# Add a keyserver (admin)
+sudo apptainer keyserver add https://keyserver.example.com
+
+# Add a keyserver at the top of the lookup order (admin)
+sudo apptainer keyserver add --order 1 https://keyserver.example.com
+
+# Remove a keyserver (admin)
+sudo apptainer keyserver remove https://keyserver.example.com
